@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מאמן כושר</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #1a1a2e;
+      --card:    #16213e;
+      --border:  #0f3460;
+      --accent:  #e94560;
+      --accent2: #a8dadc;
+      --text:    #e0e0e0;
+      --muted:   #888;
+    }
+
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ===== NAV ===== */
+    nav {
+      background: var(--card);
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 60px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      gap: 12px;
+    }
+    .app-title { color: var(--accent); font-size: 1.2rem; font-weight: bold; text-shadow: 0 0 15px rgba(233,69,96,.5); white-space: nowrap; }
+    .nav-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .nav-tab {
+      background: none; border: 2px solid transparent; color: var(--muted);
+      padding: 7px 13px; border-radius: 8px; cursor: pointer; font-size: .85rem; transition: all .2s;
+    }
+    .nav-tab:hover { color: var(--text); border-color: var(--border); }
+    .nav-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(233,69,96,.1); }
+
+    /* ===== MAIN ===== */
+    main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+    section[id^="tab-"] { display: none; }
+    section[id^="tab-"].active { display: block; }
+
+    /* ===== CARDS ===== */
+    .card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 18px; }
+    .card-title { color: var(--accent2); font-size: 1rem; margin-bottom: 6px; }
+    .card-value { font-size: 2rem; font-weight: bold; }
+
+    /* ===== DASHBOARD ===== */
+    .dashboard { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 28px; }
+
+    /* ===== SECTION HEADER ===== */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+    .section-header h2 { font-size: 1.2rem; color: var(--accent2); }
+    .sub-header { font-size: 1rem; color: var(--muted); margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      background: var(--accent); color: #fff; border: none; padding: 8px 20px;
+      border-radius: 8px; cursor: pointer; font-size: .9rem;
+      transition: background .2s, transform .1s; text-decoration: none; display: inline-block;
+    }
+    .btn:hover { background: #c73652; transform: scale(1.03); }
+    .btn:active { transform: scale(.97); }
+    .btn-sm { padding: 4px 12px; font-size: .8rem; }
+    .btn-ghost { background: none; border: 2px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: none; transform: scale(1.03); }
+    .btn-danger { background: #7b1d2e; }
+    .btn-danger:hover { background: #a32540; }
+    .btn-teal { background: #1a5a6a; }
+    .btn-teal:hover { background: #126070; }
+    .wa-btn { background: #1a7a3c; }
+    .wa-btn:hover { background: #145f2e; }
+
+    /* ===== TABLE ===== */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-size: .85rem; font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.03); }
+    .actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+
+    /* ===== BADGES ===== */
+    .badge { padding: 3px 10px; border-radius: 10px; font-size: .75rem; font-weight: 600; display: inline-block; }
+    .badge-paid    { background: #1a4a2e; color: #4caf50; }
+    .badge-pending { background: #4a3a1a; color: #ffa726; }
+    .badge-cat { background: rgba(168,218,220,.15); color: var(--accent2); }
+    .badge-tmpl { background: rgba(233,69,96,.15); color: var(--accent); }
+
+    /* ===== EMPTY STATE ===== */
+    .empty { text-align: center; color: var(--muted); padding: 40px; font-size: 1rem; }
+
+    /* ===== CALENDAR ===== */
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .cal-nav h3 { color: var(--accent2); font-size: 1.1rem; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 24px; }
+    .cal-day-name { text-align: center; font-size: .75rem; color: var(--muted); padding: 4px 0; }
+    .cal-day {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 4px; min-height: 52px; text-align: center; cursor: pointer; transition: border-color .2s; position: relative;
+    }
+    .cal-day:hover { border-color: var(--accent); }
+    .cal-day.today { border-color: var(--accent2); }
+    .cal-day.empty-day { background: none; border-color: transparent; cursor: default; }
+    .cal-day-num { font-size: .85rem; color: var(--muted); }
+    .cal-day.today .cal-day-num { color: var(--accent2); font-weight: bold; }
+    .cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
+    .cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+    /* ===== PLAN / EXERCISE CARDS ===== */
+    .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 16px; }
+    .plan-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; }
+    .plan-card.tmpl-card { border-color: rgba(233,69,96,.4); }
+    .plan-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .plan-name { font-size: 1rem; font-weight: bold; color: var(--accent2); }
+    .plan-client { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+    .plan-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; justify-content: flex-end; }
+    .ex-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .ex-table th, .ex-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: right; }
+    .ex-table th { color: var(--muted); }
+    .ex-table tr:last-child td { border-bottom: none; }
+    .ex-table a { color: var(--accent2); font-size: .78rem; }
+
+    /* ===== REMINDER CARDS ===== */
+    .reminders-list { display: flex; flex-direction: column; gap: 12px; }
+    .reminder-card {
+      background: var(--card); border: 2px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    }
+    .reminder-card.today-card { border-color: var(--accent); }
+    .reminder-info h3 { font-size: 1rem; margin-bottom: 4px; }
+    .reminder-info p  { font-size: .85rem; color: var(--muted); }
+    .reminder-tag { font-size: .75rem; background: rgba(233,69,96,.2); color: var(--accent); padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+
+    /* ===== PAYMENT SUMMARY ===== */
+    .pay-summary { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
+
+    /* ===== MODAL ===== */
+    #modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      z-index: 200; justify-content: center; align-items: center; padding: 20px;
+    }
+    #modal-overlay.open { display: flex; }
+    #modal-box {
+      background: var(--card); border: 2px solid var(--border); border-radius: 16px;
+      padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; position: relative;
+    }
+    #modal-title { color: var(--accent2); font-size: 1.2rem; margin-bottom: 20px; }
+    #modal-close {
+      position: absolute; top: 16px; left: 16px; background: none; border: none;
+      color: var(--muted); font-size: 1.2rem; cursor: pointer; line-height: 1;
+    }
+    #modal-close:hover { color: var(--accent); }
+
+    /* ===== FORM ===== */
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-group label { font-size: .85rem; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea {
+      background: var(--bg); border: 2px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: 9px 12px; font-size: .9rem; font-family: inherit; width: 100%; transition: border-color .2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent2); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+    .form-check { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .form-check input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+    .form-check label { font-size: .9rem; color: var(--text); cursor: pointer; }
+
+    /* ===== EXERCISE BUILDER IN FORM ===== */
+    #ex-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .ex-item {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px;
+    }
+    .ex-item-top { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .ex-item-mid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .ex-item-bot { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .ex-item input, .ex-item select {
+      background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); padding: 7px 10px; font-size: .85rem; font-family: inherit; width: 100%;
+    }
+    .ex-item input:focus, .ex-item select:focus { outline: none; border-color: var(--accent2); }
+    .ex-item-bank { margin-bottom: 6px; }
+    .ex-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 2px 6px; border-radius: 4px; }
+    .ex-remove:hover { color: var(--accent); background: rgba(233,69,96,.1); }
+    .ex-label { font-size: .75rem; color: var(--muted); margin-bottom: 2px; }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--card); border: 2px solid var(--accent2); color: var(--text);
+      padding: 12px 24px; border-radius: 12px; z-index: 500; opacity: 0;
+      transition: all .3s; font-size: .95rem; white-space: nowrap; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 640px) {
+      nav { flex-direction: column; height: auto; padding: 12px; gap: 8px; }
+      .nav-tabs { justify-content: center; }
+      .dashboard, .pay-summary { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      main { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="app-title">💪 מאמן כושר</div>
+  <div class="nav-tabs">
+    <button class="nav-tab" data-tab="clients">לקוחות</button>
+    <button class="nav-tab" data-tab="schedule">לוח זמנים</button>
+    <button class="nav-tab" data-tab="exercises">בנק תרגילים</button>
+    <button class="nav-tab" data-tab="workouts">תוכניות אימון</button>
+    <button class="nav-tab" data-tab="payments">תשלומים</button>
+    <button class="nav-tab" data-tab="reminders">תזכורות</button>
+  </div>
+</nav>
+
+<main>
+  <!-- CLIENTS -->
+  <section id="tab-clients">
+    <div class="dashboard" id="dashboard"></div>
+    <div class="card">
+      <div class="section-header">
+        <h2>לקוחות</h2>
+        <button class="btn" onclick="openAddClient()">+ הוסף לקוח</button>
+      </div>
+      <div class="table-wrap" id="clients-table"></div>
+    </div>
+  </section>
+
+  <!-- SCHEDULE -->
+  <section id="tab-schedule">
+    <div class="card" style="margin-bottom:20px">
+      <div class="cal-nav">
+        <button class="btn btn-ghost btn-sm" onclick="calPrev()">&#8250;</button>
+        <h3 id="cal-title"></h3>
+        <button class="btn btn-ghost btn-sm" onclick="calNext()">&#8249;</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+    <div class="card">
+      <div class="section-header">
+        <h2>כל האימונים</h2>
+        <button class="btn" onclick="openAddSession(null)">+ הוסף אימון</button>
+      </div>
+      <div class="table-wrap" id="sessions-table"></div>
+    </div>
+  </section>
+
+  <!-- EXERCISE BANK -->
+  <section id="tab-exercises">
+    <div class="card">
+      <div class="section-header">
+        <h2>בנק תרגילים</h2>
+        <button class="btn" onclick="openAddExercise()">+ הוסף תרגיל</button>
+      </div>
+      <div class="table-wrap" id="exercises-table"></div>
+    </div>
+  </section>
+
+  <!-- WORKOUTS -->
+  <section id="tab-workouts">
+    <div class="section-header">
+      <h2>תוכניות אימון</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="openAddPlan(true)">+ תבנית גנרית</button>
+        <button class="btn" onclick="openAddPlan(false)">+ תוכנית ללקוח</button>
+      </div>
+    </div>
+    <div id="workouts-content"></div>
+  </section>
+
+  <!-- PAYMENTS -->
+  <section id="tab-payments">
+    <div class="pay-summary" id="pay-summary"></div>
+    <div class="card">
+      <div class="section-header">
+        <h2>תשלומים</h2>
+        <button class="btn" onclick="openAddPayment()">+ הוסף תשלום</button>
+      </div>
+      <div class="table-wrap" id="payments-table"></div>
+    </div>
+  </section>
+
+  <!-- REMINDERS -->
+  <section id="tab-reminders">
+    <div class="section-header"><h2>תזכורות — 7 ימים קרובים</h2></div>
+    <div class="reminders-list" id="reminders-list"></div>
+  </section>
+</main>
+
+<div id="modal-overlay">
+  <div id="modal-box">
+    <button id="modal-close" onclick="closeModal()">✕</button>
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STORAGE =====
+const KEYS = { clients:'ft_clients', sessions:'ft_sessions', plans:'ft_plans', payments:'ft_payments', exercises:'ft_exercises' };
+function load(k)    { return JSON.parse(localStorage.getItem(k) || '[]'); }
+function save(k, d) { localStorage.setItem(k, JSON.stringify(d)); }
+function uid()      { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+// ===== HELPERS =====
+function clientName(id) { const c = load(KEYS.clients).find(x => x.id === id); return c ? c.name : '—'; }
+function clientOptions(sel='') {
+  return load(KEYS.clients).map(c => `<option value="${c.id}"${c.id===sel?' selected':''}>${esc(c.name)}</option>`).join('');
+}
+function bankOptions(selId='') {
+  const cats = [...new Set(load(KEYS.exercises).map(e => e.category))];
+  if (!load(KEYS.exercises).length) return '';
+  let html = '<option value="">— בחר מהבנק (אופציונלי) —</option>';
+  cats.forEach(cat => {
+    const exs = load(KEYS.exercises).filter(e => e.category === cat);
+    html += `<optgroup label="${esc(cat)}">`;
+    exs.forEach(e => { html += `<option value="${e.id}"${e.id===selId?' selected':''}>${esc(e.name)}</option>`; });
+    html += `</optgroup>`;
+  });
+  return html;
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+function fmtDateLong(d) {
+  if (!d) return '';
+  return new Date(d+'T00:00').toLocaleDateString('he-IL', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ===== MODAL =====
+let _onModalSubmit = null;
+function openModal(title, bodyHTML, onSubmit) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHTML;
+  document.getElementById('modal-overlay').classList.add('open');
+  _onModalSubmit = onSubmit;
+  const form = document.getElementById('modal-form');
+  if (form && onSubmit) form.addEventListener('submit', handleModalSubmit);
+}
+function handleModalSubmit(e) { e.preventDefault(); if (_onModalSubmit) _onModalSubmit(new FormData(e.target)); closeModal(); }
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('modal-body').innerHTML = '';
+  _onModalSubmit = null;
+}
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+// ===== TAB NAVIGATION =====
+const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, reminders:renderReminders };
+function switchTab(name) {
+  document.querySelectorAll('section[id^="tab-"]').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.toggle('active', b.dataset.tab===name));
+  RENDERERS[name]();
+}
+document.querySelectorAll('.nav-tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+// ======================
+// ===== CLIENTS ========
+// ======================
+function renderClients() {
+  const clients  = load(KEYS.clients);
+  const sessions = load(KEYS.sessions);
+  const payments = load(KEYS.payments);
+  const today    = new Date().toISOString().slice(0,10);
+  document.getElementById('dashboard').innerHTML = `
+    <div class="card"><div class="card-title">סה"כ לקוחות</div><div class="card-value">${clients.length}</div></div>
+    <div class="card"><div class="card-title">אימונים היום</div><div class="card-value">${sessions.filter(s=>s.date===today).length}</div></div>
+    <div class="card"><div class="card-title">תשלומים ממתינים</div><div class="card-value" style="color:var(--accent)">${payments.filter(p=>p.status==='pending').length}</div></div>
+  `;
+  if (!clients.length) { document.getElementById('clients-table').innerHTML='<div class="empty">אין לקוחות עדיין. הוסף את הראשון!</div>'; return; }
+  document.getElementById('clients-table').innerHTML = `<table>
+    <thead><tr><th>שם</th><th>טלפון</th><th>אימייל</th><th>גיל</th><th>מטרות</th><th>פעולות</th></tr></thead>
+    <tbody>${clients.map(c=>`<tr>
+      <td><strong>${esc(c.name)}</strong></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td>
+      <td>${esc(c.age)}</td><td>${esc(c.goals)}</td>
+      <td class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditClient('${c.id}')">עריכה</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteClient('${c.id}')">מחק</button>
+      </td></tr>`).join('')}</tbody></table>`;
+}
+function clientForm(c={}) {
+  return `<form id="modal-form">
+    <div class="form-row">
+      <div class="form-group"><label>שם מלא *</label><input name="name" value="${esc(c.name||'')}" required></div>
+      <div class="form-group"><label>טלפון *</label><input name="phone" value="${esc(c.phone||'')}" pattern="[0-9]{9,15}" required placeholder="0501234567"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>אימייל</label><input name="email" type="email" value="${esc(c.email||'')}"></div>
+      <div class="form-group"><label>גיל</label><input name="age" type="number" min="1" max="120" value="${esc(c.age||'')}"></div>
+    </div>
+    <div class="form-group"><label>מטרות</label><input name="goals" value="${esc(c.goals||'')}"></div>
+    <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(c.notes||'')}</textarea></div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button type="submit" class="btn">שמור</button>
+    </div></form>`;
+}
+function openAddClient() {
+  openModal('הוסף לקוח', clientForm(), fd => {
+    const clients = load(KEYS.clients);
+    clients.push({id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), goals:fd.get('goals'), notes:fd.get('notes')});
+    save(KEYS.clients, clients); renderClients();
+  });
+}
+function openEditClient(id) {
+  const clients = load(KEYS.clients), c = clients.find(x=>x.id===id);
+  openModal('עריכת לקוח', clientForm(c), fd => {
+    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), goals:fd.get('goals'), notes:fd.get('notes')});
+    save(KEYS.clients, clients); renderClients();
+  });
+}
+function deleteClient(id) {
+  if (!confirm('למחוק את הלקוח? פעולה זו תמחק גם את האימונים והתשלומים שלו.')) return;
+  save(KEYS.clients,  load(KEYS.clients).filter(x=>x.id!==id));
+  save(KEYS.sessions, load(KEYS.sessions).filter(x=>x.clientId!==id));
+  save(KEYS.plans,    load(KEYS.plans).filter(x=>x.clientId!==id));
+  save(KEYS.payments, load(KEYS.payments).filter(x=>x.clientId!==id));
+  renderClients();
+}
+
+// ======================
+// ===== SCHEDULE =======
+// ======================
+let calYear, calMonth;
+function renderSchedule() {
+  const now = new Date();
+  if (!calYear)  calYear  = now.getFullYear();
+  if (!calMonth && calMonth !== 0) calMonth = now.getMonth();
+  renderCalendar(); renderSessionsTable();
+}
+function calPrev() { calMonth--; if (calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext() { calMonth++; if (calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function renderCalendar() {
+  const sessions = load(KEYS.sessions);
+  const today    = new Date().toISOString().slice(0,10);
+  const monthNames = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  document.getElementById('cal-title').textContent = `${monthNames[calMonth]} ${calYear}`;
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const dayNames = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+  const sessionMap = {};
+  sessions.forEach(s => { sessionMap[s.date] = (sessionMap[s.date]||0)+1; });
+  let html = dayNames.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  for (let i=0; i<firstDay; i++) html += '<div class="cal-day empty-day"></div>';
+  for (let d=1; d<=daysInMonth; d++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cnt = sessionMap[ds]||0;
+    const dots = cnt ? `<div class="cal-dots">${'<div class="cal-dot"></div>'.repeat(Math.min(cnt,5))}</div>` : '';
+    html += `<div class="cal-day${ds===today?' today':''}" onclick="openAddSession('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+function renderSessionsTable() {
+  const sessions = load(KEYS.sessions).sort((a,b)=>a.date<b.date?-1:1);
+  if (!sessions.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים עדיין.</div>'; return; }
+  document.getElementById('sessions-table').innerHTML = `<table>
+    <thead><tr><th>לקוח</th><th>תאריך</th><th>שעה</th><th>משך (דק׳)</th><th>הערות</th><th>פעולות</th></tr></thead>
+    <tbody>${sessions.map(s=>`<tr>
+      <td>${esc(clientName(s.clientId))}</td><td>${fmtDate(s.date)}</td>
+      <td>${esc(s.time)}</td><td>${esc(s.duration)}</td><td>${esc(s.notes)}</td>
+      <td class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditSession('${s.id}')">עריכה</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">מחק</button>
+      </td></tr>`).join('')}</tbody></table>`;
+}
+function sessionForm(s={}) {
+  return `<form id="modal-form">
+    <div class="form-group"><label>לקוח *</label>
+      <select name="clientId" required><option value="">— בחר לקוח —</option>${clientOptions(s.clientId||'')}</select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${esc(s.date||'')}" required></div>
+      <div class="form-group"><label>שעה *</label><input name="time" type="time" value="${esc(s.time||'')}" required></div>
+    </div>
+    <div class="form-group"><label>משך (דקות)</label><input name="duration" type="number" min="1" value="${esc(s.duration||60)}"></div>
+    <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(s.notes||'')}</textarea></div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button type="submit" class="btn">שמור</button>
+    </div></form>`;
+}
+function openAddSession(date) {
+  if (!load(KEYS.clients).length) { alert('יש להוסיף לקוח לפני הוספת אימון.'); return; }
+  openModal('הוסף אימון', sessionForm({date:date||''}), fd => {
+    const sessions = load(KEYS.sessions);
+    sessions.push({id:uid(), clientId:fd.get('clientId'), date:fd.get('date'), time:fd.get('time'), duration:fd.get('duration'), notes:fd.get('notes')});
+    save(KEYS.sessions, sessions); renderCalendar(); renderSessionsTable();
+  });
+}
+function openEditSession(id) {
+  const sessions = load(KEYS.sessions), s = sessions.find(x=>x.id===id);
+  openModal('עריכת אימון', sessionForm(s), fd => {
+    Object.assign(s, {clientId:fd.get('clientId'), date:fd.get('date'), time:fd.get('time'), duration:fd.get('duration'), notes:fd.get('notes')});
+    save(KEYS.sessions, sessions); renderCalendar(); renderSessionsTable();
+  });
+}
+function deleteSession(id) {
+  if (!confirm('למחוק אימון זה?')) return;
+  save(KEYS.sessions, load(KEYS.sessions).filter(x=>x.id!==id));
+  renderCalendar(); renderSessionsTable();
+}
+
+// ======================
+// ===== EXERCISE BANK ==
+// ======================
+const EX_CATS = ['חזה','גב','כתפיים','ידיים','רגליים','בטן','קרדיו','אחר'];
+
+function renderExercises() {
+  const exs = load(KEYS.exercises);
+  if (!exs.length) { document.getElementById('exercises-table').innerHTML='<div class="empty">הבנק ריק. הוסף תרגיל ראשון!</div>'; return; }
+  document.getElementById('exercises-table').innerHTML = `<table>
+    <thead><tr><th>שם</th><th>קטגוריה</th><th>סרטון</th><th>פעולות</th></tr></thead>
+    <tbody>${exs.map(e=>`<tr>
+      <td><strong>${esc(e.name)}</strong></td>
+      <td><span class="badge badge-cat">${esc(e.category)}</span></td>
+      <td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank" style="color:var(--accent2)">▶ צפה בסרטון</a>`:'—'}</td>
+      <td class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditExercise('${e.id}')">עריכה</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteExercise('${e.id}')">מחק</button>
+      </td></tr>`).join('')}</tbody></table>`;
+}
+function exerciseForm(e={}) {
+  return `<form id="modal-form">
+    <div class="form-group"><label>שם התרגיל *</label><input name="name" value="${esc(e.name||'')}" required></div>
+    <div class="form-group"><label>קטגוריה *</label>
+      <select name="category" required>
+        ${EX_CATS.map(c=>`<option${c===(e.category||'חזה')?' selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label>קישור לסרטון (YouTube וכד׳)</label>
+      <input name="videoUrl" type="url" value="${esc(e.videoUrl||'')}" placeholder="https://youtube.com/...">
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button type="submit" class="btn">שמור</button>
+    </div></form>`;
+}
+function openAddExercise() {
+  openModal('הוסף תרגיל לבנק', exerciseForm(), fd => {
+    const exs = load(KEYS.exercises);
+    exs.push({id:uid(), name:fd.get('name'), category:fd.get('category'), videoUrl:fd.get('videoUrl')});
+    save(KEYS.exercises, exs); renderExercises();
+  });
+}
+function openEditExercise(id) {
+  const exs = load(KEYS.exercises), e = exs.find(x=>x.id===id);
+  openModal('עריכת תרגיל', exerciseForm(e), fd => {
+    Object.assign(e, {name:fd.get('name'), category:fd.get('category'), videoUrl:fd.get('videoUrl')});
+    save(KEYS.exercises, exs); renderExercises();
+  });
+}
+function deleteExercise(id) {
+  if (!confirm('למחוק תרגיל זה מהבנק?')) return;
+  save(KEYS.exercises, load(KEYS.exercises).filter(x=>x.id!==id));
+  renderExercises();
+}
+
+// ======================
+// ===== WORKOUT PLANS ==
+// ======================
+let _exercises = [];
+let _planIsTemplate = false;
+
+function renderWorkouts() {
+  const plans = load(KEYS.plans);
+  const templates = plans.filter(p => p.isTemplate);
+  const assigned  = plans.filter(p => !p.isTemplate);
+  let html = '';
+
+  if (templates.length) {
+    html += '<div class="sub-header">תבניות גנריות</div>';
+    html += '<div class="plans-grid">' + templates.map(p => planCardHTML(p)).join('') + '</div>';
+  }
+  if (assigned.length) {
+    html += '<div class="sub-header">תוכניות ללקוחות</div>';
+    html += '<div class="plans-grid">' + assigned.map(p => planCardHTML(p)).join('') + '</div>';
+  }
+  if (!plans.length) {
+    html = '<div class="empty">אין תוכניות אימון עדיין.</div>';
+  }
+  document.getElementById('workouts-content').innerHTML = html;
+}
+
+function planCardHTML(p) {
+  const client = p.clientId ? load(KEYS.clients).find(c=>c.id===p.clientId) : null;
+  const assignBtn = p.isTemplate
+    ? `<button class="btn btn-teal btn-sm" onclick="openAssignTemplate('${p.id}')">הקצה ללקוח</button>`
+    : `<button class="btn wa-btn btn-sm" onclick="sendPlanToWhatsApp('${p.id}')">📲 שלח לוואטסאפ</button>`;
+  const exRows = p.exercises.map(e => `<tr>
+    <td>${esc(e.name)}</td><td>${esc(e.sets)}</td><td>${esc(e.reps)}</td>
+    <td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank">▶ סרטון</a>`:'—'}</td></tr>`).join('');
+  return `<div class="plan-card${p.isTemplate?' tmpl-card':''}">
+    <div class="plan-card-header">
+      <div>
+        <div class="plan-name">${esc(p.name)}</div>
+        <div class="plan-client">${p.isTemplate?'<span class="badge badge-tmpl">תבנית גנרית</span>':'לקוח: '+esc(clientName(p.clientId))}</div>
+      </div>
+    </div>
+    ${p.exercises.length?`<table class="ex-table">
+      <thead><tr><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>סרטון</th></tr></thead>
+      <tbody>${exRows}</tbody></table>`:'<div style="color:var(--muted);font-size:.82rem">אין תרגילים</div>'}
+    <div class="plan-card-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditPlan('${p.id}')">עריכה</button>
+      <button class="btn btn-teal btn-sm" onclick="generateWordDoc(load(KEYS.plans).find(x=>x.id==='${p.id}'))">📄 הורד</button>
+      ${assignBtn}
+      <button class="btn btn-danger btn-sm" onclick="deletePlan('${p.id}')">מחק</button>
+    </div></div>`;
+}
+
+function planForm(p={}, forceTemplate=false) {
+  _exercises = p.exercises ? JSON.parse(JSON.stringify(p.exercises)) : [];
+  _planIsTemplate = p.isTemplate || forceTemplate;
+  const clientHidden = _planIsTemplate ? 'style="display:none"' : '';
+  return `<form id="modal-form" onsubmit="return false">
+    <div class="form-check">
+      <input type="checkbox" id="is-tmpl-cb" ${_planIsTemplate?'checked':''} onchange="toggleTemplateMode()">
+      <label for="is-tmpl-cb">תבנית גנרית (ללא לקוח ספציפי)</label>
+    </div>
+    <div id="client-sel-group" class="form-group" ${clientHidden}>
+      <label>לקוח</label>
+      <select name="clientId"><option value="">— בחר לקוח —</option>${clientOptions(p.clientId||'')}</select>
+    </div>
+    <div class="form-group"><label>שם התוכנית *</label><input id="plan-name-input" name="planName" value="${esc(p.name||'')}" required></div>
+    <div style="margin-bottom:8px;color:var(--muted);font-size:.85rem;font-weight:600">תרגילים</div>
+    <div id="ex-list">${renderExRows()}</div>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="addExRow()" style="margin-bottom:16px">+ הוסף תרגיל</button>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button type="button" class="btn" onclick="savePlanFromModal('${p.id||''}')">שמור תוכנית</button>
+    </div></form>`;
+}
+
+function toggleTemplateMode() {
+  _planIsTemplate = document.getElementById('is-tmpl-cb').checked;
+  document.getElementById('client-sel-group').style.display = _planIsTemplate ? 'none' : '';
+}
+
+function renderExRows() {
+  if (!_exercises.length) return '<div style="color:var(--muted);font-size:.82rem;margin-bottom:8px;padding:8px 0">אין תרגילים — לחץ ״הוסף תרגיל״</div>';
+  const bankOpts = bankOptions();
+  return _exercises.map((e, i) => `
+    <div class="ex-item">
+      ${bankOpts ? `<div class="ex-item-bank">
+        <div class="ex-label">בחר מהבנק (ימלא אוטומטית)</div>
+        <select onchange="fillFromBank(${i}, this.value)">${bankOpts}</select>
+      </div>` : ''}
+      <div class="ex-item-top">
+        <div>
+          <div class="ex-label">שם תרגיל *</div>
+          <input value="${esc(e.name||'')}" placeholder="שם התרגיל" oninput="_exercises[${i}].name=this.value">
+        </div>
+        <button type="button" class="ex-remove" onclick="removeExRow(${i})" title="הסר">✕</button>
+      </div>
+      <div class="ex-item-mid">
+        <div>
+          <div class="ex-label">סטים</div>
+          <input type="number" min="1" value="${esc(e.sets||3)}" oninput="_exercises[${i}].sets=this.value">
+        </div>
+        <div>
+          <div class="ex-label">חזרות</div>
+          <input type="number" min="1" value="${esc(e.reps||10)}" oninput="_exercises[${i}].reps=this.value">
+        </div>
+      </div>
+      <div class="ex-item-bot">
+        <div>
+          <div class="ex-label">קישור סרטון</div>
+          <input value="${esc(e.videoUrl||'')}" placeholder="https://youtube.com/... (אופציונלי)" oninput="_exercises[${i}].videoUrl=this.value">
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function fillFromBank(i, exId) {
+  if (!exId) return;
+  const ex = load(KEYS.exercises).find(e => e.id===exId);
+  if (!ex) return;
+  _exercises[i].name     = ex.name;
+  _exercises[i].videoUrl = ex.videoUrl || '';
+  document.getElementById('ex-list').innerHTML = renderExRows();
+}
+
+function addExRow() {
+  _exercises.push({name:'', sets:3, reps:10, videoUrl:''});
+  document.getElementById('ex-list').innerHTML = renderExRows();
+}
+
+function removeExRow(i) {
+  _exercises.splice(i, 1);
+  document.getElementById('ex-list').innerHTML = renderExRows();
+}
+
+function savePlanFromModal(existingId) {
+  const nameInput = document.getElementById('plan-name-input');
+  if (!nameInput.value.trim()) { nameInput.focus(); return; }
+  const plans = load(KEYS.plans);
+  const clientId = _planIsTemplate ? '' : (document.querySelector('#client-sel-group select')?.value || '');
+  const data = { clientId, name:nameInput.value.trim(), isTemplate:_planIsTemplate, exercises:[..._exercises] };
+  if (existingId) {
+    Object.assign(plans.find(x=>x.id===existingId), data);
+  } else {
+    plans.push({id:uid(), ...data});
+  }
+  save(KEYS.plans, plans);
+  closeModal();
+  renderWorkouts();
+}
+
+function openAddPlan(isTemplate=false) {
+  openModal(isTemplate ? 'תבנית גנרית חדשה' : 'תוכנית אימון חדשה', planForm({}, isTemplate), null);
+}
+
+function openEditPlan(id) {
+  const p = load(KEYS.plans).find(x=>x.id===id);
+  openModal('עריכת תוכנית', planForm(p), null);
+}
+
+function deletePlan(id) {
+  if (!confirm('למחוק תוכנית זו?')) return;
+  save(KEYS.plans, load(KEYS.plans).filter(x=>x.id!==id));
+  renderWorkouts();
+}
+
+function openAssignTemplate(templateId) {
+  const clients = load(KEYS.clients);
+  if (!clients.length) { alert('יש להוסיף לקוח לפני הקצאת תבנית.'); return; }
+  const tmpl = load(KEYS.plans).find(x=>x.id===templateId);
+  const form = `<form id="modal-form">
+    <p style="color:var(--muted);margin-bottom:16px;font-size:.9rem">יוצר עותק של תבנית "<strong>${esc(tmpl.name)}</strong>" ומקצה ללקוח</p>
+    <div class="form-group"><label>בחר לקוח *</label>
+      <select name="clientId" required><option value="">— בחר לקוח —</option>${clientOptions()}</select>
+    </div>
+    <div class="form-group"><label>שם התוכנית (ניתן לשנות)</label>
+      <input name="planName" value="${esc(tmpl.name)}" required>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button type="submit" class="btn">צור תוכנית</button>
+    </div></form>`;
+  openModal('הקצה תבנית ללקוח', form, fd => {
+    const plans = load(KEYS.plans);
+    plans.push({
+      id:uid(), clientId:fd.get('clientId'), name:fd.get('planName'),
+      isTemplate:false, exercises:JSON.parse(JSON.stringify(tmpl.exercises))
+    });
+    save(KEYS.plans, plans);
+    renderWorkouts();
+    showToast('התוכנית הוקצתה ללקוח בהצלחה ✓');
+  });
+}
+
+// ======================
+// ===== WORD EXPORT ====
+// ======================
+function generateWordDoc(plan) {
+  const client  = plan.clientId ? load(KEYS.clients).find(c=>c.id===plan.clientId) : null;
+  const today   = new Date().toLocaleDateString('he-IL', {year:'numeric', month:'long', day:'numeric'});
+  const exRows  = plan.exercises.map((e,i) => `
+    <tr>
+      <td style="text-align:center">${i+1}</td>
+      <td><strong>${esc(e.name)}</strong></td>
+      <td style="text-align:center">${e.sets||'—'}</td>
+      <td style="text-align:center">${e.reps||'—'}</td>
+      <td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" style="color:#c0392b">▶ לחץ לצפייה</a>`:'—'}</td>
+    </tr>`).join('');
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <title>${esc(plan.name)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; direction: rtl; text-align: right; margin: 40px; color: #222; }
+    h1 { color: #c0392b; font-size: 24px; margin-bottom: 6px; border-bottom: 3px solid #c0392b; padding-bottom: 8px; }
+    .meta { color: #555; font-size: 13px; margin-bottom: 24px; line-height: 1.8; }
+    .meta span { margin-left: 24px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th { background: #c0392b; color: white; padding: 10px 14px; font-size: 13px; border: 1px solid #a93226; }
+    td { padding: 9px 14px; border: 1px solid #ddd; font-size: 13px; vertical-align: middle; }
+    tr:nth-child(even) td { background: #fdf2f2; }
+    a { color: #c0392b; text-decoration: none; }
+    .footer { margin-top: 32px; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>💪 תוכנית אימון: ${esc(plan.name)}</h1>
+  <div class="meta">
+    ${client?`<span><strong>מתאמן/ת:</strong> ${esc(client.name)}</span>`:'<span><strong>תבנית גנרית</strong></span>'}
+    <span><strong>תאריך:</strong> ${today}</span>
+    <span><strong>מספר תרגילים:</strong> ${plan.exercises.length}</span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>#</th><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>סרטון הדגמה</th></tr>
+    </thead>
+    <tbody>${exRows}</tbody>
+  </table>
+  <div class="footer">נוצר על ידי מערכת מאמן כושר</div>
+</body>
+</html>`;
+
+  const blob = new Blob(['\ufeff' + html], {type:'application/msword'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `תוכנית-${plan.name}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function sendPlanToWhatsApp(planId) {
+  const plan = load(KEYS.plans).find(p=>p.id===planId);
+  if (!plan) return;
+  generateWordDoc(plan);
+  if (plan.clientId) {
+    const client = load(KEYS.clients).find(c=>c.id===plan.clientId);
+    if (client && client.phone) {
+      const intl = client.phone.replace(/\D/g,'').replace(/^0/,'972');
+      const text = `שלום ${client.name}! שלחתי לך את תוכנית האימון שלך 💪\nהקובץ מצורף – צרף אותו להודעה זו.`;
+      setTimeout(() => window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank'), 600);
+    }
+  }
+  showToast('הקובץ הורד! צרף אותו בוואטסאפ 📎');
+}
+
+// ======================
+// ===== PAYMENTS =======
+// ======================
+function renderPayments() {
+  const payments = load(KEYS.payments);
+  const month    = new Date().toISOString().slice(0,7);
+  const thisM    = payments.filter(p=>p.date.startsWith(month));
+  const totalPaid    = thisM.filter(p=>p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+  const totalPending = payments.filter(p=>p.status==='pending').reduce((s,p)=>s+(+p.amount||0),0);
+  document.getElementById('pay-summary').innerHTML = `
+    <div class="card"><div class="card-title">שולם החודש</div><div class="card-value" style="color:#4caf50">₪${totalPaid.toLocaleString()}</div></div>
+    <div class="card"><div class="card-title">ממתין לתשלום</div><div class="card-value" style="color:#ffa726">₪${totalPending.toLocaleString()}</div></div>
+  `;
+  if (!payments.length) { document.getElementById('payments-table').innerHTML='<div class="empty">אין תשלומים עדיין.</div>'; return; }
+  const sorted = [...payments].sort((a,b)=>a.date<b.date?1:-1);
+  document.getElementById('payments-table').innerHTML = `<table>
+    <thead><tr><th>לקוח</th><th>סכום</th><th>תאריך</th><th>חבילה</th><th>סטטוס</th><th>פעולות</th></tr></thead>
+    <tbody>${sorted.map(p=>`<tr>
+      <td>${esc(clientName(p.clientId))}</td>
+      <td>₪${(+p.amount||0).toLocaleString()}</td>
+      <td>${fmtDate(p.date)}</td>
+      <td>${esc(p.package)}</td>
+      <td><button class="badge ${p.status==='paid'?'badge-paid':'badge-pending'}" onclick="togglePayment('${p.id}')" style="cursor:pointer;border:none">${p.status==='paid'?'שולם':'ממתין'}</button></td>
+      <td class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditPayment('${p.id}')">עריכה</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePayment('${p.id}')">מחק</button>
+      </td></tr>`).join('')}</tbody></table>`;
+}
+function paymentForm(p={}) {
+  const pkgs = ['חד-פעמי','חודשי','רבעוני','מנוי שנתי'];
+  return `<form id="modal-form">
+    <div class="form-group"><label>לקוח *</label>
+      <select name="clientId" required><option value="">— בחר לקוח —</option>${clientOptions(p.clientId||'')}</select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>סכום (₪) *</label><input name="amount" type="number" min="0" step="0.01" value="${esc(p.amount||'')}" required></div>
+      <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${esc(p.date||new Date().toISOString().slice(0,10))}" required></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>חבילה</label>
+        <select name="package">${pkgs.map(pk=>`<option${pk===(p.package||'חד-פעמי')?' selected':''}>${pk}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>סטטוס</label>
+        <select name="status">
+          <option value="pending"${(p.status||'pending')==='pending'?' selected':''}>ממתין</option>
+          <option value="paid"${p.status==='paid'?' selected':''}>שולם</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button type="submit" class="btn">שמור</button>
+    </div></form>`;
+}
+function openAddPayment() {
+  if (!load(KEYS.clients).length) { alert('יש להוסיף לקוח לפני הוספת תשלום.'); return; }
+  openModal('הוסף תשלום', paymentForm(), fd => {
+    const payments = load(KEYS.payments);
+    payments.push({id:uid(), clientId:fd.get('clientId'), amount:fd.get('amount'), date:fd.get('date'), status:fd.get('status'), package:fd.get('package')});
+    save(KEYS.payments, payments); renderPayments();
+  });
+}
+function openEditPayment(id) {
+  const payments = load(KEYS.payments), p = payments.find(x=>x.id===id);
+  openModal('עריכת תשלום', paymentForm(p), fd => {
+    Object.assign(p, {clientId:fd.get('clientId'), amount:fd.get('amount'), date:fd.get('date'), status:fd.get('status'), package:fd.get('package')});
+    save(KEYS.payments, payments); renderPayments();
+  });
+}
+function togglePayment(id) {
+  const payments = load(KEYS.payments), p = payments.find(x=>x.id===id);
+  p.status = p.status==='paid' ? 'pending' : 'paid';
+  save(KEYS.payments, payments); renderPayments();
+}
+function deletePayment(id) {
+  if (!confirm('למחוק תשלום זה?')) return;
+  save(KEYS.payments, load(KEYS.payments).filter(x=>x.id!==id));
+  renderPayments();
+}
+
+// ======================
+// ===== REMINDERS ======
+// ======================
+function buildWhatsAppURL(phone, clientName, date, time) {
+  const intl = (phone||'').replace(/\D/g,'').replace(/^0/,'972');
+  const text = `שלום ${clientName}! רוצה להזכיר לך שיש לנו אימון ב${fmtDateLong(date)} בשעה ${time}. מחכה לך! 💪`;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
+}
+function renderReminders() {
+  const sessions = load(KEYS.sessions), clients = load(KEYS.clients);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const limit = new Date(today); limit.setDate(limit.getDate()+7);
+  const upcoming = sessions
+    .filter(s => { const d=new Date(s.date+'T00:00'); return d>=today && d<=limit; })
+    .sort((a,b)=>(a.date+a.time)<(b.date+b.time)?-1:1);
+  const container = document.getElementById('reminders-list');
+  if (!upcoming.length) { container.innerHTML='<div class="empty">אין אימונים ב-7 הימים הקרובים.</div>'; return; }
+  const todayStr = new Date().toISOString().slice(0,10);
+  container.innerHTML = upcoming.map(s => {
+    const client = clients.find(c=>c.id===s.clientId)||{};
+    const isToday = s.date===todayStr;
+    const waURL = buildWhatsAppURL(client.phone||'', client.name||'', s.date, s.time);
+    return `<div class="reminder-card${isToday?' today-card':''}">
+      <div class="reminder-info">
+        <h3>${isToday?'<span class="reminder-tag">היום</span>':''}${esc(client.name||'לקוח לא ידוע')}</h3>
+        <p>${fmtDateLong(s.date)} · ${esc(s.time)} · ${esc(s.duration)} דקות</p>
+        ${s.notes?`<p style="margin-top:4px">${esc(s.notes)}</p>`:''}
+      </div>
+      <a href="${waURL}" target="_blank" class="btn wa-btn btn-sm">📲 שלח תזכורת</a>
+    </div>`;
+  }).join('');
+}
+
+// ===== INIT =====
+switchTab('clients');
+</script>
+</body>
+</html>
