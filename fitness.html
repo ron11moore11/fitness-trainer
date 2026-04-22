@@ -952,7 +952,7 @@ async function morningCreateDocument(docData) {
   return await res.json();
 }
 
-const MORNING_DOC_TYPES = { invoice: 300, receipt: 400 };
+const MORNING_DOC_TYPES = { deal: 100, receipt: 400 }; // 100=חשבון עסקה, 400=קבלה
 const MORNING_PAY_METHODS = [
   { value: 1, label: 'מזומן' },
   { value: 2, label: 'צ׳ק' },
@@ -974,7 +974,7 @@ function openIssueDocument(paymentId) {
   openModal('הנפקת מסמך — Morning', `<form id="modal-form">
     <div class="form-group"><label>סוג מסמך *</label>
       <select name="docType" required onchange="toggleInvoiceFields(this.value)">
-        <option value="300">חשבונית מס</option>
+        <option value="100">חשבון עסקה</option>
         <option value="400">קבלה</option>
       </select>
     </div>
@@ -1000,9 +1000,7 @@ function openIssueDocument(paymentId) {
       <div class="form-group">
         <label>מע"מ</label>
         <select name="vatType">
-          <option value="0">לא כולל מע"מ (יתווסף)</option>
-          <option value="1" selected>כולל מע"מ</option>
-          <option value="2">פטור ממע"מ</option>
+          <option value="2" selected>פטור ממע"מ (עוסק פטור)</option>
         </select>
       </div>
     </div>
@@ -1087,6 +1085,9 @@ function toggleInvoiceFields(docType) {
   } else {
     fields.querySelector('[name=description]').value = 'אימון כושר אישי';
   }
+  // Hide due date for receipt
+  const dueDateGroup = document.querySelector('[name=dueDate]').closest('.form-group');
+  dueDateGroup.style.display = +docType === 400 ? 'none' : '';
 }
 
 // ========================
