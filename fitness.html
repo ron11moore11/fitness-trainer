@@ -460,7 +460,10 @@ function clientForm(c={}) {
       <div class="form-group"><label>אימייל</label><input name="email" type="email" value="${esc(c.email||'')}"></div>
       <div class="form-group"><label>גיל</label><input name="age" type="number" min="1" max="120" value="${esc(c.age||'')}"></div>
     </div>
-    <div class="form-group"><label>מטרות</label><input name="goals" value="${esc(c.goals||'')}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>מס׳ עוסק / ח.פ</label><input name="taxId" value="${esc(c.taxId||'')}" placeholder="לצורך הנפקת חשבונית"></div>
+      <div class="form-group"><label>מטרות</label><input name="goals" value="${esc(c.goals||'')}"></div>
+    </div>
     <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(c.notes||'')}</textarea></div>
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
@@ -469,14 +472,14 @@ function clientForm(c={}) {
 }
 function openAddClient() {
   openModal('הוסף לקוח', clientForm(), async fd => {
-    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), goals:fd.get('goals'), notes:fd.get('notes')});
+    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes')});
     renderClients();
   });
 }
 function openEditClient(id) {
   const c = load('clients').find(x=>x.id===id);
   openModal('עריכת לקוח', clientForm(c), async fd => {
-    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), goals:fd.get('goals'), notes:fd.get('notes')});
+    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes')});
     await saveItem('clients', c);
     renderClients();
   });
@@ -826,6 +829,7 @@ function renderPayments() {
       <td>${fmtDate(p.date)}</td><td>${esc(p.package)}</td>
       <td><button class="badge ${p.status==='paid'?'badge-paid':'badge-pending'}" onclick="togglePayment('${p.id}')" style="cursor:pointer;border:none">${p.status==='paid'?'שולם':'ממתין'}</button></td>
       <td class="actions">
+        <button class="btn btn-teal btn-sm" onclick="openIssueDocument('${p.id}')">🧾 הנפק</button>
         <button class="btn btn-ghost btn-sm" onclick="openEditPayment('${p.id}')">עריכה</button>
         <button class="btn btn-danger btn-sm" onclick="deletePayment('${p.id}')">מחק</button>
       </td></tr>`).join('')}</tbody></table>`;
@@ -861,8 +865,14 @@ function openEditPayment(id) {
 }
 async function togglePayment(id) {
   const p = load('payments').find(x=>x.id===id);
+  const wasPending = p.status === 'pending';
   p.status = p.status==='paid'?'pending':'paid';
   await saveItem('payments', p); renderPayments();
+  if (wasPending && p.status === 'paid') {
+    if (confirm('התשלום סומן כשולם. להנפיק מסמך ב-Morning?')) {
+      openIssueDocument(id);
+    }
+  }
 }
 async function deletePayment(id) {
   if (!confirm('למחוק תשלום זה?')) return;
@@ -897,6 +907,186 @@ function renderReminders() {
       <a href="${waURL}" target="_blank" class="btn wa-btn btn-sm">📲 שלח תזכורת</a>
     </div>`;
   }).join('');
+}
+
+// ========================
+// ===== MORNING API =======
+// ========================
+const MORNING_CONFIG = {
+  apiKey:    'YOUR_API_KEY',      // ← הכנס את ה-API Key מהגדרות Morning
+  apiSecret: 'YOUR_API_SECRET',  // ← הכנס את ה-API Secret מהגדרות Morning
+  baseUrl:   'https://api.greeninvoice.co.il/api/v1'
+};
+
+let _morningToken = null;
+let _morningTokenExp = 0;
+
+async function morningGetToken() {
+  if (_morningToken && Date.now() < _morningTokenExp) return _morningToken;
+  const res = await fetch(MORNING_CONFIG.baseUrl + '/account/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: MORNING_CONFIG.apiKey, secret: MORNING_CONFIG.apiSecret })
+  });
+  if (!res.ok) throw new Error('Morning auth failed: ' + res.status);
+  const data = await res.json();
+  _morningToken = data.token;
+  _morningTokenExp = Date.now() + 55 * 60 * 1000; // refresh before 60min expiry
+  return _morningToken;
+}
+
+async function morningCreateDocument(docData) {
+  const token = await morningGetToken();
+  const res = await fetch(MORNING_CONFIG.baseUrl + '/documents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token
+    },
+    body: JSON.stringify(docData)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.errorMessage || 'Morning API error: ' + res.status);
+  }
+  return await res.json();
+}
+
+const MORNING_DOC_TYPES = { invoice: 300, receipt: 400 };
+const MORNING_PAY_METHODS = [
+  { value: 1, label: 'מזומן' },
+  { value: 2, label: 'צ׳ק' },
+  { value: 3, label: 'כרטיס אשראי' },
+  { value: 4, label: 'העברה בנקאית' },
+  { value: 10, label: 'Bit / אפליקציה' }
+];
+
+function openIssueDocument(paymentId) {
+  if (MORNING_CONFIG.apiKey === 'YOUR_API_KEY') {
+    alert('Morning API עדיין לא מחובר.\nהכנס את המפתחות בקוד (MORNING_CONFIG).');
+    return;
+  }
+  const payment = load('payments').find(x => x.id === paymentId);
+  if (!payment) return;
+  const client = load('clients').find(c => c.id === payment.clientId) || {};
+  const today = new Date().toISOString().slice(0, 10);
+
+  openModal('הנפקת מסמך — Morning', `<form id="modal-form">
+    <div class="form-group"><label>סוג מסמך *</label>
+      <select name="docType" required onchange="toggleInvoiceFields(this.value)">
+        <option value="300">חשבונית מס</option>
+        <option value="400">קבלה</option>
+      </select>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="color:var(--accent2);font-size:.85rem;font-weight:600;margin-bottom:8px">פרטי לקוח</div>
+      <div class="form-row">
+        <div class="form-group"><label>שם *</label><input name="clientName" value="${esc(client.name || '')}" required></div>
+        <div class="form-group"><label>טלפון</label><input name="clientPhone" value="${esc(client.phone || '')}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>אימייל</label><input name="clientEmail" type="email" value="${esc(client.email || '')}"></div>
+        <div class="form-group"><label>מס׳ עוסק / ח.פ</label><input name="clientTaxId" value="${esc(client.taxId || '')}"></div>
+      </div>
+    </div>
+
+    <div id="invoice-fields">
+      <div class="form-group"><label>תיאור השירות *</label><input name="description" value="אימון כושר אישי" required></div>
+      <div class="form-row">
+        <div class="form-group"><label>כמות</label><input name="quantity" type="number" min="1" value="1"></div>
+        <div class="form-group"><label>מחיר ליחידה (₪) *</label><input name="price" type="number" step="0.01" value="${esc(payment.amount || '')}" required></div>
+      </div>
+      <div class="form-group">
+        <label>מע"מ</label>
+        <select name="vatType">
+          <option value="0">לא כולל מע"מ (יתווסף)</option>
+          <option value="1" selected>כולל מע"מ</option>
+          <option value="2">פטור ממע"מ</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group"><label>אמצעי תשלום *</label>
+        <select name="payMethod" required>
+          ${MORNING_PAY_METHODS.map(m => '<option value="' + m.value + '">' + m.label + '</option>').join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>תאריך תשלום</label><input name="payDate" type="date" value="${esc(payment.date || today)}"></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group"><label>תאריך מסמך</label><input name="docDate" type="date" value="${today}"></div>
+      <div class="form-group"><label>תאריך פירעון</label><input name="dueDate" type="date" value="${today}"></div>
+    </div>
+
+    <div class="form-group"><label>הערות (אופציונלי)</label><textarea name="remarks" rows="2"></textarea></div>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button type="submit" class="btn">🧾 הנפק מסמך</button>
+    </div>
+  </form>`, async fd => {
+    const docType = +fd.get('docType');
+    const quantity = +fd.get('quantity') || 1;
+    const price = +fd.get('price');
+
+    const docData = {
+      description: fd.get('description') || (docType === 400 ? 'קבלה על תשלום' : ''),
+      type: docType,
+      date: fd.get('docDate'),
+      dueDate: fd.get('dueDate'),
+      lang: 'he',
+      currency: 'ILS',
+      vatType: +fd.get('vatType'),
+      client: {
+        name: fd.get('clientName'),
+        emails: fd.get('clientEmail') ? [fd.get('clientEmail')] : [],
+        taxId: fd.get('clientTaxId') || '',
+        phone: fd.get('clientPhone') || '',
+        add: false
+      },
+      income: [{
+        catalogNum: '',
+        description: fd.get('description') || 'תשלום',
+        quantity: quantity,
+        price: price,
+        currency: 'ILS',
+        vatType: +fd.get('vatType')
+      }],
+      payment: [{
+        type: +fd.get('payMethod'),
+        date: fd.get('payDate'),
+        price: docType === 400 ? price * quantity : price * quantity,
+        currency: 'ILS'
+      }],
+      remarks: fd.get('remarks') || ''
+    };
+
+    try {
+      const result = await morningCreateDocument(docData);
+      showToast('המסמך הונפק בהצלחה ✓');
+      // Save document reference on payment
+      payment.morningDocId = result.id || result._id || '';
+      payment.morningDocType = docType;
+      await saveItem('payments', payment);
+      renderPayments();
+    } catch (err) {
+      console.error('Morning error:', err);
+      alert('שגיאה בהנפקת מסמך:\n' + err.message);
+      throw err;
+    }
+  });
+}
+
+function toggleInvoiceFields(docType) {
+  const fields = document.getElementById('invoice-fields');
+  if (+docType === 400) {
+    fields.querySelector('[name=description]').value = 'קבלה על תשלום';
+  } else {
+    fields.querySelector('[name=description]').value = 'אימון כושר אישי';
+  }
 }
 
 // ========================
