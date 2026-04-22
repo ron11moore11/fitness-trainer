@@ -171,6 +171,30 @@
     .ex-remove:hover { color: var(--accent); background: rgba(233,69,96,.1); }
     .ex-label { font-size: .75rem; color: var(--muted); margin-bottom: 2px; }
 
+    /* LOGIN */
+    #login-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .login-box {
+      background: var(--card); border: 2px solid var(--border); border-radius: 16px;
+      padding: 40px 32px; width: 100%; max-width: 360px; text-align: center;
+    }
+    .login-box h1 { color: var(--accent); font-size: 1.6rem; margin-bottom: 8px; }
+    .login-box p { color: var(--muted); font-size: .9rem; margin-bottom: 24px; }
+    .login-box input {
+      width: 100%; background: var(--bg); border: 2px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: 12px 14px; font-size: 1rem; font-family: inherit;
+      text-align: center; margin-bottom: 16px; transition: border-color .2s;
+    }
+    .login-box input:focus { outline: none; border-color: var(--accent2); }
+    .login-error { color: var(--accent); font-size: .85rem; margin-bottom: 12px; min-height: 1.2em; }
+    .logout-btn {
+      background: none; border: 2px solid var(--border); color: var(--muted);
+      padding: 5px 14px; border-radius: 8px; cursor: pointer; font-size: .8rem; transition: all .2s;
+    }
+    .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
     /* TOAST */
     .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); border: 2px solid var(--accent2); color: var(--text); padding: 12px 24px; border-radius: 12px; z-index: 500; opacity: 0; transition: all .3s; font-size: .95rem; white-space: nowrap; pointer-events: none; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -186,8 +210,21 @@
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>💪 מאמן כושר</h1>
+    <p>הזן סיסמה כדי להיכנס</p>
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <input type="password" id="login-password" placeholder="סיסמה" autocomplete="current-password" autofocus>
+      <div class="login-error" id="login-error"></div>
+      <button type="submit" class="btn" style="width:100%">כניסה</button>
+    </form>
+  </div>
+</div>
+
 <!-- LOADING -->
-<div id="loading-overlay">
+<div id="loading-overlay" style="display:none">
   <div class="loading-box">
     <div class="spinner"></div>
     <p>מתחבר למסד הנתונים...</p>
@@ -197,6 +234,7 @@
 
 <nav>
   <div class="app-title">💪 מאמן כושר</div>
+  <button class="logout-btn" onclick="handleLogout()">התנתק</button>
   <div class="nav-tabs">
     <button class="nav-tab" data-tab="clients">לקוחות</button>
     <button class="nav-tab" data-tab="schedule">לוח זמנים</button>
@@ -862,9 +900,40 @@ function renderReminders() {
 }
 
 // ========================
+// ===== AUTH ==============
+// ========================
+const PASS_HASH = '0792bc68c9eb63682cd44053750bd1c8f0d07e2ab32738803b291ee58b3293e3';
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const pw = document.getElementById('login-password').value;
+  const hash = await sha256(pw);
+  if (hash === PASS_HASH) {
+    localStorage.setItem('ft_auth', 'yes');
+    document.getElementById('login-screen').style.display = 'none';
+    init();
+  } else {
+    document.getElementById('login-error').textContent = 'סיסמה שגויה';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-password').focus();
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('ft_auth');
+  location.reload();
+}
+
+// ========================
 // ===== INIT =============
 // ========================
 async function init() {
+  document.getElementById('loading-overlay').style.display = 'flex';
   try {
     await initDB();
     document.getElementById('loading-overlay').style.display = 'none';
@@ -882,7 +951,12 @@ async function init() {
       </div>`;
   }
 }
-init();
+
+// Check if already logged in
+if (localStorage.getItem('ft_auth') === 'yes') {
+  document.getElementById('login-screen').style.display = 'none';
+  init();
+}
 </script>
 </body>
 </html>
