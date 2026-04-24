@@ -123,7 +123,7 @@
     .cal-dot.shift-dot { background: var(--shift); }
 
     /* PLAN CARDS */
-    .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 16px; }
+    .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 16px; }
     .plan-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; }
     .plan-card.tmpl-card { border-color: rgba(233,69,96,.4); }
     .plan-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
@@ -150,7 +150,7 @@
     /* MODAL */
     #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; justify-content: center; align-items: center; padding: 20px; }
     #modal-overlay.open { display: flex; }
-    #modal-box { background: var(--card); border: 2px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; position: relative; }
+    #modal-box { background: var(--card); border: 2px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; position: relative; }
     #modal-title { color: var(--accent2); font-size: 1.2rem; margin-bottom: 20px; }
     #modal-close { position: absolute; top: 16px; left: 16px; background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; line-height: 1; }
     #modal-close:hover { color: var(--accent); }
@@ -161,6 +161,7 @@
     .form-group input, .form-group select, .form-group textarea { background: var(--bg); border: 2px solid var(--border); border-radius: 8px; color: var(--text); padding: 9px 12px; font-size: .9rem; font-family: inherit; width: 100%; transition: border-color .2s; }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent2); }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
     .form-check { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
     .form-check input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
@@ -173,9 +174,15 @@
     .type-toggle input:checked + label { background: var(--accent); color: #fff; }
     .type-toggle input[value="shift"]:checked + label { background: var(--shift); color: #1a1a2e; }
 
+    /* SHIFT CALC */
+    .shift-calc { background: var(--bg); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    .shift-calc-row { display: flex; justify-content: space-between; align-items: center; font-size: .9rem; margin-bottom: 6px; }
+    .shift-calc-row:last-child { margin-bottom: 0; }
+    .shift-calc-total { font-size: 1.1rem; font-weight: bold; color: var(--accent2); }
+
     /* EXERCISE BUILDER */
-    #ex-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
-    .ex-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+    #ex-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+    .ex-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
     .ex-item-top { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
     .ex-item-mid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
     .ex-item input, .ex-item select { background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 10px; font-size: .85rem; font-family: inherit; width: 100%; }
@@ -184,6 +191,13 @@
     .ex-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 2px 6px; border-radius: 4px; }
     .ex-remove:hover { color: var(--accent); background: rgba(233,69,96,.1); }
     .ex-label { font-size: .75rem; color: var(--muted); margin-bottom: 2px; }
+    .ex-set-row { display: grid; grid-template-columns: 40px 1fr 1fr 1fr auto; gap: 6px; align-items: center; margin-bottom: 4px; }
+    .ex-set-row span { font-size: .78rem; color: var(--muted); text-align: center; }
+    .ex-set-row input { font-size: .82rem; padding: 5px 8px; }
+    .ex-sets-header { display: grid; grid-template-columns: 40px 1fr 1fr 1fr auto; gap: 6px; margin-bottom: 4px; }
+    .ex-sets-header span { font-size: .72rem; color: var(--muted); text-align: center; }
+    .ex-add-set { background: none; border: 1px dashed var(--border); color: var(--muted); padding: 4px; border-radius: 6px; cursor: pointer; font-size: .78rem; width: 100%; margin-top: 4px; }
+    .ex-add-set:hover { border-color: var(--accent2); color: var(--accent2); }
 
     /* WORKOUT LOG */
     .log-header { background: var(--bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
@@ -203,7 +217,7 @@
     .log-add-exercise { background: none; border: 2px dashed var(--border); color: var(--muted); padding: 12px; border-radius: 10px; cursor: pointer; font-size: .85rem; width: 100%; margin-bottom: 16px; transition: all .2s; text-align: center; }
     .log-add-exercise:hover { border-color: var(--accent2); color: var(--accent2); }
 
-    /* DAY POPUP (sessions list for a day) */
+    /* DAY POPUP */
     .day-session-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
     .day-session-info { font-size: .9rem; }
     .day-session-info strong { color: var(--accent2); }
@@ -241,7 +255,9 @@
       nav { flex-direction: column; height: auto; padding: 12px; gap: 8px; }
       .nav-tabs { justify-content: center; }
       .dashboard, .pay-summary { grid-template-columns: 1fr; }
-      .form-row { grid-template-columns: 1fr; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .ex-set-row, .ex-sets-header { grid-template-columns: 30px 1fr 1fr auto; }
+      .ex-set-row input.ex-set-notes { display: none; }
       .log-set-row { grid-template-columns: 30px 1fr 1fr auto; }
       .log-set-row input.log-notes-input { display: none; }
       main { padding: 14px; }
@@ -433,6 +449,27 @@ function addDays(dateStr, days) {
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
+function calcShiftHours(startTime, endTime) {
+  if (!startTime || !endTime) return 0;
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins < 0) mins += 24 * 60; // overnight shift
+  return mins / 60;
+}
+
+// Migrate old exercise format (sets+reps numbers) to new per-set format
+function migrateExercise(e) {
+  if (e.setsData && e.setsData.length) return e;
+  const numSets = +e.sets || 3;
+  const reps = +e.reps || 10;
+  return {
+    name: e.name || '',
+    category: e.category || '',
+    videoUrl: e.videoUrl || '',
+    setsData: Array.from({length: numSets}, () => ({targetReps: reps, weight: '', notes: ''}))
+  };
+}
 
 // ===== TOAST =====
 function showToast(msg) {
@@ -576,7 +613,6 @@ function renderCalendar() {
   document.getElementById('cal-title').textContent = `${monthNames[calMonth]} ${calYear}`;
   const firstDay = new Date(calYear,calMonth,1).getDay();
   const daysInMonth = new Date(calYear,calMonth+1,0).getDate();
-  // Build session map with type info
   const sessionMap = {};
   sessions.forEach(s => {
     if (!sessionMap[s.date]) sessionMap[s.date] = [];
@@ -601,20 +637,20 @@ function renderCalendar() {
 }
 
 function handleCalDayClick(dateStr) {
-  const daySessions = load('sessions').filter(s => s.date === dateStr).sort((a,b) => (a.time||'') < (b.time||'') ? -1 : 1);
+  const daySessions = load('sessions').filter(s => s.date === dateStr).sort((a,b) => (a.time||a.startTime||'') < (b.time||b.startTime||'') ? -1 : 1);
   if (!daySessions.length) {
     openAddSession(dateStr, 'training');
     return;
   }
-  // Show day popup with list of sessions
   let html = `<div style="margin-bottom:12px;color:var(--muted);font-size:.9rem">${fmtDateLong(dateStr)}</div>`;
   daySessions.forEach(s => {
     const isShift = s.type === 'shift';
+    const timeDisplay = isShift ? `${esc(s.startTime||'')}–${esc(s.endTime||'')}` : esc(s.time);
     const name = isShift ? '<span class="badge badge-shift">משמרת</span>' : esc(clientName(s.clientId));
     const pName = s.planId ? ` · ${esc(planName(s.planId))}` : '';
     const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
     html += `<div class="day-session-item">
-      <div class="day-session-info"><strong>${esc(s.time)}</strong> ${name}${pName}${logBadge}</div>
+      <div class="day-session-info"><strong>${timeDisplay}</strong> ${name}${pName}${logBadge}</div>
       <div class="day-session-actions">
         ${!isShift ? `<button class="btn btn-log btn-sm" onclick="closeModal();openWorkoutLog('${s.id}')">📋 יומן</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="closeModal();openEditSession('${s.id}')">עריכה</button>
@@ -632,20 +668,28 @@ function renderSessionsTable() {
   const sessions = load('sessions').sort((a,b)=>a.date<b.date?-1:1);
   if (!sessions.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים עדיין.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
-    <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>משך</th><th>תוכנית</th><th>הערות</th><th>פעולות</th></tr></thead>
+    <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>פרטים</th><th>תוכנית</th><th>הערות</th><th>פעולות</th></tr></thead>
     <tbody>${sessions.map(s=>{
       const isShift = s.type === 'shift';
-      const typeBadge = isShift
-        ? '<span class="badge badge-shift">משמרת</span>'
-        : '🏋️';
+      const typeBadge = isShift ? '<span class="badge badge-shift">משמרת</span>' : '🏋️';
       const recurring = s.recurringGroupId ? ' <span class="badge badge-recurring">🔁</span>' : '';
       const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
       const clientCol = isShift ? '—' : esc(clientName(s.clientId));
       const planCol = s.planId ? esc(planName(s.planId)) : '—';
+      let timeCol, detailsCol;
+      if (isShift) {
+        timeCol = `${esc(s.startTime||'')}–${esc(s.endTime||'')}`;
+        const hrs = calcShiftHours(s.startTime, s.endTime);
+        const total = s.hourlyRate ? `₪${(hrs * +s.hourlyRate).toFixed(0)}` : '';
+        detailsCol = `${hrs.toFixed(1)} שעות${total ? ' · ' + total : ''}`;
+      } else {
+        timeCol = esc(s.time);
+        detailsCol = `${esc(s.duration)} דק׳`;
+      }
       return `<tr>
       <td>${typeBadge}${recurring}</td>
       <td>${clientCol}</td><td>${fmtDate(s.date)}</td>
-      <td>${esc(s.time)}</td><td>${esc(s.duration)} דק׳</td>
+      <td>${timeCol}</td><td>${detailsCol}</td>
       <td>${planCol}</td>
       <td>${esc(s.notes)}${logBadge}</td>
       <td class="actions">
@@ -666,7 +710,9 @@ function sessionForm(s={}, forceType='') {
       <input type="radio" name="type" value="shift" id="type-shift" ${isShift?'checked':''} onchange="toggleSessionType()">
       <label for="type-shift">🕐 משמרת</label>
     </div>
-    <div id="session-client-group" ${isShift?'style="display:none"':''}>
+
+    <!-- Training fields -->
+    <div id="session-training-fields" ${isShift?'style="display:none"':''}>
       <div class="form-group"><label>לקוח *</label>
         <select name="clientId" id="session-client-sel" onchange="updatePlanDropdown()"><option value="">— בחר לקוח —</option>${clientOptions(s.clientId||'')}</select>
       </div>
@@ -674,20 +720,42 @@ function sessionForm(s={}, forceType='') {
         <select name="planId" id="session-plan-sel">${s.clientId ? planOptionsForClient(s.clientId, s.planId||'') : '<option value="">— בחר לקוח קודם —</option>'}</select>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${esc(s.date||'')}" required></div>
-      <div class="form-group"><label>שעה *</label><input name="time" type="time" value="${esc(s.time||'')}" required></div>
+
+    <!-- Date -->
+    <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${esc(s.date||'')}" required></div>
+
+    <!-- Training: single time + duration -->
+    <div id="session-time-training" ${isShift?'style="display:none"':''}>
+      <div class="form-row">
+        <div class="form-group"><label>שעה *</label><input name="time" type="time" value="${esc(s.time||'')}"></div>
+        <div class="form-group"><label>משך (דקות)</label><input name="duration" type="number" min="1" value="${esc(s.duration||60)}"></div>
+      </div>
     </div>
-    <div class="form-group"><label>משך (דקות)</label><input name="duration" type="number" min="1" value="${esc(s.duration||60)}"></div>
+
+    <!-- Shift: start/end time + rate -->
+    <div id="session-time-shift" ${!isShift?'style="display:none"':''}>
+      <div class="form-row">
+        <div class="form-group"><label>שעת התחלה *</label><input name="startTime" type="time" value="${esc(s.startTime||'')}" onchange="calcShiftDisplay()"></div>
+        <div class="form-group"><label>שעת סיום *</label><input name="endTime" type="time" value="${esc(s.endTime||'')}" onchange="calcShiftDisplay()"></div>
+      </div>
+      <div class="form-group"><label>תעריף לשעה (₪)</label><input name="hourlyRate" type="number" min="0" step="0.5" value="${esc(s.hourlyRate||'')}" onchange="calcShiftDisplay()" oninput="calcShiftDisplay()"></div>
+      <div class="shift-calc" id="shift-calc" style="${(s.startTime && s.endTime) ? '' : 'display:none'}">
+        <div class="shift-calc-row"><span>סה"כ שעות:</span><span id="shift-hours">0</span></div>
+        <div class="shift-calc-row"><span>סכום למשמרת:</span><span class="shift-calc-total" id="shift-total">₪0</span></div>
+      </div>
+    </div>
+
     <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(s.notes||'')}</textarea></div>
-    <div class="form-check" id="recurring-group">
+
+    <div class="form-check">
       <input type="checkbox" id="recurring-cb" name="recurring" ${s.isRecurring?'checked':''} onchange="toggleRecurringFields()">
-      <label for="recurring-cb">חוזר כל שבוע (אימון/משמרת קבועה)</label>
+      <label for="recurring-cb">חוזר כל שבוע (קבוע)</label>
     </div>
     <div class="form-group" id="recurring-weeks-group" style="${s.isRecurring?'':'display:none'}">
       <label>מספר שבועות</label>
       <input name="recurringWeeks" type="number" min="1" max="52" value="12">
     </div>
+
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
       <button type="submit" class="btn">שמור</button>
@@ -696,16 +764,27 @@ function sessionForm(s={}, forceType='') {
 
 function toggleSessionType() {
   const isShift = document.getElementById('type-shift').checked;
-  document.getElementById('session-client-group').style.display = isShift ? 'none' : '';
-  // If shift, remove required from client
-  const clientSel = document.getElementById('session-client-sel');
-  if (clientSel) clientSel.required = !isShift;
+  document.getElementById('session-training-fields').style.display = isShift ? 'none' : '';
+  document.getElementById('session-time-training').style.display = isShift ? 'none' : '';
+  document.getElementById('session-time-shift').style.display = isShift ? '' : 'none';
 }
 
 function updatePlanDropdown() {
   const clientId = document.getElementById('session-client-sel')?.value || '';
   const planSel = document.getElementById('session-plan-sel');
   if (planSel) planSel.innerHTML = planOptionsForClient(clientId);
+}
+
+function calcShiftDisplay() {
+  const startTime = document.querySelector('[name=startTime]')?.value;
+  const endTime = document.querySelector('[name=endTime]')?.value;
+  const rate = +document.querySelector('[name=hourlyRate]')?.value || 0;
+  const calcDiv = document.getElementById('shift-calc');
+  if (!startTime || !endTime) { calcDiv.style.display = 'none'; return; }
+  calcDiv.style.display = '';
+  const hrs = calcShiftHours(startTime, endTime);
+  document.getElementById('shift-hours').textContent = hrs.toFixed(1);
+  document.getElementById('shift-total').textContent = rate ? `₪${(hrs * rate).toFixed(0)}` : '—';
 }
 
 function toggleRecurringFields() {
@@ -725,8 +804,13 @@ function openAddSession(date, type) {
       clientId: isShift ? '' : fd.get('clientId'),
       planId: isShift ? '' : (fd.get('planId') || ''),
       date: fd.get('date'),
-      time: fd.get('time'),
-      duration: fd.get('duration'),
+      // Training fields
+      time: isShift ? '' : fd.get('time'),
+      duration: isShift ? '' : fd.get('duration'),
+      // Shift fields
+      startTime: isShift ? fd.get('startTime') : '',
+      endTime: isShift ? fd.get('endTime') : '',
+      hourlyRate: isShift ? fd.get('hourlyRate') : '',
       notes: fd.get('notes'),
       isRecurring: false,
       recurringGroupId: ''
@@ -738,37 +822,32 @@ function openAddSession(date, type) {
       const groupId = uid();
       baseSession.isRecurring = true;
       baseSession.recurringGroupId = groupId;
-      // Save first session
       await saveItem('sessions', baseSession);
-      // Generate future sessions
       const promises = [];
       for (let w = 1; w < weeks; w++) {
-        const futureDate = addDays(baseSession.date, w * 7);
         promises.push(saveItem('sessions', {
           ...baseSession,
           id: uid(),
-          date: futureDate
+          date: addDays(baseSession.date, w * 7)
         }));
       }
       await Promise.all(promises);
-      showToast(`נוצרו ${weeks} אימונים/משמרות קבועות ✓`);
+      showToast(`נוצרו ${weeks} ${isShift ? 'משמרות' : 'אימונים'} קבועים ✓`);
     } else {
       await saveItem('sessions', baseSession);
     }
-
     renderCalendar(); renderSessionsTable();
   });
 }
 
 function openEditSession(id) {
   const s = load('sessions').find(x=>x.id===id);
-  if (s.recurringGroupId) {
-    // Ask: edit this one or all future?
+  if (s && s.recurringGroupId) {
     openModal('עריכת אימון חוזר', `
-      <p style="color:var(--muted);margin-bottom:16px">האימון הזה חלק מסדרה חוזרת. מה לערוך?</p>
+      <p style="color:var(--muted);margin-bottom:16px">האימון/משמרת חלק מסדרה חוזרת. מה לערוך?</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn" onclick="closeModal();editSingleSession('${id}')">אימון זה בלבד</button>
-        <button class="btn btn-teal" onclick="closeModal();editFutureSessions('${id}')">כל האימונים העתידיים</button>
+        <button class="btn" onclick="closeModal();editSingleSession('${id}')">זה בלבד</button>
+        <button class="btn btn-teal" onclick="closeModal();editFutureSessions('${id}')">כל העתידיים</button>
         <button class="btn btn-ghost" onclick="closeModal()">ביטול</button>
       </div>
     `, null);
@@ -779,7 +858,7 @@ function openEditSession(id) {
 
 function editSingleSession(id) {
   const s = load('sessions').find(x=>x.id===id);
-  openModal('עריכת אימון', sessionForm(s), async fd => {
+  openModal('עריכה', sessionForm(s), async fd => {
     const sessionType = fd.get('type');
     const isShift = sessionType === 'shift';
     Object.assign(s, {
@@ -787,8 +866,11 @@ function editSingleSession(id) {
       clientId: isShift ? '' : fd.get('clientId'),
       planId: isShift ? '' : (fd.get('planId') || ''),
       date: fd.get('date'),
-      time: fd.get('time'),
-      duration: fd.get('duration'),
+      time: isShift ? '' : fd.get('time'),
+      duration: isShift ? '' : fd.get('duration'),
+      startTime: isShift ? fd.get('startTime') : '',
+      endTime: isShift ? fd.get('endTime') : '',
+      hourlyRate: isShift ? fd.get('hourlyRate') : '',
       notes: fd.get('notes')
     });
     await saveItem('sessions', s);
@@ -798,7 +880,7 @@ function editSingleSession(id) {
 
 function editFutureSessions(id) {
   const s = load('sessions').find(x=>x.id===id);
-  openModal('עריכת אימונים עתידיים', sessionForm(s), async fd => {
+  openModal('עריכת סדרה', sessionForm(s), async fd => {
     const sessionType = fd.get('type');
     const isShift = sessionType === 'shift';
     const futureSessions = load('sessions').filter(
@@ -808,15 +890,18 @@ function editFutureSessions(id) {
       type: sessionType,
       clientId: isShift ? '' : fd.get('clientId'),
       planId: isShift ? '' : (fd.get('planId') || ''),
-      time: fd.get('time'),
-      duration: fd.get('duration'),
+      time: isShift ? '' : fd.get('time'),
+      duration: isShift ? '' : fd.get('duration'),
+      startTime: isShift ? fd.get('startTime') : '',
+      endTime: isShift ? fd.get('endTime') : '',
+      hourlyRate: isShift ? fd.get('hourlyRate') : '',
       notes: fd.get('notes')
     };
     await Promise.all(futureSessions.map(fs => {
       Object.assign(fs, updates);
       return saveItem('sessions', fs);
     }));
-    showToast(`עודכנו ${futureSessions.length} אימונים ✓`);
+    showToast(`עודכנו ${futureSessions.length} פריטים ✓`);
     renderCalendar(); renderSessionsTable();
   });
 }
@@ -824,17 +909,17 @@ function editFutureSessions(id) {
 async function deleteSession(id) {
   const s = load('sessions').find(x=>x.id===id);
   if (s && s.recurringGroupId) {
-    openModal('מחיקת אימון חוזר', `
-      <p style="color:var(--muted);margin-bottom:16px">האימון הזה חלק מסדרה חוזרת. מה למחוק?</p>
+    openModal('מחיקה', `
+      <p style="color:var(--muted);margin-bottom:16px">חלק מסדרה חוזרת. מה למחוק?</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-danger" onclick="closeModal();deleteSingleSession('${id}')">אימון זה בלבד</button>
-        <button class="btn btn-danger" onclick="closeModal();deleteFutureSessions('${id}')">כל האימונים העתידיים</button>
+        <button class="btn btn-danger" onclick="closeModal();deleteSingleSession('${id}')">זה בלבד</button>
+        <button class="btn btn-danger" onclick="closeModal();deleteFutureSessions('${id}')">כל העתידיים</button>
         <button class="btn btn-ghost" onclick="closeModal()">ביטול</button>
       </div>
     `, null);
     return;
   }
-  if (!confirm('למחוק אימון זה?')) return;
+  if (!confirm('למחוק?')) return;
   await deleteItem('sessions', id);
   renderCalendar(); renderSessionsTable();
 }
@@ -842,7 +927,7 @@ async function deleteSession(id) {
 async function deleteSingleSession(id) {
   await deleteItem('sessions', id);
   renderCalendar(); renderSessionsTable();
-  showToast('האימון נמחק ✓');
+  showToast('נמחק ✓');
 }
 
 async function deleteFutureSessions(id) {
@@ -852,7 +937,7 @@ async function deleteFutureSessions(id) {
     x => x.recurringGroupId === s.recurringGroupId && x.date >= s.date
   );
   await Promise.all(toDelete.map(x => deleteItem('sessions', x.id)));
-  showToast(`נמחקו ${toDelete.length} אימונים ✓`);
+  showToast(`נמחקו ${toDelete.length} פריטים ✓`);
   renderCalendar(); renderSessionsTable();
 }
 
@@ -867,18 +952,25 @@ function openWorkoutLog(sessionId) {
   if (!s) return;
   _logSessionId = sessionId;
 
-  // Initialize log data from existing log or from plan
   if (s.log && s.log.length) {
     _logData = JSON.parse(JSON.stringify(s.log));
   } else if (s.planId) {
     const plan = load('plans').find(p => p.id === s.planId);
     if (plan && plan.exercises.length) {
-      _logData = plan.exercises.map(e => ({
-        exerciseName: e.name,
-        prescribedSets: +e.sets || 3,
-        prescribedReps: +e.reps || 10,
-        sets: [{ reps: '', weight: '', notes: '' }]
-      }));
+      _logData = plan.exercises.map(e => {
+        const ex = migrateExercise(e);
+        return {
+          exerciseName: ex.name,
+          category: ex.category || '',
+          prescribedSets: ex.setsData.length,
+          sets: ex.setsData.map(sd => ({
+            targetReps: +sd.targetReps || 0,
+            reps: '',
+            weight: sd.weight || '',
+            notes: sd.notes || ''
+          }))
+        };
+      });
     } else {
       _logData = [];
     }
@@ -909,23 +1001,20 @@ function openWorkoutLog(sessionId) {
 function renderLogExercises() {
   if (!_logData.length) return '<div style="color:var(--muted);font-size:.85rem;padding:12px 0;text-align:center">אין תרגילים — לחץ ״הוסף תרגיל״</div>';
   return _logData.map((ex, ei) => {
-    const prescribed = (ex.prescribedSets && ex.prescribedReps)
-      ? `מתוכנן: ${ex.prescribedSets}×${ex.prescribedReps}`
-      : '';
-    const setsHtml = ex.sets.map((set, si) =>
-      `<div class="log-set-row">
+    const setsHtml = ex.sets.map((set, si) => {
+      const target = set.targetReps ? `(מטרה: ${set.targetReps})` : '';
+      return `<div class="log-set-row">
         <span>סט ${si+1}</span>
-        <input type="number" min="0" placeholder="חזרות" value="${set.reps||''}" oninput="_logData[${ei}].sets[${si}].reps=this.value">
-        <input type="number" min="0" step="0.5" placeholder="משקל" value="${set.weight||''}" oninput="_logData[${ei}].sets[${si}].weight=this.value">
+        <input type="number" min="0" placeholder="חזרות ${target}" value="${set.reps||''}" oninput="_logData[${ei}].sets[${si}].reps=this.value">
+        <input type="number" min="0" step="0.5" placeholder="משקל (ק״ג)" value="${set.weight||''}" oninput="_logData[${ei}].sets[${si}].weight=this.value">
         <input class="log-notes-input" placeholder="הערות" value="${esc(set.notes||'')}" oninput="_logData[${ei}].sets[${si}].notes=this.value">
         <button type="button" class="log-set-remove" onclick="removeLogSet(${ei},${si})">✕</button>
-      </div>`
-    ).join('');
+      </div>`;
+    }).join('');
     return `<div class="log-exercise">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div>
-          <input class="log-ex-name" style="background:transparent;border:none;color:var(--accent2);font-weight:600;font-size:.95rem;padding:0;width:100%" value="${esc(ex.exerciseName)}" oninput="_logData[${ei}].exerciseName=this.value" placeholder="שם התרגיל">
-          ${prescribed ? `<div class="log-ex-prescribed">${prescribed}</div>` : ''}
+        <div style="flex:1">
+          <input style="background:transparent;border:none;color:var(--accent2);font-weight:600;font-size:.95rem;padding:0;width:100%" value="${esc(ex.exerciseName)}" oninput="_logData[${ei}].exerciseName=this.value" placeholder="שם התרגיל">
         </div>
         <button type="button" class="ex-remove" onclick="removeLogExercise(${ei})">✕</button>
       </div>
@@ -936,21 +1025,18 @@ function renderLogExercises() {
 }
 
 function addLogSet(exIdx) {
-  _logData[exIdx].sets.push({ reps: '', weight: '', notes: '' });
+  _logData[exIdx].sets.push({ targetReps: 0, reps: '', weight: '', notes: '' });
   document.getElementById('log-exercises-container').innerHTML = renderLogExercises();
 }
-
 function removeLogSet(exIdx, setIdx) {
   _logData[exIdx].sets.splice(setIdx, 1);
-  if (!_logData[exIdx].sets.length) _logData[exIdx].sets.push({ reps: '', weight: '', notes: '' });
+  if (!_logData[exIdx].sets.length) _logData[exIdx].sets.push({ targetReps: 0, reps: '', weight: '', notes: '' });
   document.getElementById('log-exercises-container').innerHTML = renderLogExercises();
 }
-
 function addLogExercise() {
-  _logData.push({ exerciseName: '', prescribedSets: 0, prescribedReps: 0, sets: [{ reps: '', weight: '', notes: '' }] });
+  _logData.push({ exerciseName: '', category: '', sets: [{ targetReps: 0, reps: '', weight: '', notes: '' }] });
   document.getElementById('log-exercises-container').innerHTML = renderLogExercises();
 }
-
 function removeLogExercise(exIdx) {
   _logData.splice(exIdx, 1);
   document.getElementById('log-exercises-container').innerHTML = renderLogExercises();
@@ -959,14 +1045,13 @@ function removeLogExercise(exIdx) {
 async function saveWorkoutLog() {
   const s = load('sessions').find(x => x.id === _logSessionId);
   if (!s) return;
-  // Clean up: remove empty exercises, convert numbers
   const cleanLog = _logData
     .filter(ex => ex.exerciseName.trim())
     .map(ex => ({
       exerciseName: ex.exerciseName.trim(),
-      prescribedSets: +ex.prescribedSets || 0,
-      prescribedReps: +ex.prescribedReps || 0,
+      category: ex.category || '',
       sets: ex.sets.map(set => ({
+        targetReps: +set.targetReps || 0,
         reps: +set.reps || 0,
         weight: +set.weight || 0,
         notes: (set.notes || '').trim()
@@ -1032,6 +1117,7 @@ async function deleteExercise(id) {
 // ========================
 // ===== WORKOUT PLANS ====
 // ========================
+// New exercise format: { name, category, videoUrl, setsData: [{targetReps, weight, notes}] }
 let _exercises = [];
 let _planIsTemplate = false;
 
@@ -1045,8 +1131,22 @@ function renderWorkouts() {
   if (!plans.length)    { html='<div class="empty">אין תוכניות אימון עדיין.</div>'; }
   document.getElementById('workouts-content').innerHTML = html;
 }
+
 function planCardHTML(p) {
-  const exRows = p.exercises.map(e=>`<tr><td>${esc(e.name)}</td><td>${esc(e.sets)}</td><td>${esc(e.reps)}</td><td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank">▶</a>`:'—'}</td></tr>`).join('');
+  const exercises = p.exercises.map(migrateExercise);
+  const exRows = exercises.map(e => {
+    const setsCount = e.setsData.length;
+    const repsDisplay = e.setsData.map(s => s.targetReps).join('/');
+    const weightsDisplay = e.setsData.some(s => s.weight) ? e.setsData.map(s => s.weight || '—').join('/') : '—';
+    return `<tr>
+      <td>${esc(e.category||'—')}</td>
+      <td>${esc(e.name)}</td>
+      <td>${setsCount}</td>
+      <td>${repsDisplay}</td>
+      <td>${weightsDisplay}</td>
+      <td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank">▶</a>`:'—'}</td>
+    </tr>`;
+  }).join('');
   const assignBtn = p.isTemplate
     ? `<button class="btn btn-teal btn-sm" onclick="openAssignTemplate('${p.id}')">הקצה ללקוח</button>`
     : `<button class="btn wa-btn btn-sm" onclick="sendPlanToWhatsApp('${p.id}')">📲 שלח</button>`;
@@ -1057,16 +1157,18 @@ function planCardHTML(p) {
         <div class="plan-client">${p.isTemplate?'<span class="badge badge-tmpl">תבנית גנרית</span>':'לקוח: '+esc(clientName(p.clientId))}</div>
       </div>
     </div>
-    ${p.exercises.length?`<table class="ex-table"><thead><tr><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>סרטון</th></tr></thead><tbody>${exRows}</tbody></table>`:'<div style="color:var(--muted);font-size:.82rem">אין תרגילים</div>'}
+    ${exercises.length?`<table class="ex-table"><thead><tr><th>קטגוריה</th><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>משקל</th><th>סרטון</th></tr></thead><tbody>${exRows}</tbody></table>`:'<div style="color:var(--muted);font-size:.82rem">אין תרגילים</div>'}
     <div class="plan-card-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditPlan('${p.id}')">עריכה</button>
-      <button class="btn btn-teal btn-sm" onclick="generateWordDoc(load('plans').find(x=>x.id==='${p.id}'))">📄 הורד</button>
+      <button class="btn btn-teal btn-sm" onclick="exportPlanPDF(load('plans').find(x=>x.id==='${p.id}'))">📄 PDF</button>
       ${assignBtn}
       <button class="btn btn-danger btn-sm" onclick="deletePlan('${p.id}')">מחק</button>
     </div></div>`;
 }
+
 function planForm(p={}, forceTemplate=false) {
-  _exercises = p.exercises ? JSON.parse(JSON.stringify(p.exercises)) : [];
+  const rawExercises = p.exercises ? JSON.parse(JSON.stringify(p.exercises)) : [];
+  _exercises = rawExercises.map(migrateExercise);
   _planIsTemplate = p.isTemplate || forceTemplate;
   return `<form id="modal-form" onsubmit="return false">
     <div class="form-check">
@@ -1086,42 +1188,87 @@ function planForm(p={}, forceTemplate=false) {
       <button type="button" class="btn" onclick="savePlanFromModal('${p.id||''}')">שמור תוכנית</button>
     </div></form>`;
 }
+
 function toggleTemplateMode() {
   _planIsTemplate = document.getElementById('is-tmpl-cb').checked;
   document.getElementById('client-sel-group').style.display = _planIsTemplate?'none':'';
 }
+
 function renderExRows() {
   if (!_exercises.length) return '<div style="color:var(--muted);font-size:.82rem;padding:8px 0">אין תרגילים — לחץ ״הוסף תרגיל״</div>';
   const bo = bankOptions();
-  return _exercises.map((e,i)=>`<div class="ex-item">
-    ${bo?`<div class="ex-item-bank"><div class="ex-label">בחר מהבנק (ממלא אוטומטית)</div><select onchange="fillFromBank(${i},this.value)">${bo}</select></div>`:''}
-    <div class="ex-item-top">
-      <div><div class="ex-label">שם תרגיל *</div><input value="${esc(e.name||'')}" placeholder="שם התרגיל" oninput="_exercises[${i}].name=this.value"></div>
-      <button type="button" class="ex-remove" onclick="removeExRow(${i})">✕</button>
-    </div>
-    <div class="ex-item-mid">
-      <div><div class="ex-label">סטים</div><input type="number" min="1" value="${esc(e.sets||3)}" oninput="_exercises[${i}].sets=this.value"></div>
-      <div><div class="ex-label">חזרות</div><input type="number" min="1" value="${esc(e.reps||10)}" oninput="_exercises[${i}].reps=this.value"></div>
-    </div>
-    <div><div class="ex-label">קישור סרטון</div><input value="${esc(e.videoUrl||'')}" placeholder="https://... (אופציונלי)" oninput="_exercises[${i}].videoUrl=this.value"></div>
-  </div>`).join('');
+  return _exercises.map((e,i) => {
+    const setsHtml = e.setsData.map((s, si) =>
+      `<div class="ex-set-row">
+        <span>סט ${si+1}</span>
+        <input type="number" min="0" placeholder="חזרות" value="${s.targetReps||''}" oninput="_exercises[${i}].setsData[${si}].targetReps=this.value">
+        <input type="number" min="0" step="0.5" placeholder="משקל" value="${s.weight||''}" oninput="_exercises[${i}].setsData[${si}].weight=this.value">
+        <input class="ex-set-notes" placeholder="הערות" value="${esc(s.notes||'')}" oninput="_exercises[${i}].setsData[${si}].notes=this.value">
+        <button type="button" class="ex-remove" onclick="removeExSet(${i},${si})" style="font-size:.85rem">✕</button>
+      </div>`
+    ).join('');
+    return `<div class="ex-item">
+      ${bo?`<div class="ex-item-bank"><div class="ex-label">בחר מהבנק (ממלא אוטומטית)</div><select onchange="fillFromBank(${i},this.value)">${bo}</select></div>`:''}
+      <div class="ex-item-top">
+        <div><div class="ex-label">שם תרגיל *</div><input value="${esc(e.name||'')}" placeholder="שם התרגיל" oninput="_exercises[${i}].name=this.value"></div>
+        <button type="button" class="ex-remove" onclick="removeExRow(${i})">✕</button>
+      </div>
+      <div class="ex-item-mid">
+        <div><div class="ex-label">קטגוריה</div>
+          <select onchange="_exercises[${i}].category=this.value">
+            <option value="">—</option>
+            ${EX_CATS.map(c=>`<option${c===e.category?' selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div><div class="ex-label">קישור סרטון</div><input value="${esc(e.videoUrl||'')}" placeholder="https://..." oninput="_exercises[${i}].videoUrl=this.value"></div>
+      </div>
+      <div style="margin:8px 0 4px;color:var(--muted);font-size:.78rem;font-weight:600">סטים</div>
+      <div class="ex-sets-header"><span></span><span>חזרות</span><span>משקל</span><span>הערות</span><span></span></div>
+      ${setsHtml}
+      <button type="button" class="ex-add-set" onclick="addExSet(${i})">+ הוסף סט</button>
+    </div>`;
+  }).join('');
 }
+
+function addExSet(exIdx) {
+  _exercises[exIdx].setsData.push({targetReps: '', weight: '', notes: ''});
+  document.getElementById('ex-list').innerHTML = renderExRows();
+}
+function removeExSet(exIdx, setIdx) {
+  _exercises[exIdx].setsData.splice(setIdx, 1);
+  if (!_exercises[exIdx].setsData.length) _exercises[exIdx].setsData.push({targetReps: '', weight: '', notes: ''});
+  document.getElementById('ex-list').innerHTML = renderExRows();
+}
+
 function fillFromBank(i, exId) {
   if (!exId) return;
   const ex = load('exercises').find(e=>e.id===exId);
   if (!ex) return;
   _exercises[i].name = ex.name;
+  _exercises[i].category = ex.category || '';
   _exercises[i].videoUrl = ex.videoUrl||'';
   document.getElementById('ex-list').innerHTML = renderExRows();
 }
-function addExRow() { _exercises.push({name:'',sets:3,reps:10,videoUrl:''}); document.getElementById('ex-list').innerHTML=renderExRows(); }
+function addExRow() {
+  _exercises.push({name:'', category:'', videoUrl:'', setsData:[{targetReps:10, weight:'', notes:''}]});
+  document.getElementById('ex-list').innerHTML=renderExRows();
+}
 function removeExRow(i) { _exercises.splice(i,1); document.getElementById('ex-list').innerHTML=renderExRows(); }
 
 async function savePlanFromModal(existingId) {
   const nameInput = document.getElementById('plan-name-input');
   if (!nameInput.value.trim()) { nameInput.focus(); return; }
   const clientId = _planIsTemplate ? '' : (document.querySelector('#client-sel-group select')?.value||'');
-  const data = {clientId, name:nameInput.value.trim(), isTemplate:_planIsTemplate, exercises:[..._exercises]};
+  const data = {clientId, name:nameInput.value.trim(), isTemplate:_planIsTemplate, exercises: _exercises.map(e => ({
+    name: e.name,
+    category: e.category || '',
+    videoUrl: e.videoUrl || '',
+    setsData: e.setsData.map(s => ({
+      targetReps: +s.targetReps || 0,
+      weight: s.weight || '',
+      notes: s.notes || ''
+    }))
+  }))};
   try {
     if (existingId) {
       const plan = load('plans').find(x=>x.id===existingId);
@@ -1154,59 +1301,84 @@ function openAssignTemplate(templateId) {
 }
 
 // ========================
-// ===== WORD EXPORT ======
+// ===== PDF EXPORT ========
 // ========================
-function generateWordDoc(plan) {
+function exportPlanPDF(plan) {
   if (!plan) return;
   const client = plan.clientId ? load('clients').find(c=>c.id===plan.clientId) : null;
   const today  = new Date().toLocaleDateString('he-IL',{year:'numeric',month:'long',day:'numeric'});
-  const rows   = plan.exercises.map((e,i)=>`<tr>
-    <td style="text-align:center">${i+1}</td><td><strong>${esc(e.name)}</strong></td>
-    <td style="text-align:center">${e.sets||'—'}</td><td style="text-align:center">${e.reps||'—'}</td>
-    <td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" style="color:#c0392b">▶ לחץ לצפייה</a>`:'—'}</td></tr>`).join('');
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
-<head><meta charset="utf-8"><style>
-  body{font-family:Arial;direction:rtl;text-align:right;margin:40px;color:#222}
+  const exercises = plan.exercises.map(migrateExercise);
+
+  let rowNum = 0;
+  const rows = exercises.map(e => {
+    return e.setsData.map((s, si) => {
+      rowNum++;
+      const isFirst = si === 0;
+      const rowspan = isFirst ? ` rowspan="${e.setsData.length}"` : '';
+      const catCell = isFirst ? `<td${rowspan} style="text-align:center;vertical-align:middle">${esc(e.category||'—')}</td>` : '';
+      const nameCell = isFirst ? `<td${rowspan} style="vertical-align:middle"><strong>${esc(e.name)}</strong></td>` : '';
+      const setNum = si + 1;
+      return `<tr style="${rowNum%2===0?'background:#fdf2f2':''}">
+        ${catCell}${nameCell}
+        <td style="text-align:center">סט ${setNum}</td>
+        <td style="text-align:center">${s.targetReps||'—'}</td>
+        <td style="text-align:center"></td>
+        <td style="text-align:center">${s.weight||'—'}</td>
+        <td>${esc(s.notes||'')}</td>
+      </tr>`;
+    }).join('');
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head><meta charset="utf-8">
+<title>תוכנית אימון — ${esc(plan.name)}</title>
+<style>
+  @media print { @page { margin: 15mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  body{font-family:Arial,sans-serif;direction:rtl;text-align:right;margin:40px;color:#222;background:#fff}
   h1{color:#c0392b;font-size:22px;border-bottom:3px solid #c0392b;padding-bottom:8px;margin-bottom:6px}
   .meta{color:#555;font-size:13px;margin-bottom:24px;line-height:2}
-  table{border-collapse:collapse;width:100%}
-  th{background:#c0392b;color:#fff;padding:10px 14px;border:1px solid #a93226;font-size:13px}
-  td{padding:9px 14px;border:1px solid #ddd;font-size:13px}
-  tr:nth-child(even) td{background:#fdf2f2}
-  a{color:#c0392b;text-decoration:none}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th{background:#c0392b;color:#fff;padding:10px 12px;border:1px solid #a93226}
+  td{padding:8px 12px;border:1px solid #ddd}
   .footer{margin-top:28px;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:10px;text-align:center}
+  .no-print{margin-bottom:20px}
+  @media print{.no-print{display:none}}
 </style></head>
 <body>
+  <div class="no-print"><button onclick="window.print()" style="padding:10px 24px;font-size:14px;cursor:pointer;background:#c0392b;color:#fff;border:none;border-radius:8px">📄 שמור כ-PDF / הדפס</button></div>
   <h1>💪 תוכנית אימון: ${esc(plan.name)}</h1>
   <div class="meta">
     ${client?`<strong>מתאמן/ת:</strong> ${esc(client.name)}<br>`:'<strong>תבנית גנרית</strong><br>'}
     <strong>תאריך:</strong> ${today}<br>
-    <strong>מספר תרגילים:</strong> ${plan.exercises.length}
+    <strong>מספר תרגילים:</strong> ${exercises.length}
   </div>
-  <table><thead><tr><th>#</th><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>סרטון הדגמה</th></tr></thead>
-  <tbody>${rows}</tbody></table>
+  <table>
+    <thead><tr><th>קטגוריה</th><th>תרגיל</th><th>סט</th><th>מטרת חזרות</th><th>חזרות שהצלחתי</th><th>משקל</th><th>הערות</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
   <div class="footer">נוצר על ידי מערכת מאמן כושר</div>
+  <script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
-  const blob = new Blob(['\ufeff'+html], {type:'application/msword'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href=url; a.download=`תוכנית-${plan.name}.doc`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 }
+
 function sendPlanToWhatsApp(planId) {
   const plan = load('plans').find(p=>p.id===planId);
   if (!plan) return;
-  generateWordDoc(plan);
+  exportPlanPDF(plan);
   if (plan.clientId) {
     const client = load('clients').find(c=>c.id===plan.clientId);
     if (client?.phone) {
       const intl = client.phone.replace(/\D/g,'').replace(/^0/,'972');
-      const text = `שלום ${client.name}! שלחתי לך את תוכנית האימון שלך 💪\nהקובץ מצורף – צרף אותו להודעה זו.`;
+      const text = `שלום ${client.name}! שלחתי לך את תוכנית האימון שלך 💪\nשמור את הקובץ כ-PDF ושלח אותו כאן.`;
       setTimeout(()=>window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank'), 600);
     }
   }
-  showToast('הקובץ הורד! צרף אותו בוואטסאפ 📎');
+  showToast('התוכנית נפתחה — שמור כ-PDF ושלח בוואטסאפ 📎');
 }
 
 // ========================
@@ -1287,7 +1459,7 @@ function renderReminders() {
   const limit = new Date(today); limit.setDate(limit.getDate()+7);
   const upcoming = sessions
     .filter(s=>{ const d=new Date(s.date+'T00:00'); return d>=today&&d<=limit; })
-    .sort((a,b)=>(a.date+a.time)<(b.date+b.time)?-1:1);
+    .sort((a,b)=>(a.date+(a.time||a.startTime||''))<(b.date+(b.time||b.startTime||''))?-1:1);
   const container = document.getElementById('reminders-list');
   if (!upcoming.length) { container.innerHTML='<div class="empty">אין אימונים ב-7 הימים הקרובים.</div>'; return; }
   const todayStr = new Date().toISOString().slice(0,10);
@@ -1296,10 +1468,11 @@ function renderReminders() {
     const client = clients.find(c=>c.id===s.clientId)||{};
     const isToday = s.date===todayStr;
     if (isShift) {
+      const hrs = calcShiftHours(s.startTime, s.endTime);
       return `<div class="reminder-card${isToday?' today-card':''}">
         <div class="reminder-info">
           <h3>${isToday?'<span class="reminder-tag">היום</span>':''}<span class="badge badge-shift">משמרת</span></h3>
-          <p>${fmtDateLong(s.date)} · ${esc(s.time)} · ${esc(s.duration)} דקות</p>
+          <p>${fmtDateLong(s.date)} · ${esc(s.startTime||'')}–${esc(s.endTime||'')} · ${hrs.toFixed(1)} שעות</p>
           ${s.notes?`<p style="margin-top:4px">${esc(s.notes)}</p>`:''}
         </div>
       </div>`;
@@ -1387,7 +1560,6 @@ function openIssueDocument(paymentId) {
         <option value="400">קבלה</option>
       </select>
     </div>
-
     <div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:14px">
       <div style="color:var(--accent2);font-size:.85rem;font-weight:600;margin-bottom:8px">פרטי לקוח</div>
       <div class="form-row">
@@ -1399,37 +1571,25 @@ function openIssueDocument(paymentId) {
         <div class="form-group"><label>מס׳ עוסק / ח.פ</label><input name="clientTaxId" value="${esc(client.taxId || '')}"></div>
       </div>
     </div>
-
     <div id="invoice-fields">
       <div class="form-group"><label>תיאור השירות *</label><input name="description" value="אימון כושר אישי" required></div>
       <div class="form-row">
         <div class="form-group"><label>כמות</label><input name="quantity" type="number" min="1" value="1"></div>
         <div class="form-group"><label>מחיר ליחידה (₪) *</label><input name="price" type="number" step="0.01" value="${esc(payment.amount || '')}" required></div>
       </div>
-      <div class="form-group">
-        <label>מע"מ</label>
-        <select name="vatType">
-          <option value="2" selected>פטור ממע"מ (עוסק פטור)</option>
-        </select>
-      </div>
+      <div class="form-group"><label>מע"מ</label><select name="vatType"><option value="2" selected>פטור ממע"מ (עוסק פטור)</option></select></div>
     </div>
-
     <div class="form-row">
       <div class="form-group"><label>אמצעי תשלום *</label>
-        <select name="payMethod" required>
-          ${MORNING_PAY_METHODS.map(m => '<option value="' + m.value + '">' + m.label + '</option>').join('')}
-        </select>
+        <select name="payMethod" required>${MORNING_PAY_METHODS.map(m => '<option value="' + m.value + '">' + m.label + '</option>').join('')}</select>
       </div>
       <div class="form-group"><label>תאריך תשלום</label><input name="payDate" type="date" value="${esc(payment.date || today)}"></div>
     </div>
-
     <div class="form-row">
       <div class="form-group"><label>תאריך מסמך</label><input name="docDate" type="date" value="${today}"></div>
       <div class="form-group"><label>תאריך פירעון</label><input name="dueDate" type="date" value="${today}"></div>
     </div>
-
     <div class="form-group"><label>הערות (אופציונלי)</label><textarea name="remarks" rows="2"></textarea></div>
-
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
       <button type="submit" class="btn">🧾 הנפק מסמך</button>
@@ -1438,39 +1598,15 @@ function openIssueDocument(paymentId) {
     const docType = +fd.get('docType');
     const quantity = +fd.get('quantity') || 1;
     const price = +fd.get('price');
-
     const docData = {
       description: fd.get('description') || (docType === 400 ? 'קבלה על תשלום' : ''),
-      type: docType,
-      date: fd.get('docDate'),
-      dueDate: fd.get('dueDate'),
-      lang: 'he',
-      currency: 'ILS',
-      vatType: +fd.get('vatType'),
-      client: {
-        name: fd.get('clientName'),
-        emails: fd.get('clientEmail') ? [fd.get('clientEmail')] : [],
-        taxId: fd.get('clientTaxId') || '',
-        phone: fd.get('clientPhone') || '',
-        add: false
-      },
-      income: [{
-        catalogNum: '',
-        description: fd.get('description') || 'תשלום',
-        quantity: quantity,
-        price: price,
-        currency: 'ILS',
-        vatType: +fd.get('vatType')
-      }],
-      payment: [{
-        type: +fd.get('payMethod'),
-        date: fd.get('payDate'),
-        price: price * quantity,
-        currency: 'ILS'
-      }],
+      type: docType, date: fd.get('docDate'), dueDate: fd.get('dueDate'),
+      lang: 'he', currency: 'ILS', vatType: +fd.get('vatType'),
+      client: { name: fd.get('clientName'), emails: fd.get('clientEmail') ? [fd.get('clientEmail')] : [], taxId: fd.get('clientTaxId') || '', phone: fd.get('clientPhone') || '', add: false },
+      income: [{ catalogNum: '', description: fd.get('description') || 'תשלום', quantity, price, currency: 'ILS', vatType: +fd.get('vatType') }],
+      payment: [{ type: +fd.get('payMethod'), date: fd.get('payDate'), price: price * quantity, currency: 'ILS' }],
       remarks: fd.get('remarks') || ''
     };
-
     try {
       const result = await morningCreateDocument(docData);
       showToast('המסמך הונפק בהצלחה ✓');
@@ -1488,11 +1624,8 @@ function openIssueDocument(paymentId) {
 
 function toggleInvoiceFields(docType) {
   const fields = document.getElementById('invoice-fields');
-  if (+docType === 400) {
-    fields.querySelector('[name=description]').value = 'קבלה על תשלום';
-  } else {
-    fields.querySelector('[name=description]').value = 'אימון כושר אישי';
-  }
+  if (+docType === 400) { fields.querySelector('[name=description]').value = 'קבלה על תשלום'; }
+  else { fields.querySelector('[name=description]').value = 'אימון כושר אישי'; }
   const dueDateGroup = document.querySelector('[name=dueDate]').closest('.form-group');
   dueDateGroup.style.display = +docType === 400 ? 'none' : '';
 }
@@ -1550,7 +1683,6 @@ async function init() {
   }
 }
 
-// Check if already logged in
 if (localStorage.getItem('ft_auth') === 'yes') {
   document.getElementById('login-screen').style.display = 'none';
   init();
