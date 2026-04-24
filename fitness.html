@@ -14,6 +14,7 @@
       --accent2: #a8dadc;
       --text:    #e0e0e0;
       --muted:   #888;
+      --shift:   #ffa726;
     }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
@@ -81,6 +82,8 @@
     .btn-teal:hover { background: #126070; }
     .wa-btn { background: #1a7a3c; }
     .wa-btn:hover { background: #145f2e; }
+    .btn-log { background: #5c4b9e; }
+    .btn-log:hover { background: #7b6bb5; }
 
     /* TABLE */
     .table-wrap { overflow-x: auto; }
@@ -97,6 +100,9 @@
     .badge-pending { background: #4a3a1a; color: #ffa726; }
     .badge-cat  { background: rgba(168,218,220,.15); color: var(--accent2); }
     .badge-tmpl { background: rgba(233,69,96,.15); color: var(--accent); }
+    .badge-shift { background: rgba(255,167,38,.15); color: var(--shift); }
+    .badge-recurring { background: rgba(168,218,220,.15); color: var(--accent2); font-size: .75rem; }
+    .badge-logged { background: rgba(92,75,158,.2); color: #b39ddb; }
 
     /* EMPTY */
     .empty { text-align: center; color: var(--muted); padding: 40px; font-size: 1rem; }
@@ -114,6 +120,7 @@
     .cal-day.today .cal-day-num { color: var(--accent2); font-weight: bold; }
     .cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
     .cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    .cal-dot.shift-dot { background: var(--shift); }
 
     /* PLAN CARDS */
     .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 16px; }
@@ -159,6 +166,13 @@
     .form-check input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
     .form-check label { font-size: .9rem; color: var(--text); cursor: pointer; }
 
+    /* TYPE TOGGLE */
+    .type-toggle { display: flex; gap: 0; margin-bottom: 16px; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); }
+    .type-toggle label { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: .9rem; transition: all .2s; background: var(--bg); color: var(--muted); }
+    .type-toggle input { display: none; }
+    .type-toggle input:checked + label { background: var(--accent); color: #fff; }
+    .type-toggle input[value="shift"]:checked + label { background: var(--shift); color: #1a1a2e; }
+
     /* EXERCISE BUILDER */
     #ex-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
     .ex-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
@@ -170,6 +184,30 @@
     .ex-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 2px 6px; border-radius: 4px; }
     .ex-remove:hover { color: var(--accent); background: rgba(233,69,96,.1); }
     .ex-label { font-size: .75rem; color: var(--muted); margin-bottom: 2px; }
+
+    /* WORKOUT LOG */
+    .log-header { background: var(--bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+    .log-header-info { font-size: .9rem; color: var(--muted); line-height: 1.8; }
+    .log-header-info strong { color: var(--accent2); }
+    .log-exercise { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+    .log-ex-name { font-weight: 600; color: var(--accent2); font-size: .95rem; margin-bottom: 4px; }
+    .log-ex-prescribed { font-size: .78rem; color: var(--muted); margin-bottom: 10px; }
+    .log-set-row { display: grid; grid-template-columns: 40px 1fr 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .log-set-row span { font-size: .8rem; color: var(--muted); text-align: center; }
+    .log-set-row input { background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 8px; font-size: .85rem; font-family: inherit; width: 100%; }
+    .log-set-row input:focus { outline: none; border-color: var(--accent2); }
+    .log-set-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .9rem; padding: 2px 4px; }
+    .log-set-remove:hover { color: var(--accent); }
+    .log-add-set { background: none; border: 1px dashed var(--border); color: var(--muted); padding: 6px; border-radius: 6px; cursor: pointer; font-size: .8rem; width: 100%; margin-top: 4px; transition: all .2s; }
+    .log-add-set:hover { border-color: var(--accent2); color: var(--accent2); }
+    .log-add-exercise { background: none; border: 2px dashed var(--border); color: var(--muted); padding: 12px; border-radius: 10px; cursor: pointer; font-size: .85rem; width: 100%; margin-bottom: 16px; transition: all .2s; text-align: center; }
+    .log-add-exercise:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* DAY POPUP (sessions list for a day) */
+    .day-session-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .day-session-info { font-size: .9rem; }
+    .day-session-info strong { color: var(--accent2); }
+    .day-session-actions { display: flex; gap: 6px; }
 
     /* LOGIN */
     #login-screen {
@@ -204,6 +242,8 @@
       .nav-tabs { justify-content: center; }
       .dashboard, .pay-summary { grid-template-columns: 1fr; }
       .form-row { grid-template-columns: 1fr; }
+      .log-set-row { grid-template-columns: 30px 1fr 1fr auto; }
+      .log-set-row input.log-notes-input { display: none; }
       main { padding: 14px; }
     }
   </style>
@@ -264,7 +304,13 @@
       <div class="cal-grid" id="cal-grid"></div>
     </div>
     <div class="card">
-      <div class="section-header"><h2>כל האימונים</h2><button class="btn" onclick="openAddSession(null)">+ הוסף אימון</button></div>
+      <div class="section-header">
+        <h2>כל האימונים</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="openAddSession(null,'shift')">+ משמרת</button>
+          <button class="btn" onclick="openAddSession(null,'training')">+ אימון</button>
+        </div>
+      </div>
       <div class="table-wrap" id="sessions-table"></div>
     </div>
   </section>
@@ -329,7 +375,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ===== IN-MEMORY CACHE =====
-// כל הנתונים נטענים מ-Firestore לתוך cache, ה-UI קורא מה-cache בלבד
 const cache = { clients:[], sessions:[], plans:[], payments:[], exercises:[] };
 
 function load(col) { return cache[col] || []; }
@@ -357,8 +402,16 @@ async function initDB() {
 // ===== HELPERS =====
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function clientName(id) { const c = load('clients').find(x=>x.id===id); return c ? c.name : '—'; }
+function planName(id) { const p = load('plans').find(x=>x.id===id); return p ? p.name : ''; }
 function clientOptions(sel='') {
   return load('clients').map(c=>`<option value="${c.id}"${c.id===sel?' selected':''}>${esc(c.name)}</option>`).join('');
+}
+function planOptionsForClient(clientId, selPlanId='') {
+  const plans = load('plans').filter(p => p.clientId === clientId && !p.isTemplate);
+  if (!plans.length) return '<option value="">— אין תוכניות —</option>';
+  return '<option value="">— ללא תוכנית —</option>' + plans.map(p =>
+    `<option value="${p.id}"${p.id===selPlanId?' selected':''}>${esc(p.name)}</option>`
+  ).join('');
 }
 function bankOptions() {
   const exs = load('exercises');
@@ -375,6 +428,11 @@ function bankOptions() {
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(d) { if (!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
 function fmtDateLong(d) { if (!d) return ''; return new Date(d+'T00:00').toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); }
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 // ===== TOAST =====
 function showToast(msg) {
@@ -510,6 +568,7 @@ function renderSchedule() {
 }
 function calPrev() { calMonth--; if (calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
 function calNext() { calMonth++; if (calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+
 function renderCalendar() {
   const sessions = load('sessions');
   const today    = new Date().toISOString().slice(0,10);
@@ -517,36 +576,103 @@ function renderCalendar() {
   document.getElementById('cal-title').textContent = `${monthNames[calMonth]} ${calYear}`;
   const firstDay = new Date(calYear,calMonth,1).getDay();
   const daysInMonth = new Date(calYear,calMonth+1,0).getDate();
+  // Build session map with type info
   const sessionMap = {};
-  sessions.forEach(s => { sessionMap[s.date]=(sessionMap[s.date]||0)+1; });
+  sessions.forEach(s => {
+    if (!sessionMap[s.date]) sessionMap[s.date] = [];
+    sessionMap[s.date].push(s.type || 'training');
+  });
   const dayNames = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
   let html = dayNames.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
   for (let i=0;i<firstDay;i++) html+='<div class="cal-day empty-day"></div>';
   for (let d=1;d<=daysInMonth;d++) {
     const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const cnt=sessionMap[ds]||0;
-    const dots=cnt?`<div class="cal-dots">${'<div class="cal-dot"></div>'.repeat(Math.min(cnt,5))}</div>`:'';
-    html+=`<div class="cal-day${ds===today?' today':''}" onclick="openAddSession('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
+    const types = sessionMap[ds] || [];
+    let dots = '';
+    if (types.length) {
+      const dotHtml = types.slice(0, 5).map(t =>
+        `<div class="cal-dot${t === 'shift' ? ' shift-dot' : ''}"></div>`
+      ).join('');
+      dots = `<div class="cal-dots">${dotHtml}</div>`;
+    }
+    html+=`<div class="cal-day${ds===today?' today':''}" onclick="handleCalDayClick('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
   }
   document.getElementById('cal-grid').innerHTML=html;
 }
+
+function handleCalDayClick(dateStr) {
+  const daySessions = load('sessions').filter(s => s.date === dateStr).sort((a,b) => (a.time||'') < (b.time||'') ? -1 : 1);
+  if (!daySessions.length) {
+    openAddSession(dateStr, 'training');
+    return;
+  }
+  // Show day popup with list of sessions
+  let html = `<div style="margin-bottom:12px;color:var(--muted);font-size:.9rem">${fmtDateLong(dateStr)}</div>`;
+  daySessions.forEach(s => {
+    const isShift = s.type === 'shift';
+    const name = isShift ? '<span class="badge badge-shift">משמרת</span>' : esc(clientName(s.clientId));
+    const pName = s.planId ? ` · ${esc(planName(s.planId))}` : '';
+    const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
+    html += `<div class="day-session-item">
+      <div class="day-session-info"><strong>${esc(s.time)}</strong> ${name}${pName}${logBadge}</div>
+      <div class="day-session-actions">
+        ${!isShift ? `<button class="btn btn-log btn-sm" onclick="closeModal();openWorkoutLog('${s.id}')">📋 יומן</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="closeModal();openEditSession('${s.id}')">עריכה</button>
+      </div>
+    </div>`;
+  });
+  html += `<div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn" onclick="closeModal();openAddSession('${dateStr}','training')">+ אימון</button>
+    <button class="btn btn-ghost" onclick="closeModal();openAddSession('${dateStr}','shift')">+ משמרת</button>
+  </div>`;
+  openModal(`אימונים — ${fmtDate(dateStr)}`, html, null);
+}
+
 function renderSessionsTable() {
   const sessions = load('sessions').sort((a,b)=>a.date<b.date?-1:1);
   if (!sessions.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים עדיין.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
-    <thead><tr><th>לקוח</th><th>תאריך</th><th>שעה</th><th>משך (דק׳)</th><th>הערות</th><th>פעולות</th></tr></thead>
-    <tbody>${sessions.map(s=>`<tr>
-      <td>${esc(clientName(s.clientId))}</td><td>${fmtDate(s.date)}</td>
-      <td>${esc(s.time)}</td><td>${esc(s.duration)}</td><td>${esc(s.notes)}</td>
+    <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>משך</th><th>תוכנית</th><th>הערות</th><th>פעולות</th></tr></thead>
+    <tbody>${sessions.map(s=>{
+      const isShift = s.type === 'shift';
+      const typeBadge = isShift
+        ? '<span class="badge badge-shift">משמרת</span>'
+        : '🏋️';
+      const recurring = s.recurringGroupId ? ' <span class="badge badge-recurring">🔁</span>' : '';
+      const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
+      const clientCol = isShift ? '—' : esc(clientName(s.clientId));
+      const planCol = s.planId ? esc(planName(s.planId)) : '—';
+      return `<tr>
+      <td>${typeBadge}${recurring}</td>
+      <td>${clientCol}</td><td>${fmtDate(s.date)}</td>
+      <td>${esc(s.time)}</td><td>${esc(s.duration)} דק׳</td>
+      <td>${planCol}</td>
+      <td>${esc(s.notes)}${logBadge}</td>
       <td class="actions">
+        ${!isShift ? `<button class="btn btn-log btn-sm" onclick="openWorkoutLog('${s.id}')">📋</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="openEditSession('${s.id}')">עריכה</button>
         <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">מחק</button>
-      </td></tr>`).join('')}</tbody></table>`;
+      </td></tr>`;
+    }).join('')}</tbody></table>`;
 }
-function sessionForm(s={}) {
+
+function sessionForm(s={}, forceType='') {
+  const type = forceType || s.type || 'training';
+  const isShift = type === 'shift';
   return `<form id="modal-form">
-    <div class="form-group"><label>לקוח *</label>
-      <select name="clientId" required><option value="">— בחר לקוח —</option>${clientOptions(s.clientId||'')}</select>
+    <div class="type-toggle">
+      <input type="radio" name="type" value="training" id="type-training" ${!isShift?'checked':''} onchange="toggleSessionType()">
+      <label for="type-training">🏋️ אימון</label>
+      <input type="radio" name="type" value="shift" id="type-shift" ${isShift?'checked':''} onchange="toggleSessionType()">
+      <label for="type-shift">🕐 משמרת</label>
+    </div>
+    <div id="session-client-group" ${isShift?'style="display:none"':''}>
+      <div class="form-group"><label>לקוח *</label>
+        <select name="clientId" id="session-client-sel" onchange="updatePlanDropdown()"><option value="">— בחר לקוח —</option>${clientOptions(s.clientId||'')}</select>
+      </div>
+      <div class="form-group"><label>תוכנית אימון</label>
+        <select name="planId" id="session-plan-sel">${s.clientId ? planOptionsForClient(s.clientId, s.planId||'') : '<option value="">— בחר לקוח קודם —</option>'}</select>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${esc(s.date||'')}" required></div>
@@ -554,30 +680,303 @@ function sessionForm(s={}) {
     </div>
     <div class="form-group"><label>משך (דקות)</label><input name="duration" type="number" min="1" value="${esc(s.duration||60)}"></div>
     <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(s.notes||'')}</textarea></div>
+    <div class="form-check" id="recurring-group">
+      <input type="checkbox" id="recurring-cb" name="recurring" ${s.isRecurring?'checked':''} onchange="toggleRecurringFields()">
+      <label for="recurring-cb">חוזר כל שבוע (אימון/משמרת קבועה)</label>
+    </div>
+    <div class="form-group" id="recurring-weeks-group" style="${s.isRecurring?'':'display:none'}">
+      <label>מספר שבועות</label>
+      <input name="recurringWeeks" type="number" min="1" max="52" value="12">
+    </div>
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
       <button type="submit" class="btn">שמור</button>
     </div></form>`;
 }
-function openAddSession(date) {
-  if (!load('clients').length) { alert('יש להוסיף לקוח לפני הוספת אימון.'); return; }
-  openModal('הוסף אימון', sessionForm({date:date||''}), async fd => {
-    await saveItem('sessions', {id:uid(), clientId:fd.get('clientId'), date:fd.get('date'), time:fd.get('time'), duration:fd.get('duration'), notes:fd.get('notes')});
+
+function toggleSessionType() {
+  const isShift = document.getElementById('type-shift').checked;
+  document.getElementById('session-client-group').style.display = isShift ? 'none' : '';
+  // If shift, remove required from client
+  const clientSel = document.getElementById('session-client-sel');
+  if (clientSel) clientSel.required = !isShift;
+}
+
+function updatePlanDropdown() {
+  const clientId = document.getElementById('session-client-sel')?.value || '';
+  const planSel = document.getElementById('session-plan-sel');
+  if (planSel) planSel.innerHTML = planOptionsForClient(clientId);
+}
+
+function toggleRecurringFields() {
+  const checked = document.getElementById('recurring-cb').checked;
+  document.getElementById('recurring-weeks-group').style.display = checked ? '' : 'none';
+}
+
+function openAddSession(date, type) {
+  if (type === 'training' && !load('clients').length) { alert('יש להוסיף לקוח לפני הוספת אימון.'); return; }
+  const title = type === 'shift' ? 'הוסף משמרת' : 'הוסף אימון';
+  openModal(title, sessionForm({date:date||''}, type||'training'), async fd => {
+    const sessionType = fd.get('type');
+    const isShift = sessionType === 'shift';
+    const baseSession = {
+      id: uid(),
+      type: sessionType,
+      clientId: isShift ? '' : fd.get('clientId'),
+      planId: isShift ? '' : (fd.get('planId') || ''),
+      date: fd.get('date'),
+      time: fd.get('time'),
+      duration: fd.get('duration'),
+      notes: fd.get('notes'),
+      isRecurring: false,
+      recurringGroupId: ''
+    };
+
+    const isRecurring = fd.get('recurring') === 'on';
+    if (isRecurring) {
+      const weeks = Math.min(+(fd.get('recurringWeeks') || 12), 52);
+      const groupId = uid();
+      baseSession.isRecurring = true;
+      baseSession.recurringGroupId = groupId;
+      // Save first session
+      await saveItem('sessions', baseSession);
+      // Generate future sessions
+      const promises = [];
+      for (let w = 1; w < weeks; w++) {
+        const futureDate = addDays(baseSession.date, w * 7);
+        promises.push(saveItem('sessions', {
+          ...baseSession,
+          id: uid(),
+          date: futureDate
+        }));
+      }
+      await Promise.all(promises);
+      showToast(`נוצרו ${weeks} אימונים/משמרות קבועות ✓`);
+    } else {
+      await saveItem('sessions', baseSession);
+    }
+
     renderCalendar(); renderSessionsTable();
   });
 }
+
 function openEditSession(id) {
   const s = load('sessions').find(x=>x.id===id);
+  if (s.recurringGroupId) {
+    // Ask: edit this one or all future?
+    openModal('עריכת אימון חוזר', `
+      <p style="color:var(--muted);margin-bottom:16px">האימון הזה חלק מסדרה חוזרת. מה לערוך?</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" onclick="closeModal();editSingleSession('${id}')">אימון זה בלבד</button>
+        <button class="btn btn-teal" onclick="closeModal();editFutureSessions('${id}')">כל האימונים העתידיים</button>
+        <button class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      </div>
+    `, null);
+    return;
+  }
+  editSingleSession(id);
+}
+
+function editSingleSession(id) {
+  const s = load('sessions').find(x=>x.id===id);
   openModal('עריכת אימון', sessionForm(s), async fd => {
-    Object.assign(s, {clientId:fd.get('clientId'), date:fd.get('date'), time:fd.get('time'), duration:fd.get('duration'), notes:fd.get('notes')});
+    const sessionType = fd.get('type');
+    const isShift = sessionType === 'shift';
+    Object.assign(s, {
+      type: sessionType,
+      clientId: isShift ? '' : fd.get('clientId'),
+      planId: isShift ? '' : (fd.get('planId') || ''),
+      date: fd.get('date'),
+      time: fd.get('time'),
+      duration: fd.get('duration'),
+      notes: fd.get('notes')
+    });
     await saveItem('sessions', s);
     renderCalendar(); renderSessionsTable();
   });
 }
+
+function editFutureSessions(id) {
+  const s = load('sessions').find(x=>x.id===id);
+  openModal('עריכת אימונים עתידיים', sessionForm(s), async fd => {
+    const sessionType = fd.get('type');
+    const isShift = sessionType === 'shift';
+    const futureSessions = load('sessions').filter(
+      x => x.recurringGroupId === s.recurringGroupId && x.date >= s.date
+    );
+    const updates = {
+      type: sessionType,
+      clientId: isShift ? '' : fd.get('clientId'),
+      planId: isShift ? '' : (fd.get('planId') || ''),
+      time: fd.get('time'),
+      duration: fd.get('duration'),
+      notes: fd.get('notes')
+    };
+    await Promise.all(futureSessions.map(fs => {
+      Object.assign(fs, updates);
+      return saveItem('sessions', fs);
+    }));
+    showToast(`עודכנו ${futureSessions.length} אימונים ✓`);
+    renderCalendar(); renderSessionsTable();
+  });
+}
+
 async function deleteSession(id) {
+  const s = load('sessions').find(x=>x.id===id);
+  if (s && s.recurringGroupId) {
+    openModal('מחיקת אימון חוזר', `
+      <p style="color:var(--muted);margin-bottom:16px">האימון הזה חלק מסדרה חוזרת. מה למחוק?</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-danger" onclick="closeModal();deleteSingleSession('${id}')">אימון זה בלבד</button>
+        <button class="btn btn-danger" onclick="closeModal();deleteFutureSessions('${id}')">כל האימונים העתידיים</button>
+        <button class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      </div>
+    `, null);
+    return;
+  }
   if (!confirm('למחוק אימון זה?')) return;
   await deleteItem('sessions', id);
   renderCalendar(); renderSessionsTable();
+}
+
+async function deleteSingleSession(id) {
+  await deleteItem('sessions', id);
+  renderCalendar(); renderSessionsTable();
+  showToast('האימון נמחק ✓');
+}
+
+async function deleteFutureSessions(id) {
+  const s = load('sessions').find(x=>x.id===id);
+  if (!s) return;
+  const toDelete = load('sessions').filter(
+    x => x.recurringGroupId === s.recurringGroupId && x.date >= s.date
+  );
+  await Promise.all(toDelete.map(x => deleteItem('sessions', x.id)));
+  showToast(`נמחקו ${toDelete.length} אימונים ✓`);
+  renderCalendar(); renderSessionsTable();
+}
+
+// ========================
+// ===== WORKOUT LOG ======
+// ========================
+let _logData = [];
+let _logSessionId = '';
+
+function openWorkoutLog(sessionId) {
+  const s = load('sessions').find(x => x.id === sessionId);
+  if (!s) return;
+  _logSessionId = sessionId;
+
+  // Initialize log data from existing log or from plan
+  if (s.log && s.log.length) {
+    _logData = JSON.parse(JSON.stringify(s.log));
+  } else if (s.planId) {
+    const plan = load('plans').find(p => p.id === s.planId);
+    if (plan && plan.exercises.length) {
+      _logData = plan.exercises.map(e => ({
+        exerciseName: e.name,
+        prescribedSets: +e.sets || 3,
+        prescribedReps: +e.reps || 10,
+        sets: [{ reps: '', weight: '', notes: '' }]
+      }));
+    } else {
+      _logData = [];
+    }
+  } else {
+    _logData = [];
+  }
+
+  const clientN = s.clientId ? clientName(s.clientId) : '';
+  const planN = s.planId ? planName(s.planId) : '';
+
+  let html = `<div class="log-header">
+    <div class="log-header-info">
+      ${clientN ? `<strong>לקוח:</strong> ${esc(clientN)}<br>` : ''}
+      <strong>תאריך:</strong> ${fmtDateLong(s.date)} · ${esc(s.time)}
+      ${planN ? `<br><strong>תוכנית:</strong> ${esc(planN)}` : ''}
+    </div>
+  </div>`;
+  html += `<div id="log-exercises-container">${renderLogExercises()}</div>`;
+  html += `<button type="button" class="log-add-exercise" onclick="addLogExercise()">+ הוסף תרגיל</button>`;
+  html += `<div class="form-actions">
+    <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+    <button type="button" class="btn btn-log" onclick="saveWorkoutLog()">💾 שמור יומן</button>
+  </div>`;
+
+  openModal('📋 יומן אימון', html, null);
+}
+
+function renderLogExercises() {
+  if (!_logData.length) return '<div style="color:var(--muted);font-size:.85rem;padding:12px 0;text-align:center">אין תרגילים — לחץ ״הוסף תרגיל״</div>';
+  return _logData.map((ex, ei) => {
+    const prescribed = (ex.prescribedSets && ex.prescribedReps)
+      ? `מתוכנן: ${ex.prescribedSets}×${ex.prescribedReps}`
+      : '';
+    const setsHtml = ex.sets.map((set, si) =>
+      `<div class="log-set-row">
+        <span>סט ${si+1}</span>
+        <input type="number" min="0" placeholder="חזרות" value="${set.reps||''}" oninput="_logData[${ei}].sets[${si}].reps=this.value">
+        <input type="number" min="0" step="0.5" placeholder="משקל" value="${set.weight||''}" oninput="_logData[${ei}].sets[${si}].weight=this.value">
+        <input class="log-notes-input" placeholder="הערות" value="${esc(set.notes||'')}" oninput="_logData[${ei}].sets[${si}].notes=this.value">
+        <button type="button" class="log-set-remove" onclick="removeLogSet(${ei},${si})">✕</button>
+      </div>`
+    ).join('');
+    return `<div class="log-exercise">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div>
+          <input class="log-ex-name" style="background:transparent;border:none;color:var(--accent2);font-weight:600;font-size:.95rem;padding:0;width:100%" value="${esc(ex.exerciseName)}" oninput="_logData[${ei}].exerciseName=this.value" placeholder="שם התרגיל">
+          ${prescribed ? `<div class="log-ex-prescribed">${prescribed}</div>` : ''}
+        </div>
+        <button type="button" class="ex-remove" onclick="removeLogExercise(${ei})">✕</button>
+      </div>
+      ${setsHtml}
+      <button type="button" class="log-add-set" onclick="addLogSet(${ei})">+ הוסף סט</button>
+    </div>`;
+  }).join('');
+}
+
+function addLogSet(exIdx) {
+  _logData[exIdx].sets.push({ reps: '', weight: '', notes: '' });
+  document.getElementById('log-exercises-container').innerHTML = renderLogExercises();
+}
+
+function removeLogSet(exIdx, setIdx) {
+  _logData[exIdx].sets.splice(setIdx, 1);
+  if (!_logData[exIdx].sets.length) _logData[exIdx].sets.push({ reps: '', weight: '', notes: '' });
+  document.getElementById('log-exercises-container').innerHTML = renderLogExercises();
+}
+
+function addLogExercise() {
+  _logData.push({ exerciseName: '', prescribedSets: 0, prescribedReps: 0, sets: [{ reps: '', weight: '', notes: '' }] });
+  document.getElementById('log-exercises-container').innerHTML = renderLogExercises();
+}
+
+function removeLogExercise(exIdx) {
+  _logData.splice(exIdx, 1);
+  document.getElementById('log-exercises-container').innerHTML = renderLogExercises();
+}
+
+async function saveWorkoutLog() {
+  const s = load('sessions').find(x => x.id === _logSessionId);
+  if (!s) return;
+  // Clean up: remove empty exercises, convert numbers
+  const cleanLog = _logData
+    .filter(ex => ex.exerciseName.trim())
+    .map(ex => ({
+      exerciseName: ex.exerciseName.trim(),
+      prescribedSets: +ex.prescribedSets || 0,
+      prescribedReps: +ex.prescribedReps || 0,
+      sets: ex.sets.map(set => ({
+        reps: +set.reps || 0,
+        weight: +set.weight || 0,
+        notes: (set.notes || '').trim()
+      }))
+    }));
+  s.log = cleanLog;
+  await saveItem('sessions', s);
+  closeModal();
+  renderCalendar(); renderSessionsTable();
+  showToast('היומן נשמר ✓');
 }
 
 // ========================
@@ -893,8 +1292,18 @@ function renderReminders() {
   if (!upcoming.length) { container.innerHTML='<div class="empty">אין אימונים ב-7 הימים הקרובים.</div>'; return; }
   const todayStr = new Date().toISOString().slice(0,10);
   container.innerHTML = upcoming.map(s => {
+    const isShift = s.type === 'shift';
     const client = clients.find(c=>c.id===s.clientId)||{};
     const isToday = s.date===todayStr;
+    if (isShift) {
+      return `<div class="reminder-card${isToday?' today-card':''}">
+        <div class="reminder-info">
+          <h3>${isToday?'<span class="reminder-tag">היום</span>':''}<span class="badge badge-shift">משמרת</span></h3>
+          <p>${fmtDateLong(s.date)} · ${esc(s.time)} · ${esc(s.duration)} דקות</p>
+          ${s.notes?`<p style="margin-top:4px">${esc(s.notes)}</p>`:''}
+        </div>
+      </div>`;
+    }
     const intl = (client.phone||'').replace(/\D/g,'').replace(/^0/,'972');
     const text = `שלום ${client.name||''}! רוצה להזכיר לך שיש לנו אימון ב${fmtDateLong(s.date)} בשעה ${s.time}. מחכה לך! 💪`;
     const waURL = `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
@@ -913,8 +1322,8 @@ function renderReminders() {
 // ===== MORNING API =======
 // ========================
 const MORNING_CONFIG = {
-  apiKey:    'YOUR_API_KEY',      // ← הכנס את ה-API Key מהגדרות Morning
-  apiSecret: 'YOUR_API_SECRET',  // ← הכנס את ה-API Secret מהגדרות Morning
+  apiKey:    'YOUR_API_KEY',
+  apiSecret: 'YOUR_API_SECRET',
   baseUrl:   'https://api.greeninvoice.co.il/api/v1'
 };
 
@@ -931,7 +1340,7 @@ async function morningGetToken() {
   if (!res.ok) throw new Error('Morning auth failed: ' + res.status);
   const data = await res.json();
   _morningToken = data.token;
-  _morningTokenExp = Date.now() + 55 * 60 * 1000; // refresh before 60min expiry
+  _morningTokenExp = Date.now() + 55 * 60 * 1000;
   return _morningToken;
 }
 
@@ -952,7 +1361,7 @@ async function morningCreateDocument(docData) {
   return await res.json();
 }
 
-const MORNING_DOC_TYPES = { deal: 100, receipt: 400 }; // 100=חשבון עסקה, 400=קבלה
+const MORNING_DOC_TYPES = { deal: 100, receipt: 400 };
 const MORNING_PAY_METHODS = [
   { value: 1, label: 'מזומן' },
   { value: 2, label: 'צ׳ק' },
@@ -1056,7 +1465,7 @@ function openIssueDocument(paymentId) {
       payment: [{
         type: +fd.get('payMethod'),
         date: fd.get('payDate'),
-        price: docType === 400 ? price * quantity : price * quantity,
+        price: price * quantity,
         currency: 'ILS'
       }],
       remarks: fd.get('remarks') || ''
@@ -1065,7 +1474,6 @@ function openIssueDocument(paymentId) {
     try {
       const result = await morningCreateDocument(docData);
       showToast('המסמך הונפק בהצלחה ✓');
-      // Save document reference on payment
       payment.morningDocId = result.id || result._id || '';
       payment.morningDocType = docType;
       await saveItem('payments', payment);
@@ -1085,7 +1493,6 @@ function toggleInvoiceFields(docType) {
   } else {
     fields.querySelector('[name=description]').value = 'אימון כושר אישי';
   }
-  // Hide due date for receipt
   const dueDateGroup = document.querySelector('[name=dueDate]').closest('.form-group');
   dueDateGroup.style.display = +docType === 400 ? 'none' : '';
 }
