@@ -429,9 +429,8 @@
       <div class="section-header">
         <h2>אימונים</h2>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-ghost btn-sm" onclick="toggleCalView()" id="cal-view-toggle" style="font-size:.78rem">📅 שבוע</button>
-          <button class="btn btn-ghost" onclick="openAddSession(_calSelected.date,'shift')">+ משמרת</button>
-          <button class="btn" onclick="openAddSession(_calSelected.date,'training')">+ אימון</button>
+          <button class="btn btn-ghost" onclick="openAddSession(_calSelected.from,'shift')">+ משמרת</button>
+          <button class="btn" onclick="openAddSession(_calSelected.from,'training')">+ אימון</button>
         </div>
       </div>
       <div class="table-wrap" id="sessions-table"></div>
@@ -792,7 +791,7 @@ async function deleteClient(id) {
 // ===== SCHEDULE =========
 // ========================
 let calYear, calMonth;
-let _calSelected = { type:'day', date:new Date().toISOString().slice(0,10) }; // type: 'day'|'week'
+let _calSelected = { from:new Date().toISOString().slice(0,10), to:new Date().toISOString().slice(0,10) };
 let _liveWorkout = { active:false, sessionId:'', currentIdx:0, log:[], session:null, previousData:{}, saveTimer:null, showSwapBrowser:false, swapExpandedCat:'' };
 
 function renderSchedule() {
@@ -830,49 +829,34 @@ function renderCalendar() {
       ).join('');
       dots = `<div class="cal-dots">${dotHtml}</div>`;
     }
-    const isSelected = _calSelected.type==='day' && _calSelected.date===ds;
-    const weekStart = getWeekStart(_calSelected.date);
-    const weekEnd = addDays(weekStart,6);
-    const isWeekSel = _calSelected.type==='week' && ds>=weekStart && ds<=weekEnd;
-    html+=`<div class="cal-day${ds===today?' today':''}${isSelected?' selected':''}${isWeekSel&&!isSelected?' week-selected':''}" onclick="handleCalDayClick('${ds}')" ondblclick="handleCalWeekClick('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
+    const inRange = ds>=_calSelected.from && ds<=_calSelected.to;
+    const isEdge = ds===_calSelected.from || ds===_calSelected.to;
+    html+=`<div class="cal-day${ds===today?' today':''}${isEdge?' selected':''}${inRange&&!isEdge?' week-selected':''}" onclick="handleCalDayClick(event,'${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
   }
   document.getElementById('cal-grid').innerHTML=html;
 }
 
-function handleCalDayClick(dateStr) {
-  _calSelected = { type:'day', date:dateStr };
-  renderCalendar(); renderSessionsTable();
-}
-function handleCalWeekClick(dateStr) {
-  _calSelected = { type:'week', date:dateStr };
-  renderCalendar(); renderSessionsTable();
-}
-function getWeekStart(dateStr) {
-  const d = new Date(dateStr+'T00:00');
-  const day = d.getDay(); // 0=Sun
-  d.setDate(d.getDate() - day);
-  return d.toISOString().slice(0,10);
-}
-function toggleCalView() {
-  _calSelected.type = _calSelected.type==='day'?'week':'day';
+function handleCalDayClick(event, dateStr) {
+  if (event.shiftKey && _calSelected.from) {
+    // Shift+click: extend range from existing selection to this date
+    if (dateStr < _calSelected.from) { _calSelected.from = dateStr; }
+    else { _calSelected.to = dateStr; }
+  } else {
+    // Regular click: select single day
+    _calSelected = { from:dateStr, to:dateStr };
+  }
   renderCalendar(); renderSessionsTable();
 }
 
 function renderSessionsTable() {
   const allSessions = load('sessions');
-  let filtered, heading;
-  if (_calSelected.type === 'week') {
-    const ws = getWeekStart(_calSelected.date);
-    const we = addDays(ws, 6);
-    filtered = allSessions.filter(s=>s.date>=ws&&s.date<=we).sort((a,b)=>a.date<b.date?-1:1);
-    heading = `שבוע ${fmtDate(ws)} — ${fmtDate(we)}`;
-  } else {
-    filtered = allSessions.filter(s=>s.date===_calSelected.date).sort((a,b)=>(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1);
-    heading = fmtDateLong(_calSelected.date);
-  }
+  const isRange = _calSelected.from !== _calSelected.to;
+  const filtered = allSessions.filter(s=>s.date>=_calSelected.from&&s.date<=_calSelected.to)
+    .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1);
+  const heading = isRange ? `${fmtDate(_calSelected.from)} — ${fmtDate(_calSelected.to)}` : fmtDateLong(_calSelected.from);
   const headingEl = document.querySelector('#tab-schedule .card:last-child .section-header h2');
   if (headingEl) headingEl.textContent = heading;
-  if (!filtered.length) { document.getElementById('sessions-table').innerHTML=`<div class="empty">אין אימונים ${_calSelected.type==='week'?'בשבוע הזה':'ביום הזה'}.</div>`; return; }
+  if (!filtered.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים בתקופה הזו.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
     <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>פרטים</th><th>תוכנית</th><th>הערות</th><th>פעולות</th></tr></thead>
     <tbody>${filtered.map(s=>{
