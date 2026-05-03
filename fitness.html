@@ -886,11 +886,11 @@ function renderCalendarWeek() {
     const ds = addDays(_calWeekStart, i);
     const d = new Date(ds+'T00:00');
     const daySessions = sessionMap[ds]||[];
-    const sessHtml = daySessions.slice(0,4).map(s => {
+    const sessHtml = daySessions.sort((a,b)=>(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1).map(s => {
       const isShift = s.type==='shift';
-      const label = isShift ? `${s.startTime||''}–${s.endTime||''}` : (clientName(s.clientId)||'').split(' ')[0];
+      const label = isShift ? 'משמרת' : clientName(s.clientId);
       return `<div class="week-session${isShift?' shift':''}">${esc(label)}</div>`;
-    }).join('') + (daySessions.length>4?`<div style="font-size:.65rem;color:var(--muted);text-align:center">+${daySessions.length-4}</div>`:'');
+    }).join('');
     html += `<div class="week-col${ds===today?' today':''}${ds===_calSelectedDate?' selected':''}" onclick="handleCalDayClick('${ds}')">
       <div class="week-col-header"><div class="week-col-day">${dayNames[i]}</div><div class="week-col-num">${d.getDate()}</div></div>
       ${sessHtml}
