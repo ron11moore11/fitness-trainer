@@ -135,6 +135,9 @@
     .cal-day.empty-day { background: none; border-color: transparent; cursor: default; }
     .cal-day-num { font-size: .85rem; color: var(--muted); }
     .cal-day.today .cal-day-num { color: var(--accent2); font-weight: bold; }
+    .cal-day.selected { border-color: var(--accent); background: rgba(233,69,96,.1); }
+    .cal-day.selected .cal-day-num { color: var(--accent); font-weight: bold; }
+    .cal-day.week-selected { background: rgba(233,69,96,.06); border-color: rgba(233,69,96,.3); }
     .cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
     .cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
     .cal-dot.shift-dot { background: var(--shift); }
@@ -424,10 +427,11 @@
     </div>
     <div class="card">
       <div class="section-header">
-        <h2>כל האימונים</h2>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" onclick="openAddSession(null,'shift')">+ משמרת</button>
-          <button class="btn" onclick="openAddSession(null,'training')">+ אימון</button>
+        <h2>אימונים</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-ghost btn-sm" onclick="toggleCalView()" id="cal-view-toggle" style="font-size:.78rem">📅 שבוע</button>
+          <button class="btn btn-ghost" onclick="openAddSession(_calSelected.date,'shift')">+ משמרת</button>
+          <button class="btn" onclick="openAddSession(_calSelected.date,'training')">+ אימון</button>
         </div>
       </div>
       <div class="table-wrap" id="sessions-table"></div>
@@ -788,6 +792,7 @@ async function deleteClient(id) {
 // ===== SCHEDULE =========
 // ========================
 let calYear, calMonth;
+let _calSelected = { type:'day', date:new Date().toISOString().slice(0,10) }; // type: 'day'|'week'
 let _liveWorkout = { active:false, sessionId:'', currentIdx:0, log:[], session:null, previousData:{}, saveTimer:null, showSwapBrowser:false, swapExpandedCat:'' };
 
 function renderSchedule() {
@@ -825,45 +830,52 @@ function renderCalendar() {
       ).join('');
       dots = `<div class="cal-dots">${dotHtml}</div>`;
     }
-    html+=`<div class="cal-day${ds===today?' today':''}" onclick="handleCalDayClick('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
+    const isSelected = _calSelected.type==='day' && _calSelected.date===ds;
+    const weekStart = getWeekStart(_calSelected.date);
+    const weekEnd = addDays(weekStart,6);
+    const isWeekSel = _calSelected.type==='week' && ds>=weekStart && ds<=weekEnd;
+    html+=`<div class="cal-day${ds===today?' today':''}${isSelected?' selected':''}${isWeekSel&&!isSelected?' week-selected':''}" onclick="handleCalDayClick('${ds}')" ondblclick="handleCalWeekClick('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
   }
   document.getElementById('cal-grid').innerHTML=html;
 }
 
 function handleCalDayClick(dateStr) {
-  const daySessions = load('sessions').filter(s => s.date === dateStr).sort((a,b) => (a.time||a.startTime||'') < (b.time||b.startTime||'') ? -1 : 1);
-  if (!daySessions.length) {
-    openAddSession(dateStr, 'training');
-    return;
-  }
-  let html = `<div style="margin-bottom:12px;color:var(--muted);font-size:.9rem">${fmtDateLong(dateStr)}</div>`;
-  daySessions.forEach(s => {
-    const isShift = s.type === 'shift';
-    const timeDisplay = isShift ? `${esc(s.startTime||'')}–${esc(s.endTime||'')}` : esc(s.time);
-    const name = isShift ? '<span class="badge badge-shift">משמרת</span>' : esc(clientName(s.clientId));
-    const pName = s.planId ? ` · ${esc(planName(s.planId))}` : '';
-    const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
-    html += `<div class="day-session-item">
-      <div class="day-session-info"><strong>${timeDisplay}</strong> ${name}${pName}${logBadge}</div>
-      <div class="day-session-actions">
-        ${!isShift ? `<button class="btn btn-log btn-sm" onclick="closeModal();openLiveWorkout('${s.id}')">📋 יומן</button>` : ''}
-        <button class="btn btn-ghost btn-sm" onclick="closeModal();openEditSession('${s.id}')">עריכה</button>
-      </div>
-    </div>`;
-  });
-  html += `<div style="display:flex;gap:8px;margin-top:12px">
-    <button class="btn" onclick="closeModal();openAddSession('${dateStr}','training')">+ אימון</button>
-    <button class="btn btn-ghost" onclick="closeModal();openAddSession('${dateStr}','shift')">+ משמרת</button>
-  </div>`;
-  openModal(`אימונים — ${fmtDate(dateStr)}`, html, null);
+  _calSelected = { type:'day', date:dateStr };
+  renderCalendar(); renderSessionsTable();
+}
+function handleCalWeekClick(dateStr) {
+  _calSelected = { type:'week', date:dateStr };
+  renderCalendar(); renderSessionsTable();
+}
+function getWeekStart(dateStr) {
+  const d = new Date(dateStr+'T00:00');
+  const day = d.getDay(); // 0=Sun
+  d.setDate(d.getDate() - day);
+  return d.toISOString().slice(0,10);
+}
+function toggleCalView() {
+  _calSelected.type = _calSelected.type==='day'?'week':'day';
+  renderCalendar(); renderSessionsTable();
 }
 
 function renderSessionsTable() {
-  const sessions = load('sessions').sort((a,b)=>a.date<b.date?-1:1);
-  if (!sessions.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים עדיין.</div>'; return; }
+  const allSessions = load('sessions');
+  let filtered, heading;
+  if (_calSelected.type === 'week') {
+    const ws = getWeekStart(_calSelected.date);
+    const we = addDays(ws, 6);
+    filtered = allSessions.filter(s=>s.date>=ws&&s.date<=we).sort((a,b)=>a.date<b.date?-1:1);
+    heading = `שבוע ${fmtDate(ws)} — ${fmtDate(we)}`;
+  } else {
+    filtered = allSessions.filter(s=>s.date===_calSelected.date).sort((a,b)=>(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1);
+    heading = fmtDateLong(_calSelected.date);
+  }
+  const headingEl = document.querySelector('#tab-schedule .card:last-child .section-header h2');
+  if (headingEl) headingEl.textContent = heading;
+  if (!filtered.length) { document.getElementById('sessions-table').innerHTML=`<div class="empty">אין אימונים ${_calSelected.type==='week'?'בשבוע הזה':'ביום הזה'}.</div>`; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
     <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>פרטים</th><th>תוכנית</th><th>הערות</th><th>פעולות</th></tr></thead>
-    <tbody>${sessions.map(s=>{
+    <tbody>${filtered.map(s=>{
       const isShift = s.type === 'shift';
       const typeBadge = isShift ? '<span class="badge badge-shift">משמרת</span>' : '🏋️';
       const recurring = s.recurringGroupId ? ' <span class="badge badge-recurring">🔁</span>' : '';
