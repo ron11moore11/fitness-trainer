@@ -103,6 +103,23 @@
     .badge-shift { background: rgba(255,167,38,.15); color: var(--shift); }
     .badge-recurring { background: rgba(168,218,220,.15); color: var(--accent2); font-size: .75rem; }
     .badge-logged { background: rgba(92,75,158,.2); color: #b39ddb; }
+    .badge-active  { background: #1a4a2e; color: #4caf50; }
+    .badge-paused  { background: #4a3a1a; color: #ffa726; }
+    .badge-stopped { background: #4a1a1a; color: #e94560; }
+
+    /* STATUS FILTER */
+    .status-filter { background: var(--bg); border: 2px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 12px; font-size: .85rem; }
+    .status-filter:focus { outline: none; border-color: var(--accent2); }
+
+    /* PAYMENT FILTERS */
+    .pay-filters { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .pay-filters-title { color: var(--accent2); font-size: .9rem; margin-bottom: 12px; font-weight: 600; }
+    .month-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .month-btn { background: var(--bg); border: 2px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: .8rem; transition: all .2s; }
+    .month-btn:hover { border-color: var(--accent2); color: var(--text); }
+    .month-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(233,69,96,.1); }
+    .pay-filter-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .pay-filter-row .form-group { margin-bottom: 0; min-width: 140px; }
 
     /* EMPTY */
     .empty { text-align: center; color: var(--muted); padding: 40px; font-size: 1rem; }
@@ -305,7 +322,7 @@
   <section id="tab-clients">
     <div class="dashboard" id="dashboard"></div>
     <div class="card">
-      <div class="section-header"><h2>לקוחות</h2><button class="btn" onclick="openAddClient()">+ הוסף לקוח</button></div>
+      <div class="section-header"><h2>לקוחות</h2><div style="display:flex;gap:8px;align-items:center"><select class="status-filter" id="client-status-filter" onchange="renderClients()"><option value="all">הכל</option><option value="פעיל">פעיל</option><option value="בהשהיה">בהשהיה</option><option value="הפסיק">הפסיק</option></select><button class="btn" onclick="openAddClient()">+ הוסף לקוח</button></div></div>
       <div class="table-wrap" id="clients-table"></div>
     </div>
   </section>
@@ -351,8 +368,9 @@
 
   <section id="tab-payments">
     <div class="pay-summary" id="pay-summary"></div>
+    <div id="pay-filters-container"></div>
     <div class="card">
-      <div class="section-header"><h2>תשלומים</h2><button class="btn" onclick="openAddPayment()">+ הוסף תשלום</button></div>
+      <div class="section-header"><h2 id="payments-heading">תשלומים — ממתינים</h2><button class="btn" onclick="openAddPayment()">+ הוסף תשלום</button></div>
       <div class="table-wrap" id="payments-table"></div>
     </div>
   </section>
@@ -441,6 +459,8 @@ function bankOptions() {
   });
   return html;
 }
+function statusBadgeClass(status) { if (status==='בהשהיה') return 'badge-paused'; if (status==='הפסיק') return 'badge-stopped'; return 'badge-active'; }
+let payFilter = { active: false, month: null, fromDate: '', toDate: '', clientId: '' };
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(d) { if (!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
 function fmtDateLong(d) { if (!d) return ''; return new Date(d+'T00:00').toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); }
@@ -529,16 +549,18 @@ function renderClients() {
   const sessions = load('sessions');
   const payments = load('payments');
   const today    = new Date().toISOString().slice(0,10);
+  const statusFilter = document.getElementById('client-status-filter')?.value || 'all';
+  const filtered = statusFilter === 'all' ? clients : clients.filter(c => (c.status || 'פעיל') === statusFilter);
   document.getElementById('dashboard').innerHTML = `
     <div class="card"><div class="card-title">סה"כ לקוחות</div><div class="card-value">${clients.length}</div></div>
     <div class="card"><div class="card-title">אימונים היום</div><div class="card-value">${sessions.filter(s=>s.date===today).length}</div></div>
     <div class="card"><div class="card-title">תשלומים ממתינים</div><div class="card-value" style="color:var(--accent)">${payments.filter(p=>p.status==='pending').length}</div></div>
   `;
-  if (!clients.length) { document.getElementById('clients-table').innerHTML='<div class="empty">אין לקוחות עדיין. הוסף את הראשון!</div>'; return; }
+  if (!filtered.length) { document.getElementById('clients-table').innerHTML=`<div class="empty">${clients.length?'אין לקוחות בסטטוס הנבחר.':'אין לקוחות עדיין. הוסף את הראשון!'}</div>`; return; }
   document.getElementById('clients-table').innerHTML = `<table>
     <thead><tr><th>שם</th><th>טלפון</th><th>אימייל</th><th>גיל</th><th>מטרות</th><th>פעולות</th></tr></thead>
-    <tbody>${clients.map(c=>`<tr>
-      <td><strong>${esc(c.name)}</strong></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td>
+    <tbody>${filtered.map(c=>`<tr>
+      <td><strong>${esc(c.name)}</strong> <span class="badge ${statusBadgeClass(c.status||'פעיל')}">${esc(c.status||'פעיל')}</span></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td>
       <td>${esc(c.age)}</td><td>${esc(c.goals)}</td>
       <td class="actions">
         <button class="btn btn-ghost btn-sm" onclick="openEditClient('${c.id}')">עריכה</button>
@@ -559,6 +581,10 @@ function clientForm(c={}) {
       <div class="form-group"><label>מס׳ עוסק / ח.פ</label><input name="taxId" value="${esc(c.taxId||'')}" placeholder="לצורך הנפקת חשבונית"></div>
       <div class="form-group"><label>מטרות</label><input name="goals" value="${esc(c.goals||'')}"></div>
     </div>
+    <div class="form-row">
+      <div class="form-group"><label>סטטוס</label><select name="status"><option value="פעיל"${(c.status||'פעיל')==='פעיל'?' selected':''}>פעיל</option><option value="בהשהיה"${c.status==='בהשהיה'?' selected':''}>בהשהיה</option><option value="הפסיק"${c.status==='הפסיק'?' selected':''}>הפסיק</option></select></div>
+      <div class="form-group"></div>
+    </div>
     <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(c.notes||'')}</textarea></div>
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
@@ -567,14 +593,14 @@ function clientForm(c={}) {
 }
 function openAddClient() {
   openModal('הוסף לקוח', clientForm(), async fd => {
-    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes')});
+    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל'});
     renderClients();
   });
 }
 function openEditClient(id) {
   const c = load('clients').find(x=>x.id===id);
   openModal('עריכת לקוח', clientForm(c), async fd => {
-    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes')});
+    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')});
     await saveItem('clients', c);
     renderClients();
   });
@@ -1392,10 +1418,26 @@ function renderPayments() {
   document.getElementById('pay-summary').innerHTML=`
     <div class="card"><div class="card-title">שולם החודש</div><div class="card-value" style="color:#4caf50">₪${paid.toLocaleString()}</div></div>
     <div class="card"><div class="card-title">ממתין לתשלום</div><div class="card-value" style="color:#ffa726">₪${pending.toLocaleString()}</div></div>`;
-  if (!payments.length) { document.getElementById('payments-table').innerHTML='<div class="empty">אין תשלומים עדיין.</div>'; return; }
+  renderPayFilters();
+  let filtered;
+  const heading = document.getElementById('payments-heading');
+  if (payFilter.active) {
+    filtered = payments.filter(p => {
+      if (payFilter.month && !p.date.startsWith(payFilter.month)) return false;
+      if (payFilter.fromDate && p.date < payFilter.fromDate) return false;
+      if (payFilter.toDate && p.date > payFilter.toDate) return false;
+      if (payFilter.clientId && p.clientId !== payFilter.clientId) return false;
+      return true;
+    });
+    heading.textContent = 'תשלומים — תוצאות סינון';
+  } else {
+    filtered = payments.filter(p => p.status === 'pending');
+    heading.textContent = 'תשלומים — ממתינים';
+  }
+  if (!filtered.length) { document.getElementById('payments-table').innerHTML='<div class="empty">אין תשלומים להצגה.</div>'; return; }
   document.getElementById('payments-table').innerHTML=`<table>
     <thead><tr><th>לקוח</th><th>סכום</th><th>תאריך</th><th>חבילה</th><th>סטטוס</th><th>פעולות</th></tr></thead>
-    <tbody>${[...payments].sort((a,b)=>a.date<b.date?1:-1).map(p=>`<tr>
+    <tbody>${[...filtered].sort((a,b)=>a.date<b.date?1:-1).map(p=>`<tr>
       <td>${esc(clientName(p.clientId))}</td><td>₪${(+p.amount||0).toLocaleString()}</td>
       <td>${fmtDate(p.date)}</td><td>${esc(p.package)}</td>
       <td><button class="badge ${p.status==='paid'?'badge-paid':'badge-pending'}" onclick="togglePayment('${p.id}')" style="cursor:pointer;border:none">${p.status==='paid'?'שולם':'ממתין'}</button></td>
@@ -1404,6 +1446,47 @@ function renderPayments() {
         <button class="btn btn-ghost btn-sm" onclick="openEditPayment('${p.id}')">עריכה</button>
         <button class="btn btn-danger btn-sm" onclick="deletePayment('${p.id}')">מחק</button>
       </td></tr>`).join('')}</tbody></table>`;
+}
+function renderPayFilters() {
+  const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  const year = new Date().getFullYear();
+  document.getElementById('pay-filters-container').innerHTML = `
+    <div class="pay-filters">
+      <div class="pay-filters-title">חיפוש וסינון תשלומים</div>
+      <div class="month-btns">
+        ${months.map((m, i) => {
+          const val = year + '-' + String(i+1).padStart(2,'0');
+          return `<button class="month-btn${payFilter.month===val?' active':''}" onclick="applyPayMonthFilter('${val}')">${m}</button>`;
+        }).join('')}
+      </div>
+      <div class="pay-filter-row">
+        <div class="form-group"><label>מתאריך</label><input type="date" id="pay-from" value="${payFilter.fromDate}" onchange="applyPayDateFilter()"></div>
+        <div class="form-group"><label>עד תאריך</label><input type="date" id="pay-to" value="${payFilter.toDate}" onchange="applyPayDateFilter()"></div>
+        <div class="form-group"><label>לקוח</label><select id="pay-client-filter" onchange="applyPayClientFilter()"><option value="">כל הלקוחות</option>${clientOptions(payFilter.clientId)}</select></div>
+        <button class="btn btn-ghost btn-sm" onclick="clearPayFilters()" style="margin-bottom:0;align-self:flex-end;padding:9px 16px">נקה סינון</button>
+      </div>
+    </div>`;
+}
+function applyPayMonthFilter(monthVal) {
+  if (payFilter.month === monthVal) { payFilter.month = null; } else { payFilter.month = monthVal; payFilter.fromDate = ''; payFilter.toDate = ''; }
+  payFilter.active = !!(payFilter.month || payFilter.fromDate || payFilter.toDate || payFilter.clientId);
+  renderPayments();
+}
+function applyPayDateFilter() {
+  payFilter.fromDate = document.getElementById('pay-from').value;
+  payFilter.toDate = document.getElementById('pay-to').value;
+  if (payFilter.fromDate || payFilter.toDate) payFilter.month = null;
+  payFilter.active = !!(payFilter.month || payFilter.fromDate || payFilter.toDate || payFilter.clientId);
+  renderPayments();
+}
+function applyPayClientFilter() {
+  payFilter.clientId = document.getElementById('pay-client-filter').value;
+  payFilter.active = !!(payFilter.month || payFilter.fromDate || payFilter.toDate || payFilter.clientId);
+  renderPayments();
+}
+function clearPayFilters() {
+  payFilter = { active: false, month: null, fromDate: '', toDate: '', clientId: '' };
+  renderPayments();
 }
 function paymentForm(p={}) {
   const pkgs=['חד-פעמי','חודשי','רבעוני','מנוי שנתי'];
