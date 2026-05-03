@@ -619,10 +619,10 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
 
 // ===== TAB NAVIGATION =====
 const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, reminders:renderReminders };
-function switchTab(name) {
+async function switchTab(name) {
   if (_planBuilder.active && !confirm('יש תוכנית בעריכה — לצאת בלי לשמור?')) return;
   if (_planBuilder.active) _planBuilder.active = false;
-  if (_liveWorkout.active) { clearTimeout(_liveWorkout.saveTimer); liveDoSave(); _liveWorkout.active = false; }
+  if (_liveWorkout.active) { clearTimeout(_liveWorkout.saveTimer); await liveDoSave(); _liveWorkout.active = false; }
   if (_clientProfile.active) _clientProfile.active = false;
   document.querySelectorAll('section[id^="tab-"]').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
@@ -911,7 +911,10 @@ function sessionForm(s={}, forceType='') {
         <select name="clientId" id="session-client-sel" onchange="updatePlanDropdown()"><option value="">— בחר לקוח —</option>${clientOptions(s.clientId||'')}</select>
       </div>
       <div class="form-group"><label>תוכנית אימון</label>
-        <select name="planId" id="session-plan-sel">${s.clientId ? planOptionsForClient(s.clientId, s.planId||'') : '<option value="">— בחר לקוח קודם —</option>'}</select>
+        <select name="planId" id="session-plan-sel" onchange="updateWorkoutDropdown()">${s.clientId ? planOptionsForClient(s.clientId, s.planId||'') : '<option value="">— בחר לקוח קודם —</option>'}</select>
+      </div>
+      <div class="form-group" id="session-workout-group" style="${s.planId?'':'display:none'}"><label>אימון</label>
+        <select name="workoutIdx" id="session-workout-sel">${s.planId?workoutOptionsForPlan(s.planId,s.workoutIdx||0):''}</select>
       </div>
     </div>
 
@@ -967,6 +970,25 @@ function updatePlanDropdown() {
   const clientId = document.getElementById('session-client-sel')?.value || '';
   const planSel = document.getElementById('session-plan-sel');
   if (planSel) planSel.innerHTML = planOptionsForClient(clientId);
+  updateWorkoutDropdown();
+}
+function updateWorkoutDropdown() {
+  const planId = document.getElementById('session-plan-sel')?.value || '';
+  const group = document.getElementById('session-workout-group');
+  const sel = document.getElementById('session-workout-sel');
+  if (!planId) { if(group)group.style.display='none'; return; }
+  const plan = load('plans').find(p=>p.id===planId);
+  if (!plan) { if(group)group.style.display='none'; return; }
+  const workouts = getPlanWorkouts(plan);
+  if (workouts.length <= 1) { if(group)group.style.display='none'; if(sel)sel.innerHTML='<option value="0">'+esc(workouts[0]?.name||'אימון A')+'</option>'; return; }
+  if(group)group.style.display='';
+  if(sel)sel.innerHTML=workouts.map((w,i)=>`<option value="${i}">${esc(w.name)}</option>`).join('');
+}
+function workoutOptionsForPlan(planId, selIdx) {
+  const plan = load('plans').find(p=>p.id===planId);
+  if (!plan) return '';
+  const workouts = getPlanWorkouts(plan);
+  return workouts.map((w,i)=>`<option value="${i}"${i===selIdx?' selected':''}>${esc(w.name)}</option>`).join('');
 }
 
 function calcShiftDisplay() {
@@ -997,6 +1019,7 @@ function openAddSession(date, type) {
       type: sessionType,
       clientId: isShift ? '' : fd.get('clientId'),
       planId: isShift ? '' : (fd.get('planId') || ''),
+      workoutIdx: isShift ? 0 : +(fd.get('workoutIdx') || 0),
       date: fd.get('date'),
       // Training fields
       time: isShift ? '' : fd.get('time'),
@@ -1059,6 +1082,7 @@ function editSingleSession(id) {
       type: sessionType,
       clientId: isShift ? '' : fd.get('clientId'),
       planId: isShift ? '' : (fd.get('planId') || ''),
+      workoutIdx: isShift ? 0 : +(fd.get('workoutIdx') || 0),
       date: fd.get('date'),
       time: isShift ? '' : fd.get('time'),
       duration: isShift ? '' : fd.get('duration'),
@@ -1084,6 +1108,7 @@ function editFutureSessions(id) {
       type: sessionType,
       clientId: isShift ? '' : fd.get('clientId'),
       planId: isShift ? '' : (fd.get('planId') || ''),
+      workoutIdx: isShift ? 0 : +(fd.get('workoutIdx') || 0),
       time: isShift ? '' : fd.get('time'),
       duration: isShift ? '' : fd.get('duration'),
       startTime: isShift ? fd.get('startTime') : '',
@@ -1177,9 +1202,9 @@ function loadPreviousSessionData(clientId, log) {
   }
   _liveWorkout.previousData = prev;
 }
-function closeLiveWorkout() {
+async function closeLiveWorkout() {
   clearTimeout(_liveWorkout.saveTimer);
-  liveDoSave();
+  await liveDoSave();
   _liveWorkout.active = false;
   renderSchedule();
   showToast('האימון נשמר ✓');
@@ -1436,6 +1461,7 @@ async function saveWorkoutLog() {
     .map(ex => ({
       exerciseName: ex.exerciseName.trim(),
       category: ex.category || '',
+      videoUrl: ex.videoUrl || '',
       sets: ex.sets.map(set => ({
         targetReps: +set.targetReps || 0,
         reps: +set.reps || 0,
