@@ -140,6 +140,22 @@
     .cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
     .cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
     .cal-dot.shift-dot { background: var(--shift); }
+    .cal-view-toggle { display: flex; gap: 0; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .cal-view-btn { background: none; border: none; color: var(--muted); padding: 5px 14px; cursor: pointer; font-size: .8rem; font-family: inherit; transition: all .2s; }
+    .cal-view-btn.active { background: var(--accent); color: #fff; }
+    .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
+    .week-col { background: var(--card); border: 2px solid var(--border); border-radius: 10px; padding: 8px 6px; min-height: 120px; cursor: pointer; transition: border-color .2s; }
+    .week-col:hover { border-color: var(--accent); }
+    .week-col.selected { border-color: var(--accent); background: rgba(233,69,96,.1); }
+    .week-col.today { border-color: var(--accent2); }
+    .week-col-header { text-align: center; margin-bottom: 6px; }
+    .week-col-day { font-size: .75rem; color: var(--muted); }
+    .week-col-num { font-size: 1rem; font-weight: 600; color: var(--text); }
+    .week-col.today .week-col-num { color: var(--accent2); }
+    .week-col.selected .week-col-num { color: var(--accent); }
+    .week-session { font-size: .72rem; padding: 3px 4px; margin-bottom: 3px; border-radius: 4px; background: rgba(233,69,96,.1); color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .week-session.shift { background: rgba(255,167,38,.1); color: var(--shift); }
+    @media (max-width: 640px) { .week-grid { grid-template-columns: repeat(3,1fr); } .week-col { min-height: 80px; } }
 
     /* PLAN CARDS */
     .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 16px; }
@@ -417,12 +433,18 @@
 
   <section id="tab-schedule">
     <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;justify-content:center;margin-bottom:10px">
+        <div class="cal-view-toggle">
+          <button class="cal-view-btn active" id="cal-view-month" onclick="setCalView('month')">חודשי</button>
+          <button class="cal-view-btn" id="cal-view-week" onclick="setCalView('week')">שבועי</button>
+        </div>
+      </div>
       <div class="cal-nav">
         <button class="btn btn-ghost btn-sm" onclick="calPrev()">&#8250;</button>
         <h3 id="cal-title"></h3>
         <button class="btn btn-ghost btn-sm" onclick="calNext()">&#8249;</button>
       </div>
-      <div class="cal-grid" id="cal-grid"></div>
+      <div id="cal-container"></div>
     </div>
     <div class="card">
       <div class="section-header">
@@ -791,6 +813,8 @@ async function deleteClient(id) {
 // ========================
 let calYear, calMonth;
 let _calSelectedDate = new Date().toISOString().slice(0,10);
+let _calView = 'month'; // 'month' | 'week'
+let _calWeekStart = ''; // YYYY-MM-DD of Sunday
 let _liveWorkout = { active:false, sessionId:'', currentIdx:0, log:[], session:null, previousData:{}, saveTimer:null, showSwapBrowser:false, swapExpandedCat:'' };
 
 function renderSchedule() {
@@ -798,44 +822,87 @@ function renderSchedule() {
   const now = new Date();
   if (calYear === undefined) calYear = now.getFullYear();
   if (calMonth === undefined) calMonth = now.getMonth();
-  renderCalendar(); renderSessionsTable();
+  if (!_calWeekStart) { const d=new Date(); d.setDate(d.getDate()-d.getDay()); _calWeekStart=d.toISOString().slice(0,10); }
+  // Update toggle buttons
+  document.getElementById('cal-view-month')?.classList.toggle('active',_calView==='month');
+  document.getElementById('cal-view-week')?.classList.toggle('active',_calView==='week');
+  if (_calView==='month') renderCalendarMonth(); else renderCalendarWeek();
+  renderSessionsTable();
 }
-function calPrev() { calMonth--; if (calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
-function calNext() { calMonth++; if (calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function setCalView(view) { _calView=view; renderSchedule(); }
+function calPrev() {
+  if (_calView==='month') { calMonth--; if(calMonth<0){calMonth=11;calYear--;} }
+  else { _calWeekStart=addDays(_calWeekStart,-7); }
+  renderSchedule();
+}
+function calNext() {
+  if (_calView==='month') { calMonth++; if(calMonth>11){calMonth=0;calYear++;} }
+  else { _calWeekStart=addDays(_calWeekStart,7); }
+  renderSchedule();
+}
 
-function renderCalendar() {
+function renderCalendarMonth() {
   const sessions = load('sessions');
-  const today    = new Date().toISOString().slice(0,10);
+  const today = new Date().toISOString().slice(0,10);
   const monthNames = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
   document.getElementById('cal-title').textContent = `${monthNames[calMonth]} ${calYear}`;
   const firstDay = new Date(calYear,calMonth,1).getDay();
   const daysInMonth = new Date(calYear,calMonth+1,0).getDate();
   const sessionMap = {};
-  sessions.forEach(s => {
-    if (!sessionMap[s.date]) sessionMap[s.date] = [];
-    sessionMap[s.date].push(s.type || 'training');
-  });
+  sessions.forEach(s => { if(!sessionMap[s.date])sessionMap[s.date]=[]; sessionMap[s.date].push(s.type||'training'); });
   const dayNames = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
-  let html = dayNames.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  let html = '<div class="cal-grid">' + dayNames.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
   for (let i=0;i<firstDay;i++) html+='<div class="cal-day empty-day"></div>';
   for (let d=1;d<=daysInMonth;d++) {
     const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const types = sessionMap[ds] || [];
+    const types = sessionMap[ds]||[];
     let dots = '';
-    if (types.length) {
-      const dotHtml = types.slice(0, 5).map(t =>
-        `<div class="cal-dot${t === 'shift' ? ' shift-dot' : ''}"></div>`
-      ).join('');
-      dots = `<div class="cal-dots">${dotHtml}</div>`;
-    }
+    if (types.length) { dots=`<div class="cal-dots">${types.slice(0,5).map(t=>`<div class="cal-dot${t==='shift'?' shift-dot':''}"></div>`).join('')}</div>`; }
     html+=`<div class="cal-day${ds===today?' today':''}${ds===_calSelectedDate?' selected':''}" onclick="handleCalDayClick('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
   }
-  document.getElementById('cal-grid').innerHTML=html;
+  html += '</div>';
+  document.getElementById('cal-container').innerHTML=html;
+}
+
+function renderCalendarWeek() {
+  const sessions = load('sessions');
+  const today = new Date().toISOString().slice(0,10);
+  const dayNames = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+  const monthNames = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  const weekEnd = addDays(_calWeekStart, 6);
+  const wsDate = new Date(_calWeekStart+'T00:00');
+  const weDate = new Date(weekEnd+'T00:00');
+  const title = wsDate.getMonth()===weDate.getMonth()
+    ? `${wsDate.getDate()}–${weDate.getDate()} ${monthNames[wsDate.getMonth()]} ${wsDate.getFullYear()}`
+    : `${wsDate.getDate()} ${monthNames[wsDate.getMonth()]} – ${weDate.getDate()} ${monthNames[weDate.getMonth()]}`;
+  document.getElementById('cal-title').textContent = title;
+
+  // Build session map for this week
+  const sessionMap = {};
+  sessions.forEach(s => { if(s.date>=_calWeekStart&&s.date<=weekEnd){ if(!sessionMap[s.date])sessionMap[s.date]=[]; sessionMap[s.date].push(s); }});
+
+  let html = '<div class="week-grid">';
+  for (let i=0;i<7;i++) {
+    const ds = addDays(_calWeekStart, i);
+    const d = new Date(ds+'T00:00');
+    const daySessions = sessionMap[ds]||[];
+    const sessHtml = daySessions.slice(0,4).map(s => {
+      const isShift = s.type==='shift';
+      const label = isShift ? `${s.startTime||''}–${s.endTime||''}` : (clientName(s.clientId)||'').split(' ')[0];
+      return `<div class="week-session${isShift?' shift':''}">${esc(label)}</div>`;
+    }).join('') + (daySessions.length>4?`<div style="font-size:.65rem;color:var(--muted);text-align:center">+${daySessions.length-4}</div>`:'');
+    html += `<div class="week-col${ds===today?' today':''}${ds===_calSelectedDate?' selected':''}" onclick="handleCalDayClick('${ds}')">
+      <div class="week-col-header"><div class="week-col-day">${dayNames[i]}</div><div class="week-col-num">${d.getDate()}</div></div>
+      ${sessHtml}
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('cal-container').innerHTML=html;
 }
 
 function handleCalDayClick(dateStr) {
   _calSelectedDate = dateStr;
-  renderCalendar(); renderSessionsTable();
+  renderSchedule();
 }
 
 function renderSessionsTable() {
