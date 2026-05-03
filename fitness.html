@@ -837,12 +837,14 @@ function renderCalendar() {
 }
 
 function handleCalDayClick(event, dateStr) {
-  if (event.shiftKey && _calSelected.from) {
-    // Shift+click: extend range from existing selection to this date
-    if (dateStr < _calSelected.from) { _calSelected.from = dateStr; }
-    else { _calSelected.to = dateStr; }
+  if (_calSelected.from === _calSelected.to) {
+    // Single day selected — this click sets the end of range (or new single day if same)
+    if (dateStr === _calSelected.from) return; // clicked same day, do nothing
+    const from = dateStr < _calSelected.from ? dateStr : _calSelected.from;
+    const to = dateStr > _calSelected.from ? dateStr : _calSelected.from;
+    _calSelected = { from, to };
   } else {
-    // Regular click: select single day
+    // Range selected — start fresh with new single day
     _calSelected = { from:dateStr, to:dateStr };
   }
   renderCalendar(); renderSessionsTable();
