@@ -216,6 +216,48 @@
     .ex-add-set { background: none; border: 1px dashed var(--border); color: var(--muted); padding: 4px; border-radius: 6px; cursor: pointer; font-size: .78rem; width: 100%; margin-top: 4px; }
     .ex-add-set:hover { border-color: var(--accent2); color: var(--accent2); }
 
+    /* PLAN BUILDER - SPLIT VIEW */
+    .plan-builder { display: flex; gap: 0; min-height: calc(100vh - 100px); }
+    .plan-builder-left { width: 320px; min-width: 280px; background: var(--card); border-left: 2px solid var(--border); overflow-y: auto; max-height: calc(100vh - 100px); position: sticky; top: 60px; border-radius: 12px 0 0 12px; }
+    .plan-builder-right { flex: 1; padding: 16px; overflow-y: auto; }
+    .pb-search { width: 100%; padding: 10px 14px; background: var(--bg); border: none; border-bottom: 2px solid var(--border); color: var(--text); font-size: .85rem; font-family: inherit; }
+    .pb-search:focus { outline: none; border-bottom-color: var(--accent2); }
+    .pb-group-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: right; padding: 10px 16px; background: none; border: none; border-bottom: 1px solid rgba(15,52,96,.4); color: var(--text); font-size: .88rem; cursor: pointer; transition: background .2s; }
+    .pb-group-btn:hover { background: rgba(233,69,96,.08); }
+    .pb-group-btn.active { background: rgba(233,69,96,.12); color: var(--accent); font-weight: 600; }
+    .pb-group-btn .pb-count { color: var(--muted); font-size: .75rem; }
+    .pb-ex-list { padding: 0; }
+    .pb-ex-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px 8px 12px; padding-right: 28px; border-bottom: 1px solid rgba(15,52,96,.3); cursor: pointer; transition: background .2s; font-size: .84rem; }
+    .pb-ex-item:hover { background: rgba(168,218,220,.08); }
+    .pb-ex-names { flex: 1; }
+    .pb-ex-name { color: var(--accent2); }
+    .pb-ex-name-en { color: var(--muted); font-size: .75rem; }
+    .pb-ex-actions { display: flex; align-items: center; gap: 6px; }
+    .pb-ex-add { color: var(--accent); font-size: 1.2rem; opacity: 0; transition: opacity .2s; background: none; border: none; cursor: pointer; padding: 2px 6px; }
+    .pb-ex-item:hover .pb-ex-add { opacity: 1; }
+    .pb-video-icon { color: var(--accent2); font-size: .8rem; text-decoration: none; }
+    .pb-workout-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
+    .pb-workout-tab { padding: 10px 20px; cursor: pointer; border: 2px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; color: var(--muted); font-size: .9rem; background: none; transition: all .2s; }
+    .pb-workout-tab:hover { color: var(--text); }
+    .pb-workout-tab.active { color: var(--accent); border-color: var(--border); background: var(--card); margin-bottom: -2px; font-weight: 600; }
+    .pb-workout-tab-add { color: var(--accent2); font-size: .85rem; }
+    .pb-meta { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+    .pb-meta .form-group { margin-bottom: 0; min-width: 160px; }
+    .pb-ex-card { background: var(--card); border: 2px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .pb-ex-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .pb-ex-card-name { font-weight: 600; color: var(--accent2); font-size: .9rem; }
+    .pb-ex-card-name a { color: var(--accent2); text-decoration: none; }
+    .pb-ex-card-name a:hover { text-decoration: underline; }
+    .pb-ex-card-actions { display: flex; gap: 4px; }
+    .pb-ex-card-actions button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .85rem; padding: 2px 6px; border-radius: 4px; }
+    .pb-ex-card-actions button:hover { color: var(--accent); background: rgba(233,69,96,.1); }
+    .pb-empty { text-align: center; color: var(--muted); padding: 40px 20px; font-size: .9rem; }
+    .pb-save-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 2px solid var(--border); }
+    @media (max-width: 768px) {
+      .plan-builder { flex-direction: column; }
+      .plan-builder-left { width: 100%; max-height: 40vh; position: static; border-left: none; border-bottom: 2px solid var(--border); border-radius: 12px 12px 0 0; }
+    }
+
     /* WORKOUT LOG */
     .log-header { background: var(--bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
     .log-header-info { font-size: .9rem; color: var(--muted); line-height: 1.8; }
@@ -350,7 +392,7 @@
 
   <section id="tab-exercises">
     <div class="card">
-      <div class="section-header"><h2>בנק תרגילים</h2><button class="btn" onclick="openAddExercise()">+ הוסף תרגיל</button></div>
+      <div class="section-header"><h2>בנק תרגילים</h2><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="uploadExerciseBank()">📥 טען מאגר</button><button class="btn" onclick="openAddExercise()">+ הוסף תרגיל</button></div></div>
       <div class="table-wrap" id="exercises-table"></div>
     </div>
   </section>
@@ -359,8 +401,8 @@
     <div class="section-header">
       <h2>תוכניות אימון</h2>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" onclick="openAddPlan(true)">+ תבנית גנרית</button>
-        <button class="btn" onclick="openAddPlan(false)">+ תוכנית ללקוח</button>
+        <button class="btn btn-ghost" onclick="openPlanBuilder(true)">+ תבנית גנרית</button>
+        <button class="btn" onclick="openPlanBuilder(false)">+ תוכנית ללקוח</button>
       </div>
     </div>
     <div id="workouts-content"></div>
@@ -534,6 +576,8 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
 // ===== TAB NAVIGATION =====
 const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, reminders:renderReminders };
 function switchTab(name) {
+  if (_planBuilder.active && !confirm('יש תוכנית בעריכה — לצאת בלי לשמור?')) return;
+  if (_planBuilder.active) _planBuilder.active = false;
   document.querySelectorAll('section[id^="tab-"]').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
@@ -982,21 +1026,25 @@ function openWorkoutLog(sessionId) {
     _logData = JSON.parse(JSON.stringify(s.log));
   } else if (s.planId) {
     const plan = load('plans').find(p => p.id === s.planId);
-    if (plan && plan.exercises.length) {
-      _logData = plan.exercises.map(e => {
-        const ex = migrateExercise(e);
-        return {
-          exerciseName: ex.name,
-          category: ex.category || '',
-          prescribedSets: ex.setsData.length,
-          sets: ex.setsData.map(sd => ({
-            targetReps: +sd.targetReps || 0,
-            reps: '',
-            weight: sd.weight || '',
-            notes: sd.notes || ''
-          }))
-        };
-      });
+    if (plan) {
+      const workouts = getPlanWorkouts(plan);
+      const workout = workouts[s.workoutIdx||0] || workouts[0];
+      if (workout && workout.exercises.length) {
+        _logData = workout.exercises.map(e => {
+          const ex = migrateExercise(e);
+          return {
+            exerciseName: ex.name,
+            category: ex.category || '',
+            prescribedSets: ex.setsData.length,
+            sets: ex.setsData.map(sd => ({
+              targetReps: +sd.targetReps || 0,
+              reps: '',
+              weight: sd.weight || '',
+              notes: sd.notes || ''
+            }))
+          };
+        });
+      } else { _logData = []; }
     } else {
       _logData = [];
     }
@@ -1093,14 +1141,15 @@ async function saveWorkoutLog() {
 // ========================
 // ===== EXERCISE BANK ====
 // ========================
-const EX_CATS = ['חזה','גב','כתפיים','ידיים','רגליים','בטן','קרדיו','אחר'];
+const EX_CATS = ['חזה עליון','חזה','יד אחורית','כתף צידית','גב (אנכי)','גב (אופקי)','גב (פולאובר)','יד קדמית','ארבע ראשי','האמסטרינג','תאומים','בטן','תחת','כתף אחורית','כתף קדמית','טרפזים','אמות','מקרבים'];
 function renderExercises() {
   const exs = load('exercises');
   if (!exs.length) { document.getElementById('exercises-table').innerHTML='<div class="empty">הבנק ריק. הוסף תרגיל ראשון!</div>'; return; }
   document.getElementById('exercises-table').innerHTML=`<table>
-    <thead><tr><th>שם</th><th>קטגוריה</th><th>סרטון</th><th>פעולות</th></tr></thead>
+    <thead><tr><th>שם</th><th>English</th><th>קטגוריה</th><th>סרטון</th><th>פעולות</th></tr></thead>
     <tbody>${exs.map(e=>`<tr>
       <td><strong>${esc(e.name)}</strong></td>
+      <td style="color:var(--muted);font-size:.82rem">${esc(e.nameEn||'')}</td>
       <td><span class="badge badge-cat">${esc(e.category)}</span></td>
       <td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank" style="color:var(--accent2)">▶ צפה</a>`:'—'}</td>
       <td class="actions">
@@ -1111,8 +1160,9 @@ function renderExercises() {
 function exerciseForm(e={}) {
   return `<form id="modal-form">
     <div class="form-group"><label>שם התרגיל *</label><input name="name" value="${esc(e.name||'')}" required></div>
+    <div class="form-group"><label>שם באנגלית</label><input name="nameEn" value="${esc(e.nameEn||'')}" placeholder="English name"></div>
     <div class="form-group"><label>קטגוריה *</label>
-      <select name="category" required>${EX_CATS.map(c=>`<option${c===(e.category||'חזה')?' selected':''}>${c}</option>`).join('')}</select>
+      <select name="category" required>${EX_CATS.map(c=>`<option${c===(e.category||'חזה עליון')?' selected':''}>${c}</option>`).join('')}</select>
     </div>
     <div class="form-group"><label>קישור לסרטון</label><input name="videoUrl" type="url" value="${esc(e.videoUrl||'')}" placeholder="https://youtube.com/..."></div>
     <div class="form-actions">
@@ -1122,14 +1172,14 @@ function exerciseForm(e={}) {
 }
 function openAddExercise() {
   openModal('הוסף תרגיל לבנק', exerciseForm(), async fd => {
-    await saveItem('exercises', {id:uid(), name:fd.get('name'), category:fd.get('category'), videoUrl:fd.get('videoUrl')});
+    await saveItem('exercises', {id:uid(), name:fd.get('name'), nameEn:fd.get('nameEn')||'', category:fd.get('category'), videoUrl:fd.get('videoUrl')});
     renderExercises();
   });
 }
 function openEditExercise(id) {
   const e = load('exercises').find(x=>x.id===id);
   openModal('עריכת תרגיל', exerciseForm(e), async fd => {
-    Object.assign(e, {name:fd.get('name'), category:fd.get('category'), videoUrl:fd.get('videoUrl')});
+    Object.assign(e, {name:fd.get('name'), nameEn:fd.get('nameEn')||'', category:fd.get('category'), videoUrl:fd.get('videoUrl')});
     await saveItem('exercises', e);
     renderExercises();
   });
@@ -1140,14 +1190,38 @@ async function deleteExercise(id) {
   renderExercises();
 }
 
+async function uploadExerciseBank() {
+  if (!confirm('זה ימחק את כל התרגילים הקיימים ויטען 172 תרגילים חדשים. להמשיך?')) return;
+  const data = [{"name":"לחיצת חזה עליון עם מוט","nameEn":"Incline BB bench press","category":"חזה עליון","videoUrl":"https://www.youtube.com/watch?v=lJ2o89kcnxY"},{"name":"לחיצת חזה עליון עם משקולות יד","nameEn":"Incline DB bench press","category":"חזה עליון","videoUrl":"https://www.instagram.com/shimmy93/p/C_deEfAAk9l/?img_index=3"},{"name":"לחיצת חזה עליון במכונה","nameEn":"Incline chest press machine","category":"חזה עליון","videoUrl":"https://www.youtube.com/watch?v=0Wa9CfRXUkA"},{"name":"פרפר עם משקולות יד בשיפוע חיובי","nameEn":"Incline DB fly","category":"חזה עליון","videoUrl":"https://www.instagram.com/shimmy93/reel/CyLuiLNgIkf/"},{"name":"פרפר עם כבלים בשיפוע חיובי","nameEn":"Incline cable fly","category":"חזה עליון","videoUrl":"https://www.youtube.com/watch?v=LGDCjwO-hFg"},{"name":"לחיצת חזה עליון בסמית' משין,","nameEn":"Smith machine incline press","category":"חזה עליון","videoUrl":"https://www.instagram.com/shimmy93/p/C3LJ9JuABjA/?img_index=1"},{"name":"לחיצת חזה עם מוט (שטוח)","nameEn":"BB bench press","category":"חזה","videoUrl":"https://www.youtube.com/watch?v=EeE3f4VWFDo"},{"name":"לחיצת חזה עם משקולות יד (שטוח)","nameEn":"DB bench press","category":"חזה","videoUrl":"https://www.youtube.com/watch?v=YQ2s_Y7g5Qk"},{"name":"לחיצת חזה במכונה","nameEn":"Machine chest press","category":"חזה","videoUrl":"https://www.youtube.com/watch?v=NwzUje3z0qY"},{"name":"פרפר עם משקולות יד","nameEn":"Flat DB fly","category":"חזה","videoUrl":"https://www.instagram.com/shimmy93/reel/C5jAsNgAvnp/"},{"name":"פרפר בכבלים בעמידה","nameEn":"Cable fly","category":"חזה","videoUrl":"https://www.youtube.com/watch?v=Cj6P91eFXkM"},{"name":"פרפר בכבלים בישיבה","nameEn":"Seated cable fly","category":"חזה","videoUrl":"https://www.youtube.com/watch?v=CT7vDnPJZ9w"},{"name":"פרפר במכונה","nameEn":"Machine chest fly","category":"חזה","videoUrl":"https://www.instagram.com/shimmy93/p/C9xTLErg25r/?img_index=3"},{"name":"לחיצת חזה בסמית' משין","nameEn":"Smith machine flat press","category":"חזה","videoUrl":"https://www.youtube.com/watch?v=O5viuEPDXKY"},{"name":"שכיבות סמיכה בהגבהה","nameEn":"Deficeit push up","category":"חזה","videoUrl":"https://www.youtube.com/watch?v=gmNlqsE3Onc"},{"name":"לחיצת חזה בשכיבה בהאמר","nameEn":"Hammer strength lying chest press","category":"חזה","videoUrl":"https://www.youtube.com/watch?v=J-tIeBDBba4"},{"name":"מקבילים (משקל גוף)","nameEn":"BW Dips","category":"יד אחורית","videoUrl":"https://www.instagram.com/shimmy93/p/C1xY175AUeV/?img_index=4"},{"name":"מקבילים עם משקל","nameEn":"Weighted Dips","category":"יד אחורית","videoUrl":"https://www.instagram.com/shimmy93/p/C1xY175AUeV/?img_index=4"},{"name":"מקבילים בגרביטון","nameEn":"Assisted dips","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=yZ83t4mrPrI"},{"name":"מקבילים במכונה","nameEn":"Machine Dips","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=OChuGyCSC7U"},{"name":"יד אחורית מעל הראש בכבל","nameEn":"Overhead cable tricep extension","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=1u18yJELsh0"},{"name":"יד אחורית מעל הראש בכבל (יד-יד)","nameEn":"SA Overhead cable tricep extension","category":"יד אחורית","videoUrl":"https://www.instagram.com/shimmy93/reel/CyqtlgpAdDe/"},{"name":"יד אחורית מעל הראש עם מוט W","nameEn":"EZ bar Overhead tricep extension","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=IdZ7HXnatko"},{"name":"יד אחורית מעל הראש עם מוט ישר","nameEn":"BB Overhead tricep extension","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=q5X9thiKofE"},{"name":"יד אחורית מעל הראש עם משקולות יד","nameEn":"DB Overhead tricep extension","category":"יד אחורית","videoUrl":"https://www.instagram.com/shimmy93/reel/CzZEK2BAPNM/"},{"name":"יד אחורית מעל הראש במכונה","nameEn":"Machine Overhead tricep extension","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=Bx8ga1BLHLE"},{"name":"פושדאון בכבל","nameEn":"cable pushdown","category":"יד אחורית","videoUrl":"https://www.instagram.com/shimmy93/reel/C8uW5TJOA6L/"},{"name":"פושדאון בכבל (יד-יד)","nameEn":"SA cable pushdown","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=Cp_bShvMY4c"},{"name":"לחיצה צרפתית עם מוט","nameEn":"BB JM press","category":"יד אחורית","videoUrl":"https://www.instagram.com/shimmy93/reel/C7uBxNUAywy/"},{"name":"לחיצה צרפתית בסמית' משין","nameEn":"Smith machine JM press","category":"יד אחורית","videoUrl":"https://www.instagram.com/shimmy93/p/C1xY175AUeV/?img_index=3"},{"name":"סקול קראשר עם מוט W","nameEn":"EZ bar skullcrusher","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=l3rHYPtMUo8"},{"name":"סקול קראשר עם מוט","nameEn":"BB skullcrusher","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=l3rHYPtMUo8"},{"name":"סקול קראשר עם משקולות יד","nameEn":"DB skullcrusher","category":"יד אחורית","videoUrl":"https://www.youtube.com/shorts/7dNes8zlCJE"},{"name":"סקול קאשר בסמית' משין","nameEn":"Smith machine skullcrusher","category":"יד אחורית","videoUrl":"https://www.instagram.com/drmikeclips/reel/CuvNa3ULKrB/?hl=en"},{"name":"סקול קראשר הפוך על סמית' משין","nameEn":"Inverted skullcrusher","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=1lrjpLuXH4w"},{"name":"לחיצת חזה צרה","nameEn":"Close grip bench press","category":"יד אחורית","videoUrl":"https://www.youtube.com/watch?v=FiQUzPtS90E"},{"name":"לחיצת חזה צרה בסמית' משין","nameEn":"Smith machine close grip bench press","category":"יד אחורית","videoUrl":"https://www.instagram.com/shimmy93/reel/C3-f2iAA0bQ/"},{"name":"הרחקת כתפיים בכבל (כבל מאחור)","nameEn":"Cable lateral raise- face away","category":"כתף צידית","videoUrl":"https://www.instagram.com/shimmy93/p/C3aj3rWg2Pe/?img_index=2"},{"name":"הרחקת כתפיים בכבל (כבל מלפנים)","nameEn":"Cable lateral raise- face toward","category":"כתף צידית","videoUrl":"https://www.instagram.com/p/C7_yBu-IDkC/"},{"name":"הרחקת כתף בכבל (אקסטרה מתיחה)","nameEn":"extra strech cable lateral raise","category":"כתף צידית","videoUrl":"https://www.tiktok.com/@coachjackhallows/video/7358059574257077511"},{"name":"הרחקת כתפיים עם משקולות יד","nameEn":"DB lateral raise","category":"כתף צידית","videoUrl":"https://www.youtube.com/watch?v=OuG1smZTsQQ"},{"name":"הרחקת כתפיים עם משקולות יד (טווח מוגבר)","nameEn":"lateral raise- extended ROM","category":"כתף צידית","videoUrl":"https://www.instagram.com/drmikeclips/reel/Cv0rHp3P_-W/?hl=en"},{"name":"הרחקת כתפיים במכונה","nameEn":"Machine lateral raise","category":"כתף צידית","videoUrl":"https://www.instagram.com/p/Cz1h7wrgAez/?img_index=1"},{"name":"הרחקת כתף בשכיבה על ספסל","nameEn":"Incline DB lateral raise","category":"כתף צידית","videoUrl":"https://www.youtube.com/watch?v=KsoFrzJrd2E"},{"name":"חתירה ישרה עם משקולות יד","nameEn":"DB upright row","category":"כתף צידית","videoUrl":"https://www.instagram.com/shimmy93/p/C9fbMJsg1rK/?img_index=4"},{"name":"חתירה ישרה עם מוט","nameEn":"BB upright row","category":"כתף צידית","videoUrl":"https://www.youtube.com/watch?v=um3VVzqunPU"},{"name":"חתירה ישרה עם מוט W","nameEn":"EZ bar upright row","category":"כתף צידית","videoUrl":"https://www.youtube.com/watch?v=um3VVzqunPU"},{"name":"חתירה ישרה בכבל","nameEn":"Cable upright row","category":"כתף צידית","videoUrl":"https://www.youtube.com/watch?v=qr3ziolhjvQ"},{"name":"חתירה ישרה בסמית' משין","nameEn":"Smith machine upright row","category":"כתף צידית","videoUrl":"https://www.instagram.com/shimmy93/reel/CvZqTQKgDdR/"},{"name":"הרחקת כתפיים בישיבה (שיפוע חיובי)","nameEn":"Incline lateral raise","category":"כתף צידית","videoUrl":"https://www.instagram.com/shimmy93/reel/CzWetnOgvq_/"},{"name":"מתח צר נטרלי עם משקל","nameEn":"Weighted Neutral close grip Pull up","category":"גב (אנכי)","videoUrl":"https://www.instagram.com/shimmy93/p/C_lg1DXSNp5/?img_index=1"},{"name":"מתח צר נטרלי","nameEn":"Neutral close grip Pull up","category":"גב (אנכי)","videoUrl":"https://www.instagram.com/shimmy93/p/C_lg1DXSNp5/?img_index=1"},{"name":"מתח","nameEn":"BW Pull up","category":"גב (אנכי)","videoUrl":"https://www.youtube.com/watch?v=iWpoegdfgtc"},{"name":"מתח עם משקל","nameEn":"Weighted Pull up","category":"גב (אנכי)","videoUrl":"https://www.youtube.com/watch?v=iWpoegdfgtc"},{"name":"מתח בגרביטון (צר נטרלי)","nameEn":"Assisted Neutral close grip Pull up","category":"גב (אנכי)","videoUrl":"https://www.youtube.com/watch?v=GdsRZAeeDUc"},{"name":"מתח בגרביטון","nameEn":"Assisted Pull up","category":"גב (אנכי)","videoUrl":"https://www.youtube.com/watch?v=8ygapPMYK1I"},{"name":"פולדאון (רחב)","nameEn":"Wide grip Pulldown","category":"גב (אנכי)","videoUrl":"https://www.youtube.com/watch?v=YCKPD4BSD2E"},{"name":"פולדאון (רוחב כתפיים)","nameEn":"Shoulder width grip Pulldown","category":"גב (אנכי)","videoUrl":"https://www.youtube.com/watch?v=EUIri47Epcg"},{"name":"פולדאון (אחיזה צרה נטרלית)","nameEn":"Close neutral grip Pulldown","category":"גב (אנכי)","videoUrl":"https://www.instagram.com/shimmy93/p/C0CYFGYg3lq/?img_index=1"},{"name":"פולדאון (סופינציה)","nameEn":"Supinated Pulldown","category":"גב (אנכי)","videoUrl":"https://www.youtube.com/watch?v=VprlTxpB1rk"},{"name":"פולדאון במכונה","nameEn":"Machine Pulldown","category":"גב (אנכי)","videoUrl":"https://www.instagram.com/shimmy93/reel/C0zNSoOIRTE/"},{"name":"פולדאון (יד- יד)","nameEn":"SA Pulldown","category":"גב (אנכי)","videoUrl":"https://www.instagram.com/p/C3QIOgOiK6M/?hl=en"},{"name":"פולדאון (יד- יד+הטייה הצידה)","nameEn":"Croissant Pulldown","category":"גב (אנכי)","videoUrl":"https://www.instagram.com/shimmy93/p/C_lg1DXSNp5/?img_index=2"},{"name":"חתירה גבוהה בהאמר (סופינציה)","nameEn":"Hammer strength supinated high row","category":"גב (אנכי)","videoUrl":"https://youtu.be/NVVODGCd5xE?si=vRv74r1wcMZEnh-9&t=23"},{"name":"חתירה גבוהה בהאמר (פרונציה)","nameEn":"Hammer strength pronated high row","category":"גב (אנכי)","videoUrl":"https://www.youtube.com/watch?v=gg5hwJuv6KI"},{"name":"מכונת פולדאון (לייף פיטנס)","nameEn":"Pulldown machine (life fitness)","category":"גב (אנכי)","videoUrl":"https://www.youtube.com/shorts/VsgMTh-rk6o"},{"name":"חתירה בT-BAR","nameEn":"T-bar row","category":"גב (אופקי)","videoUrl":"https://www.instagram.com/shimmy93/reel/C1PrOB6o2ib/"},{"name":"בנט אובר עם מוט","nameEn":"BB bent over row","category":"גב (אופקי)","videoUrl":"https://www.instagram.com/charlton_banks/reel/C19kGbhgR7q/"},{"name":"בנט אובר עם משקולות","nameEn":"DB bent over row","category":"גב (אופקי)","videoUrl":"https://www.instagram.com/shimmy93/p/C9fbMJsg1rK/?img_index=1"},{"name":"חתירה על ספסל (יד- יד)","nameEn":"DB SA bench supported row","category":"גב (אופקי)","videoUrl":"https://www.youtube.com/watch?v=DMo3HJoawrU"},{"name":"חתירה במכונה","nameEn":"Machine row","category":"גב (אופקי)","videoUrl":"https://www.instagram.com/shimmy93/p/CzEw4ShgI1_/?img_index=2"},{"name":"חתירה בכבל (אחיזה ברוחב כתפיים)","nameEn":"shoulder width cable row","category":"גב (אופקי)","videoUrl":"https://www.instagram.com/p/C33XXrBAw3H/?igsh=M2w0Y21leTlnMmVy&img_index=3"},{"name":"חתירה בכבל (אחיזה נטרלית צרה)","nameEn":"close neutral grip cable row","category":"גב (אופקי)","videoUrl":"https://www.youtube.com/watch?v=UCXxvVItLoM"},{"name":"חתירה בכבל (יד-יד)","nameEn":"SA cable row","category":"גב (אופקי)","videoUrl":"https://www.instagram.com/johnjewett3/reel/C4Wl64UszES/"},{"name":"חתירה בסמית' משין","nameEn":"Smith machine row","category":"גב (אופקי)","videoUrl":"https://www.youtube.com/watch?v=3QcJggd_L24"},{"name":"חתירה עם משקולת (יד- יד)","nameEn":"DB SA row","category":"גב (אופקי)","videoUrl":"https://www.instagram.com/shimmy93/p/C1sTRwLAiIt/?img_index=2"},{"name":"חתירה הפוכה בסמית' משין","nameEn":"Smith machine inverted row","category":"גב (אופקי)","videoUrl":"https://www.instagram.com/p/DAlzPvwvmro/?hl=en&img_index=3"},{"name":"חתירה עם משקולות בתמיכת ספסל","nameEn":"Chest supported DB row","category":"גב (אופקי)","videoUrl":"https://www.youtube.com/watch?v=rbePBWAmJeI"},{"name":"חתירה צרה בהאמר","nameEn":"Hammer strength chest supported row","category":"גב (אופקי)","videoUrl":"https://www.youtube.com/watch?v=nV6KE2mgQQ4"},{"name":"חתירה רחבה בהאמר","nameEn":"Hammer strength wide grip chest supported row","category":"גב (אופקי)","videoUrl":"https://www.youtube.com/watch?v=8JxhXcjp2-0"},{"name":"פולאובר בכבל (מוט ישר)","nameEn":"Cable bar pullover","category":"גב (פולאובר)","videoUrl":"https://www.instagram.com/shimmy93/p/C1sTRwLAiIt/?img_index=3"},{"name":"פולאובר בכבל (חבל/ צמה)","nameEn":"Cable rope pullover","category":"גב (פולאובר)","videoUrl":"https://www.instagram.com/p/DA6UTuBJlFh/?hl=en&img_index=1"},{"name":"פולאובר בכבל (יד- יד)","nameEn":"SA cable pullover","category":"גב (פולאובר)","videoUrl":"https://www.instagram.com/p/DAeIz9gpbIY/?hl=en&img_index=1"},{"name":"פולאובר עם משקול יד","nameEn":"DB pullover","category":"גב (פולאובר)","videoUrl":"https://www.youtube.com/watch?v=jQjWlIwG4sI"},{"name":"פולאובר במכונה","nameEn":"Machine pullover","category":"גב (פולאובר)","videoUrl":"https://www.youtube.com/watch?v=oxpAl14EYyc"},{"name":"יד קדמית עם משקולות יד","nameEn":"DB bicep curl","category":"יד קדמית","videoUrl":"https://www.youtube.com/watch?v=tRXw8HQ7-oA"},{"name":"יד קדמית עם מוט W","nameEn":"EZ bar bicep curl","category":"יד קדמית","videoUrl":"https://www.youtube.com/watch?v=cdmnvo3augg"},{"name":"יד קדמית עם מוט","nameEn":"BB bicep curl","category":"יד קדמית","videoUrl":"https://www.youtube.com/watch?v=JnLFSFurrqQ"},{"name":"יד קדמית במכונת פריצ'ר","nameEn":"Machine preacher bicep curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/shimmy93/p/C1R7J_xIhJo/?img_index=1"},{"name":"יד קדמית בפריצ'ר עם מוט","nameEn":"BB preacher bicep curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/shimmy93/p/C0CYFGYg3lq/?img_index=3"},{"name":"יד קדמית בפריצ'ר עם משקולות יד","nameEn":"DB preacher bicep curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/shimmy93/p/C9fbMJsg1rK/?img_index=5"},{"name":"יד קדמית בפריצ'ר עם מוט W","nameEn":"EZ bar preacher bicep curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/shimmy93/p/C0CYFGYg3lq/?img_index=3"},{"name":"יד קדמית בכבל (כבל מלפנים)","nameEn":"Cable bar bicep curl- face toward","category":"יד קדמית","videoUrl":"https://www.instagram.com/shimmy93/p/C0CYFGYg3lq/?img_index=4"},{"name":"יד קדמית בכבל (כבל בין הרגליים)","nameEn":"cable bar bicep curl- face away","category":"יד קדמית","videoUrl":"https://www.youtube.com/watch?v=wmH2TvzTHk0"},{"name":"יד קדמית בכבלים (פנים לכבל)","nameEn":"D-handle cable bicep curl- face toward","category":"יד קדמית","videoUrl":"https://www.youtube.com/watch?v=-blVRDOYpSQ"},{"name":"יד קדמית בכבלים (גב לכבל)","nameEn":"D-handle cable bicep curl- face away","category":"יד קדמית","videoUrl":"https://www.youtube.com/watch?v=xrQlkUQCKQY"},{"name":"יד קדמית עם משקולות יד על ספסל","nameEn":"Seated DB bicep curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/shimmy93/p/C1sTRwLAiIt/?img_index=4"},{"name":"יד קדמית עם משקולות על ספסל בשיפוע","nameEn":"Incline DB bicep curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/shimmy93/reel/ChDbCRtjdv1/"},{"name":"יד קדמית עם משקולות בשכיבה","nameEn":"Lying DB bicep curl","category":"יד קדמית","videoUrl":"https://www.tiktok.com/@renaissanceperiodztion28/video/7384161040331803946"},{"name":"יד קדמית בכבל (על הברכיים, גב לכבל)","nameEn":"Kneeling cable bicep curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/p/C_5ut9kPukm/?hl=en&img_index=4"},{"name":"פטישים עם משקולות יד","nameEn":"DB hammer curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/shimmy93/p/C2x1t8eyjfx/?img_index=2"},{"name":"פטישים בפריצ'ר","nameEn":"DB preacher hammer curl","category":"יד קדמית","videoUrl":"https://www.youtube.com/watch?v=_37keawAZlg"},{"name":"פטישים בכבל","nameEn":"Cable hammer curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/johnjewett3/p/CyelYCzMRCs/?img_index=7"},{"name":"פטישים על ספסל","nameEn":"Seated DB hammer curl","category":"יד קדמית","videoUrl":"https://www.instagram.com/shimmy93/reel/C2P7FGRg05t/"},{"name":"פטישים על ספסל בשיפוע חיובי","nameEn":"Incline DB hammer curl","category":"יד קדמית","videoUrl":"https://www.youtube.com/watch?v=5k2kzvMiVac"},{"name":"סקוואט עם מוט (טווח מלא)","nameEn":"Deep BB Squat","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/shimmy93/reel/C9VBW0FgSXy/"},{"name":"סקוואט בסמית' משין (טווח מלא)","nameEn":"Deep smith machine Squat","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/shimmy93/reel/CtQHsZVANzP/"},{"name":"האק סקוואט","nameEn":"Hack Squat","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/shimmy93/reel/CqW2fOcjvw4/?hl=en"},{"name":"פנדלום סקוואט","nameEn":"Pendulum Squat","category":"ארבע ראשי","videoUrl":"https://www.youtube.com/watch?v=77nX_bMe5fA&t=124s"},{"name":"בלט סקוואט","nameEn":"Belt Squat","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/drmikeclips/reel/DA3kT6gCiNk/"},{"name":"לחיצת רגליים","nameEn":"Leg press","category":"ארבע ראשי","videoUrl":"https://www.youtube.com/watch?v=yZmx_Ac3880"},{"name":"פשיטת ברך במכונה","nameEn":"Leg extension","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/drmikeisraetel/p/C6jOcTirLtw/?hl=en&img_index=3"},{"name":"סיסי סקוואט","nameEn":"Sissy Squat","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/p/DA3MtIEo37F/"},{"name":"לאנג'ים בהליכה (משקל גוף)","nameEn":"BW walking lunge","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/drmikeclips/reel/C5RnRgYMqd-/?locale=pt_PT"},{"name":"לאנג'ים בהליכה (עם מוט)","nameEn":"BB walking lunge","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/drmikeclips/reel/C3d_yE0shgH/"},{"name":"לאנג'ים בהליכה (עם משקולות)","nameEn":"DB walking lunge","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/drmikeisraetel/p/CvXyRYEJ4MV/?img_index=2"},{"name":"לאנג' אחורי בסמית' משין","nameEn":"Smith machine reverse lunge","category":"ארבע ראשי","videoUrl":"https://youtu.be/YtzyjrjXDbA?si=0U3H6jlmylHAsD3j&t=25"},{"name":"לאנג' אחורי ממדרגה","nameEn":"DB reverse lunge","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/defrancosgym/reel/C_BPAy4OIh6/"},{"name":"סקוואט בולגרי (משקולות יד)","nameEn":"DB Bulgarian split Squat","category":"ארבע ראשי","videoUrl":"https://www.instagram.com/shimmy93/p/C9KwMPpO7iv/?img_index=5"},{"name":"סקוואט בולגרי (מוט)","nameEn":"BB Bulgarian split Squat","category":"ארבע ראשי","videoUrl":"https://www.youtube.com/watch?v=jNihW0WDIL4"},{"name":"פיסטול סקוואט","nameEn":"Pistol Squat","category":"ארבע ראשי","videoUrl":"https://youtu.be/ylFYetSuOfI?si=mXszTuG5VVAqFqNB&t=809"},{"name":"דדליפט רומני עם מוט","nameEn":"BB RDL","category":"האמסטרינג","videoUrl":"https://www.youtube.com/watch?v=4ljAuIfKVEY&t=235s"},{"name":"דדלפיט רומני עם משקולות יד","nameEn":"DB RDL","category":"האמסטרינג","videoUrl":"https://www.youtube.com/watch?v=cYKYGwcg0U8"},{"name":"גודמורנינג","nameEn":"BB good morning","category":"האמסטרינג","videoUrl":"https://www.tiktok.com/@drmikeisraetel/video/7240885573500669226?lang=en"},{"name":"גודמורנינג בסמית' משין","nameEn":"Smith machine good morning","category":"האמסטרינג","videoUrl":"https://www.instagram.com/drmikeisraetel/p/C376_f1rRpq/?img_index=4"},{"name":"כפיפת ברך במכונה (בישיבה)","nameEn":"Seated leg curl","category":"האמסטרינג","videoUrl":"https://www.tiktok.com/@drmikeisraetel/video/7337666138479955246"},{"name":"כפיפת ברך במכונה (בשכיבה)","nameEn":"Lying leg curl","category":"האמסטרינג","videoUrl":"https://www.instagram.com/p/C9PMnIBMgcU/?hl=en"},{"name":"פשיטת ירך בכיסא רומי (משקל גוף)","nameEn":"BW hyper extension","category":"האמסטרינג","videoUrl":"https://youtu.be/eLEQwNFVeLQ?si=rOPxXbNtt5M8Fuwe&t=42"},{"name":"פשיטת ירך בכיסא רומי (משקולות)","nameEn":"DB/BB hyper extension","category":"האמסטרינג","videoUrl":"https://youtu.be/T3CKW3B-kRU?si=YeS2Mk07X-eLqHKw&t=36"},{"name":"תאומים בסמית' משין","nameEn":"Smith machine calf raise","category":"תאומים","videoUrl":"https://www.youtube.com/watch?v=hh5516HCu4k"},{"name":"תאומים בלחיצת רגליים","nameEn":"Leg press calf raise","category":"תאומים","videoUrl":"https://www.youtube.com/watch?v=KxEYX_cuesM"},{"name":"תאומים בהאק סקוואט","nameEn":"Hack squat calf raise","category":"תאומים","videoUrl":"https://www.youtube.com/watch?v=V_9E0TNBA5w"},{"name":"תאומים בבלט סקוואט","nameEn":"Belt squat calf raise","category":"תאומים","videoUrl":"https://www.youtube.com/watch?v=QYfIF7EJhP0"},{"name":"תאומים רגל-רגל על מדרגה","nameEn":"Single leg elevated calf raise","category":"תאומים","videoUrl":"https://www.youtube.com/watch?v=Jy0aMkLNsKo"},{"name":"כפיפת בטן בכבל","nameEn":"Cable crunch","category":"בטן","videoUrl":"https://www.instagram.com/shimmy93/reel/C8ADbixg4wG/"},{"name":"כפיפת בטן על ספסל בשיפוע שלילי","nameEn":"Decline crunch","category":"בטן","videoUrl":"https://www.youtube.com/watch?v=DAnTf16NcT0"},{"name":"הרמות רגליים על ספסל בשיפוע שלילי","nameEn":"Decline leg raise","category":"בטן","videoUrl":"https://www.instagram.com/shimmy93/p/C0CYFGYg3lq/?img_index=6"},{"name":"הרמות ברכיים בתלייה","nameEn":"Hanging knee raise","category":"בטן","videoUrl":"https://www.youtube.com/watch?v=RD_A-Z15ER4"},{"name":"הרמות רגליים בתלייה","nameEn":"Hanging leg raise","category":"בטן","videoUrl":"https://www.youtube.com/watch?v=7FwGZ8qY5OU"},{"name":"דרגון פלג מאולתר","nameEn":"Modified dragon flag","category":"בטן","videoUrl":"https://www.youtube.com/watch?v=T_X5rb3G5lk"},{"name":"כפיפת בטן במכונה","nameEn":"Machiune crunch","category":"בטן","videoUrl":"https://youtu.be/JibMrcyO5dg?si=X8HtxY3v-2Z7qJKY&t=9"},{"name":"היפטארסט במוט","nameEn":"BB hip thrust","category":"תחת","videoUrl":"https://www.youtube.com/watch?v=EF7jXP17DPE"},{"name":"היפטראסט במכונה","nameEn":"Machine hip thrust","category":"תחת","videoUrl":"https://www.youtube.com/watch?v=ZSPmIyX9RZs"},{"name":"היפטראסט בסמית' משין","nameEn":"Smith machine hip thrust","category":"תחת","videoUrl":"https://www.youtube.com/watch?v=CXGJ36cQyWo"},{"name":"לאנג' אחורי בסמית' משין","nameEn":"Smith machine reverse lunge","category":"תחת","videoUrl":"https://www.tiktok.com/@drmikeisraetel/video/7180782360567237934"},{"name":"לאנג'ים בהליכה (משקל גוף)","nameEn":"BW walking lunge","category":"תחת","videoUrl":"https://www.instagram.com/drmikeclips/reel/C5RnRgYMqd-/?locale=pt_PT"},{"name":"לאנג'ים בהליכה (עם מוט)","nameEn":"BB walking lunge","category":"תחת","videoUrl":"https://www.instagram.com/drmikeclips/reel/C3d_yE0shgH/"},{"name":"לאנג'ים בהליכה (עם משקולות)","nameEn":"DB walking lunge","category":"תחת","videoUrl":"https://www.instagram.com/drmikeisraetel/p/CvXyRYEJ4MV/?img_index=2"},{"name":"לאנג' אחורי ממדרגה","nameEn":"BB reverse lunge","category":"תחת","videoUrl":"https://www.instagram.com/defrancosgym/reel/C_BPAy4OIh6/"},{"name":"פשיטת ירך בכבל","nameEn":"Cable donkey kick","category":"תחת","videoUrl":"https://www.youtube.com/shorts/Wuvw0WwZc0w"},{"name":"סומו דדליפט","nameEn":"BB sumo deadlift","category":"תחת","videoUrl":"https://www.instagram.com/shimmy93/reel/CrV3YtYgwfP/"},{"name":"כתף אחורית בכבל (יד-יד)","nameEn":"SA cable reverse fly","category":"כתף אחורית","videoUrl":"https://youtu.be/cdnofwWXWKw?si=NJwboSb0clg6D9CN&t=365"},{"name":"כתף אחורית בכבל","nameEn":"Cable reverse fly","category":"כתף אחורית","videoUrl":"https://youtu.be/e6s7Q_RvW9Y?si=lySHSuCESx91EA35&t=849"},{"name":"כתף אחורית במכונה","nameEn":"Machine reverse fly","category":"כתף אחורית","videoUrl":"https://www.youtube.com/watch?v=5YK4bgzXDp0"},{"name":"פייספול בכבל","nameEn":"Cable facepull","category":"כתף אחורית","videoUrl":"https://www.instagram.com/drmikeisraetel/reel/ClJhs_1DCDB/?hl=en"},{"name":"פייספול על ספסל עם משקולות","nameEn":"Incline DB face pull","category":"כתף אחורית","videoUrl":"https://www.youtube.com/watch?v=90cE3rCLtmo"},{"name":"לחיצת כתפיים במכונה","nameEn":"Machine shoulder press","category":"כתף קדמית","videoUrl":"https://www.instagram.com/p/C9WtvhKMbcw/?hl=en&img_index=1"},{"name":"לחיצת כתפיים עם משקולות בישיבה","nameEn":"Seated DB shoulder press","category":"כתף קדמית","videoUrl":"https://www.youtube.com/watch?v=HzIiNhHhhtA"},{"name":"לחיצת כתפיים עם מוט (בעמידה)","nameEn":"Standing BB shoulder press","category":"כתף קדמית","videoUrl":"https://www.youtube.com/watch?v=G2qpTG1Eh40"},{"name":"לחיצת כתפיים עם מוט (בישיבה)","nameEn":"Seated BB shoulder press","category":"כתף קדמית","videoUrl":"https://www.youtube.com/watch?v=IuzRCN6eG6Y"},{"name":"כפיפת כתפיים בכבל","nameEn":"cable Front raise","category":"כתף קדמית","videoUrl":"https://www.instagram.com/shimmy93/p/C2aM0K6ASb7/?img_index=3"},{"name":"שראגס עם מוט","nameEn":"BB Shrug","category":"טרפזים","videoUrl":"https://www.instagram.com/shimmy93/p/C_lg1DXSNp5/?img_index=5"},{"name":"שראגס עם משקולות יד (בעמידה)","nameEn":"Standing DB Shrug","category":"טרפזים","videoUrl":"https://www.youtube.com/watch?v=_t3lrPI6Ns4"},{"name":"שראגס עם משקולות יד (בישיבה)","nameEn":"Seated DB Shrug","category":"טרפזים","videoUrl":"https://www.instagram.com/shimmy93/reel/C_s-dBcA8rg/"},{"name":"שראגס בסמית' משין","nameEn":"Smith machine Shrug","category":"טרפזים","videoUrl":"https://www.youtube.com/shorts/lxk1n-pAMM4"},{"name":"שראגס במכונה","nameEn":"Machine Shrug","category":"טרפזים","videoUrl":"https://www.instagram.com/shimmy93/p/C0CYFGYg3lq/?img_index=5"},{"name":"אמות בכבל בעמידה","nameEn":"Cable wrist curl","category":"אמות","videoUrl":"https://www.youtube.com/watch?v=WVAaKJvToe0"},{"name":"אמות עם משקולות יד בעמידה","nameEn":"DB standing wrist curl","category":"אמות","videoUrl":"https://www.youtube.com/watch?v=iQ4JjOK73PE"},{"name":"אמות עם מוט בעמידה","nameEn":"BB standing wrist curl","category":"אמות","videoUrl":"https://www.youtube.com/watch?v=lfQR7oVS8eo"},{"name":"אמות עם מוט על ספסל","nameEn":"BB bench wrist curl","category":"אמות","videoUrl":"https://www.instagram.com/shimmy93/p/CzRXSqwA47c/?img_index=1"},{"name":"אמות עם משקולות יד על ספסל","nameEn":"DB bench wrist curl","category":"אמות","videoUrl":"https://www.instagram.com/shimmy93/p/CzRXSqwA47c/?img_index=2"},{"name":"סגירת רגליים במכונה","nameEn":"Adductor machine","category":"מקרבים","videoUrl":"https://www.instagram.com/shimmy93/p/C2Kv_KbAfG8/?img_index=1"}];
+  // Delete existing
+  const existing = load('exercises');
+  for (const e of existing) { await db.collection('exercises').doc(e.id).delete(); }
+  cache.exercises = [];
+  // Add new
+  for (const ex of data) {
+    const item = { id: uid(), name: ex.name, nameEn: ex.nameEn, category: ex.category, videoUrl: ex.videoUrl };
+    cache.exercises.push(item);
+    await db.collection('exercises').doc(item.id).set(item);
+  }
+  showToast('הועלו ' + data.length + ' תרגילים ✓');
+  renderExercises();
+}
+
 // ========================
 // ===== WORKOUT PLANS ====
 // ========================
-// New exercise format: { name, category, videoUrl, setsData: [{targetReps, weight, notes}] }
-let _exercises = [];
-let _planIsTemplate = false;
+// New exercise format: { name, nameEn, category, videoUrl, setsData: [{targetReps, weight, notes}] }
+// Plan builder state
+let _planBuilder = { active:false, editingId:'', isTemplate:false, clientId:'', planName:'', workouts:[], activeWorkoutIdx:0, expandedCategory:'', searchTerm:'' };
+
+// Backward compat: old plans have exercises[], new plans have workouts[]
+function getPlanWorkouts(plan) {
+  if (plan.workouts) return plan.workouts;
+  return [{ name:'אימון A', exercises:(plan.exercises||[]).map(migrateExercise) }];
+}
 
 function renderWorkouts() {
+  if (_planBuilder.active) { renderPlanBuilder(); return; }
   const plans = load('plans');
   const templates = plans.filter(p=>p.isTemplate);
   const assigned  = plans.filter(p=>!p.isTemplate);
@@ -1159,20 +1233,19 @@ function renderWorkouts() {
 }
 
 function planCardHTML(p) {
-  const exercises = p.exercises.map(migrateExercise);
-  const exRows = exercises.map(e => {
-    const setsCount = e.setsData.length;
-    const repsDisplay = e.setsData.map(s => s.targetReps).join('/');
-    const weightsDisplay = e.setsData.some(s => s.weight) ? e.setsData.map(s => s.weight || '—').join('/') : '—';
-    return `<tr>
-      <td>${esc(e.category||'—')}</td>
-      <td>${esc(e.name)}</td>
-      <td>${setsCount}</td>
-      <td>${repsDisplay}</td>
-      <td>${weightsDisplay}</td>
-      <td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank">▶</a>`:'—'}</td>
-    </tr>`;
+  const workouts = getPlanWorkouts(p);
+  const workoutSections = workouts.map(w => {
+    const exercises = w.exercises.map(migrateExercise);
+    if (!exercises.length) return `<div style="color:var(--muted);font-size:.82rem;margin:4px 0">${esc(w.name)}: אין תרגילים</div>`;
+    const exRows = exercises.map(e => {
+      const repsDisplay = e.setsData.map(s => s.targetReps).join('/');
+      const weightsDisplay = e.setsData.some(s => s.weight) ? e.setsData.map(s => s.weight || '—').join('/') : '—';
+      return `<tr><td>${esc(e.category||'—')}</td><td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank" style="color:var(--accent2)">${esc(e.name)}</a>`:esc(e.name)}</td><td>${e.setsData.length}</td><td>${repsDisplay}</td><td>${weightsDisplay}</td></tr>`;
+    }).join('');
+    return `${workouts.length>1?`<div style="color:var(--accent);font-size:.82rem;font-weight:600;margin:8px 0 4px">${esc(w.name)}</div>`:''}
+      <table class="ex-table"><thead><tr><th>קטגוריה</th><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>משקל</th></tr></thead><tbody>${exRows}</tbody></table>`;
   }).join('');
+  const totalEx = workouts.reduce((s,w)=>s+w.exercises.length,0);
   const assignBtn = p.isTemplate
     ? `<button class="btn btn-teal btn-sm" onclick="openAssignTemplate('${p.id}')">הקצה ללקוח</button>`
     : `<button class="btn wa-btn btn-sm" onclick="sendPlanToWhatsApp('${p.id}')">📲 שלח</button>`;
@@ -1183,131 +1256,220 @@ function planCardHTML(p) {
         <div class="plan-client">${p.isTemplate?'<span class="badge badge-tmpl">תבנית גנרית</span>':'לקוח: '+esc(clientName(p.clientId))}</div>
       </div>
     </div>
-    ${exercises.length?`<table class="ex-table"><thead><tr><th>קטגוריה</th><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>משקל</th><th>סרטון</th></tr></thead><tbody>${exRows}</tbody></table>`:'<div style="color:var(--muted);font-size:.82rem">אין תרגילים</div>'}
+    ${totalEx?workoutSections:'<div style="color:var(--muted);font-size:.82rem">אין תרגילים</div>'}
     <div class="plan-card-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openEditPlan('${p.id}')">עריכה</button>
+      <button class="btn btn-ghost btn-sm" onclick="openPlanBuilder(false,'${p.id}')">עריכה</button>
       <button class="btn btn-teal btn-sm" onclick="exportPlanPDF(load('plans').find(x=>x.id==='${p.id}'))">📄 PDF</button>
       ${assignBtn}
       <button class="btn btn-danger btn-sm" onclick="deletePlan('${p.id}')">מחק</button>
     </div></div>`;
 }
 
-function planForm(p={}, forceTemplate=false) {
-  const rawExercises = p.exercises ? JSON.parse(JSON.stringify(p.exercises)) : [];
-  _exercises = rawExercises.map(migrateExercise);
-  _planIsTemplate = p.isTemplate || forceTemplate;
-  return `<form id="modal-form" onsubmit="return false">
-    <div class="form-check">
-      <input type="checkbox" id="is-tmpl-cb" ${_planIsTemplate?'checked':''} onchange="toggleTemplateMode()">
-      <label for="is-tmpl-cb">תבנית גנרית (ללא לקוח)</label>
-    </div>
-    <div id="client-sel-group" class="form-group" ${_planIsTemplate?'style="display:none"':''}>
-      <label>לקוח</label>
-      <select name="clientId"><option value="">— בחר לקוח —</option>${clientOptions(p.clientId||'')}</select>
-    </div>
-    <div class="form-group"><label>שם התוכנית *</label><input id="plan-name-input" value="${esc(p.name||'')}" required></div>
-    <div style="margin-bottom:8px;color:var(--muted);font-size:.85rem;font-weight:600">תרגילים</div>
-    <div id="ex-list">${renderExRows()}</div>
-    <button type="button" class="btn btn-ghost btn-sm" onclick="addExRow()" style="margin-bottom:16px">+ הוסף תרגיל</button>
-    <div class="form-actions">
-      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
-      <button type="button" class="btn" onclick="savePlanFromModal('${p.id||''}')">שמור תוכנית</button>
-    </div></form>`;
+// ===== PLAN BUILDER =====
+function openPlanBuilder(isTemplate=false, existingId='') {
+  if (existingId) {
+    const p = load('plans').find(x=>x.id===existingId);
+    if (!p) return;
+    _planBuilder = { active:true, editingId:existingId, isTemplate:p.isTemplate, clientId:p.clientId||'', planName:p.name,
+      workouts:JSON.parse(JSON.stringify(getPlanWorkouts(p))), activeWorkoutIdx:0, expandedCategory:'', searchTerm:'' };
+  } else {
+    _planBuilder = { active:true, editingId:'', isTemplate, clientId:'', planName:'',
+      workouts:[{name:'אימון A', exercises:[]}], activeWorkoutIdx:0, expandedCategory:'', searchTerm:'' };
+  }
+  renderWorkouts();
+}
+function closePlanBuilder() {
+  _planBuilder.active = false;
+  renderWorkouts();
 }
 
-function toggleTemplateMode() {
-  _planIsTemplate = document.getElementById('is-tmpl-cb').checked;
-  document.getElementById('client-sel-group').style.display = _planIsTemplate?'none':'';
+function renderPlanBuilder() {
+  document.getElementById('workouts-content').innerHTML = `<div class="plan-builder">
+    <div class="plan-builder-left">
+      <input class="pb-search" placeholder="חפש תרגיל..." value="${esc(_planBuilder.searchTerm)}" oninput="pbSearchExercises(this.value)">
+      <div id="pb-browser">${renderExerciseBrowser()}</div>
+    </div>
+    <div class="plan-builder-right">
+      <div class="pb-meta">
+        <div class="form-group"><label>שם התוכנית *</label><input id="pb-plan-name" value="${esc(_planBuilder.planName)}" oninput="_planBuilder.planName=this.value" required></div>
+        <div class="form-group" id="pb-client-group" ${_planBuilder.isTemplate?'style="display:none"':''}>
+          <label>לקוח</label><select id="pb-client-sel" onchange="_planBuilder.clientId=this.value"><option value="">— בחר לקוח —</option>${clientOptions(_planBuilder.clientId)}</select>
+        </div>
+        <div class="form-group" style="min-width:auto;display:flex;align-items:center;gap:6px;padding-top:22px">
+          <input type="checkbox" id="pb-tmpl-cb" ${_planBuilder.isTemplate?'checked':''} onchange="_planBuilder.isTemplate=this.checked;document.getElementById('pb-client-group').style.display=this.checked?'none':''">
+          <label for="pb-tmpl-cb" style="margin:0;font-size:.82rem">תבנית גנרית</label>
+        </div>
+      </div>
+      ${renderWorkoutTabs()}
+      <div id="pb-workout-content">${renderWorkoutExercises()}</div>
+      <div class="pb-save-bar">
+        <button class="btn btn-ghost" onclick="if(confirm('לבטל את העריכה?'))closePlanBuilder()">ביטול</button>
+        <button class="btn" onclick="savePlanFromBuilder()">שמור תוכנית</button>
+      </div>
+    </div>
+  </div>`;
 }
 
-function renderExRows() {
-  if (!_exercises.length) return '<div style="color:var(--muted);font-size:.82rem;padding:8px 0">אין תרגילים — לחץ ״הוסף תרגיל״</div>';
-  const bo = bankOptions();
-  return _exercises.map((e,i) => {
-    const setsHtml = e.setsData.map((s, si) =>
+function renderExerciseBrowser() {
+  const allExercises = load('exercises');
+  const search = _planBuilder.searchTerm.toLowerCase();
+  if (search) {
+    const filtered = allExercises.filter(e => (e.name||'').toLowerCase().includes(search) || (e.nameEn||'').toLowerCase().includes(search));
+    if (!filtered.length) return '<div class="pb-empty">לא נמצאו תרגילים</div>';
+    return '<div class="pb-ex-list">' + filtered.map(e => pbExItemHTML(e)).join('') + '</div>';
+  }
+  const cats = EX_CATS.filter(cat => allExercises.some(e => e.category === cat));
+  return cats.map(cat => {
+    const count = allExercises.filter(e => e.category === cat).length;
+    const isOpen = _planBuilder.expandedCategory === cat;
+    let html = `<button class="pb-group-btn${isOpen?' active':''}" onclick="pbToggleCategory('${cat}')"><span>${esc(cat)}</span><span class="pb-count">${count}</span></button>`;
+    if (isOpen) {
+      const exs = allExercises.filter(e => e.category === cat);
+      html += '<div class="pb-ex-list">' + exs.map(e => pbExItemHTML(e)).join('') + '</div>';
+    }
+    return html;
+  }).join('');
+}
+
+function pbExItemHTML(e) {
+  return `<div class="pb-ex-item" onclick="pbAddExercise('${e.id}')">
+    <div class="pb-ex-names"><div class="pb-ex-name">${esc(e.name)}</div>${e.nameEn?`<div class="pb-ex-name-en">${esc(e.nameEn)}</div>`:''}</div>
+    <div class="pb-ex-actions">
+      ${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank" class="pb-video-icon" onclick="event.stopPropagation()">▶</a>`:''}
+      <button class="pb-ex-add" onclick="event.stopPropagation();pbAddExercise('${e.id}')">+</button>
+    </div>
+  </div>`;
+}
+
+function pbToggleCategory(cat) {
+  _planBuilder.expandedCategory = _planBuilder.expandedCategory === cat ? '' : cat;
+  document.getElementById('pb-browser').innerHTML = renderExerciseBrowser();
+}
+function pbSearchExercises(term) {
+  _planBuilder.searchTerm = term;
+  document.getElementById('pb-browser').innerHTML = renderExerciseBrowser();
+}
+
+function renderWorkoutTabs() {
+  const tabs = _planBuilder.workouts.map((w, i) =>
+    `<button class="pb-workout-tab${i===_planBuilder.activeWorkoutIdx?' active':''}" onclick="pbSwitchWorkout(${i})">${esc(w.name)}${_planBuilder.workouts.length>1?` <span style="font-size:.7rem;cursor:pointer;margin-right:4px" onclick="event.stopPropagation();pbRemoveWorkout(${i})">✕</span>`:''}</button>`
+  ).join('');
+  return `<div class="pb-workout-tabs">${tabs}<button class="pb-workout-tab pb-workout-tab-add" onclick="pbAddWorkout()">+ הוסף אימון</button></div>`;
+}
+
+function renderWorkoutExercises() {
+  const w = _planBuilder.workouts[_planBuilder.activeWorkoutIdx];
+  if (!w) return '<div class="pb-empty">בחר אימון</div>';
+  if (!w.exercises.length) return '<div class="pb-empty">לחץ על תרגיל מהמאגר כדי להוסיף</div>';
+  return w.exercises.map((e, ei) => {
+    const ex = migrateExercise(e);
+    const wi = _planBuilder.activeWorkoutIdx;
+    const setsHtml = ex.setsData.map((s, si) =>
       `<div class="ex-set-row">
         <span>סט ${si+1}</span>
-        <input type="number" min="0" placeholder="חזרות" value="${s.targetReps||''}" oninput="_exercises[${i}].setsData[${si}].targetReps=this.value">
-        <input type="number" min="0" step="0.5" placeholder="משקל" value="${s.weight||''}" oninput="_exercises[${i}].setsData[${si}].weight=this.value">
-        <input class="ex-set-notes" placeholder="הערות" value="${esc(s.notes||'')}" oninput="_exercises[${i}].setsData[${si}].notes=this.value">
-        <button type="button" class="ex-remove" onclick="removeExSet(${i},${si})" style="font-size:.85rem">✕</button>
+        <input type="number" min="0" placeholder="חזרות" value="${s.targetReps||''}" oninput="_planBuilder.workouts[${wi}].exercises[${ei}].setsData[${si}].targetReps=this.value">
+        <input type="number" min="0" step="0.5" placeholder="משקל" value="${s.weight||''}" oninput="_planBuilder.workouts[${wi}].exercises[${ei}].setsData[${si}].weight=this.value">
+        <input class="ex-set-notes" placeholder="הערות" value="${esc(s.notes||'')}" oninput="_planBuilder.workouts[${wi}].exercises[${ei}].setsData[${si}].notes=this.value">
+        <button type="button" class="ex-remove" onclick="pbRemoveSet(${wi},${ei},${si})" style="font-size:.85rem">✕</button>
       </div>`
     ).join('');
-    return `<div class="ex-item">
-      ${bo?`<div class="ex-item-bank"><div class="ex-label">בחר מהבנק (ממלא אוטומטית)</div><select onchange="fillFromBank(${i},this.value)">${bo}</select></div>`:''}
-      <div class="ex-item-top">
-        <div><div class="ex-label">שם תרגיל *</div><input value="${esc(e.name||'')}" placeholder="שם התרגיל" oninput="_exercises[${i}].name=this.value"></div>
-        <button type="button" class="ex-remove" onclick="removeExRow(${i})">✕</button>
-      </div>
-      <div class="ex-item-mid">
-        <div><div class="ex-label">קטגוריה</div>
-          <select onchange="_exercises[${i}].category=this.value">
-            <option value="">—</option>
-            ${EX_CATS.map(c=>`<option${c===e.category?' selected':''}>${c}</option>`).join('')}
-          </select>
+    return `<div class="pb-ex-card">
+      <div class="pb-ex-card-header">
+        <div>
+          <span class="pb-ex-card-name">${ei+1}. ${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank">${esc(ex.name)}</a>`:esc(ex.name)}</span>
+          <span class="badge badge-cat" style="margin-right:6px">${esc(ex.category||'—')}</span>
         </div>
-        <div><div class="ex-label">קישור סרטון</div><input value="${esc(e.videoUrl||'')}" placeholder="https://..." oninput="_exercises[${i}].videoUrl=this.value"></div>
+        <div class="pb-ex-card-actions">
+          ${ei>0?`<button onclick="pbMoveExercise(${wi},${ei},-1)">↑</button>`:''}
+          ${ei<w.exercises.length-1?`<button onclick="pbMoveExercise(${wi},${ei},1)">↓</button>`:''}
+          <button onclick="pbRemoveExercise(${wi},${ei})">✕</button>
+        </div>
       </div>
-      <div style="margin:8px 0 4px;color:var(--muted);font-size:.78rem;font-weight:600">סטים</div>
       <div class="ex-sets-header"><span></span><span>חזרות</span><span>משקל</span><span>הערות</span><span></span></div>
       ${setsHtml}
-      <button type="button" class="ex-add-set" onclick="addExSet(${i})">+ הוסף סט</button>
+      <button type="button" class="ex-add-set" onclick="pbAddSet(${wi},${ei})">+ הוסף סט</button>
     </div>`;
   }).join('');
 }
 
-function addExSet(exIdx) {
-  _exercises[exIdx].setsData.push({targetReps: '', weight: '', notes: ''});
-  document.getElementById('ex-list').innerHTML = renderExRows();
-}
-function removeExSet(exIdx, setIdx) {
-  _exercises[exIdx].setsData.splice(setIdx, 1);
-  if (!_exercises[exIdx].setsData.length) _exercises[exIdx].setsData.push({targetReps: '', weight: '', notes: ''});
-  document.getElementById('ex-list').innerHTML = renderExRows();
-}
-
-function fillFromBank(i, exId) {
-  if (!exId) return;
+function pbAddExercise(exId) {
   const ex = load('exercises').find(e=>e.id===exId);
   if (!ex) return;
-  _exercises[i].name = ex.name;
-  _exercises[i].category = ex.category || '';
-  _exercises[i].videoUrl = ex.videoUrl||'';
-  document.getElementById('ex-list').innerHTML = renderExRows();
+  const w = _planBuilder.workouts[_planBuilder.activeWorkoutIdx];
+  w.exercises.push({ name:ex.name, nameEn:ex.nameEn||'', category:ex.category||'', videoUrl:ex.videoUrl||'', setsData:[{targetReps:10,weight:'',notes:''},{targetReps:10,weight:'',notes:''},{targetReps:10,weight:'',notes:''}] });
+  document.getElementById('pb-workout-content').innerHTML = renderWorkoutExercises();
+  showToast(`${ex.name} נוסף ✓`);
 }
-function addExRow() {
-  _exercises.push({name:'', category:'', videoUrl:'', setsData:[{targetReps:10, weight:'', notes:''}]});
-  document.getElementById('ex-list').innerHTML=renderExRows();
+function pbRemoveExercise(wi, ei) {
+  _planBuilder.workouts[wi].exercises.splice(ei, 1);
+  document.getElementById('pb-workout-content').innerHTML = renderWorkoutExercises();
 }
-function removeExRow(i) { _exercises.splice(i,1); document.getElementById('ex-list').innerHTML=renderExRows(); }
+function pbMoveExercise(wi, ei, dir) {
+  const arr = _planBuilder.workouts[wi].exercises;
+  const ni = ei + dir;
+  if (ni < 0 || ni >= arr.length) return;
+  [arr[ei], arr[ni]] = [arr[ni], arr[ei]];
+  document.getElementById('pb-workout-content').innerHTML = renderWorkoutExercises();
+}
+function pbAddSet(wi, ei) {
+  _planBuilder.workouts[wi].exercises[ei].setsData.push({targetReps:'', weight:'', notes:''});
+  document.getElementById('pb-workout-content').innerHTML = renderWorkoutExercises();
+}
+function pbRemoveSet(wi, ei, si) {
+  const sd = _planBuilder.workouts[wi].exercises[ei].setsData;
+  sd.splice(si, 1);
+  if (!sd.length) sd.push({targetReps:'', weight:'', notes:''});
+  document.getElementById('pb-workout-content').innerHTML = renderWorkoutExercises();
+}
+function pbSwitchWorkout(idx) {
+  _planBuilder.activeWorkoutIdx = idx;
+  const tabsContainer = document.querySelector('.pb-workout-tabs');
+  if (tabsContainer) tabsContainer.outerHTML = renderWorkoutTabs();
+  document.getElementById('pb-workout-content').innerHTML = renderWorkoutExercises();
+}
+function pbAddWorkout() {
+  const letters = 'ABCDEFGHIJ';
+  const nextName = 'אימון ' + (letters[_planBuilder.workouts.length] || (_planBuilder.workouts.length+1));
+  _planBuilder.workouts.push({name:nextName, exercises:[]});
+  _planBuilder.activeWorkoutIdx = _planBuilder.workouts.length - 1;
+  renderPlanBuilder();
+}
+function pbRemoveWorkout(idx) {
+  if (_planBuilder.workouts.length <= 1) { showToast('צריך לפחות אימון אחד'); return; }
+  if (!confirm(`למחוק את "${_planBuilder.workouts[idx].name}"?`)) return;
+  _planBuilder.workouts.splice(idx, 1);
+  if (_planBuilder.activeWorkoutIdx >= _planBuilder.workouts.length) _planBuilder.activeWorkoutIdx = _planBuilder.workouts.length - 1;
+  renderPlanBuilder();
+}
 
-async function savePlanFromModal(existingId) {
-  const nameInput = document.getElementById('plan-name-input');
-  if (!nameInput.value.trim()) { nameInput.focus(); return; }
-  const clientId = _planIsTemplate ? '' : (document.querySelector('#client-sel-group select')?.value||'');
-  const data = {clientId, name:nameInput.value.trim(), isTemplate:_planIsTemplate, exercises: _exercises.map(e => ({
-    name: e.name,
-    category: e.category || '',
-    videoUrl: e.videoUrl || '',
-    setsData: e.setsData.map(s => ({
-      targetReps: +s.targetReps || 0,
-      weight: s.weight || '',
-      notes: s.notes || ''
+async function savePlanFromBuilder() {
+  if (!_planBuilder.planName.trim()) { document.getElementById('pb-plan-name').focus(); showToast('יש להזין שם תוכנית'); return; }
+  const data = {
+    clientId: _planBuilder.isTemplate ? '' : _planBuilder.clientId,
+    name: _planBuilder.planName.trim(),
+    isTemplate: _planBuilder.isTemplate,
+    workouts: _planBuilder.workouts.map(w => ({
+      name: w.name,
+      exercises: w.exercises.map(e => ({
+        name: e.name, nameEn: e.nameEn||'', category: e.category||'', videoUrl: e.videoUrl||'',
+        setsData: (e.setsData||[]).map(s => ({ targetReps:+s.targetReps||0, weight:s.weight||'', notes:s.notes||'' }))
+      }))
     }))
-  }))};
+  };
   try {
-    if (existingId) {
-      const plan = load('plans').find(x=>x.id===existingId);
+    if (_planBuilder.editingId) {
+      const plan = load('plans').find(x=>x.id===_planBuilder.editingId);
       Object.assign(plan, data);
+      delete plan.exercises; // remove legacy field
       await saveItem('plans', plan);
     } else {
       await saveItem('plans', {id:uid(), ...data});
     }
-    closeModal(); renderWorkouts();
+    showToast('התוכנית נשמרה ✓');
+    closePlanBuilder();
   } catch(err) { showToast('שגיאה בשמירה.'); }
 }
-function openAddPlan(isTemplate=false) { openModal(isTemplate?'תבנית גנרית חדשה':'תוכנית אימון חדשה', planForm({},isTemplate), null); }
-function openEditPlan(id) { openModal('עריכת תוכנית', planForm(load('plans').find(x=>x.id===id)), null); }
+
 async function deletePlan(id) {
   if (!confirm('למחוק תוכנית זו?')) return;
   await deleteItem('plans', id); renderWorkouts();
@@ -1321,7 +1483,7 @@ function openAssignTemplate(templateId) {
     <div class="form-group"><label>שם התוכנית</label><input name="planName" value="${esc(tmpl.name)}" required></div>
     <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">צור</button></div>
   </form>`, async fd => {
-    await saveItem('plans', {id:uid(), clientId:fd.get('clientId'), name:fd.get('planName'), isTemplate:false, exercises:JSON.parse(JSON.stringify(tmpl.exercises))});
+    await saveItem('plans', {id:uid(), clientId:fd.get('clientId'), name:fd.get('planName'), isTemplate:false, workouts:JSON.parse(JSON.stringify(getPlanWorkouts(tmpl)))});
     renderWorkouts(); showToast('התוכנית הוקצתה ✓');
   });
 }
@@ -1333,26 +1495,32 @@ function exportPlanPDF(plan) {
   if (!plan) return;
   const client = plan.clientId ? load('clients').find(c=>c.id===plan.clientId) : null;
   const today  = new Date().toLocaleDateString('he-IL',{year:'numeric',month:'long',day:'numeric'});
-  const exercises = plan.exercises.map(migrateExercise);
+  const workouts = getPlanWorkouts(plan);
+  const totalEx = workouts.reduce((s,w)=>s+w.exercises.length,0);
 
-  let rowNum = 0;
-  const rows = exercises.map(e => {
-    return e.setsData.map((s, si) => {
-      rowNum++;
-      const isFirst = si === 0;
-      const rowspan = isFirst ? ` rowspan="${e.setsData.length}"` : '';
-      const catCell = isFirst ? `<td${rowspan} style="text-align:center;vertical-align:middle">${esc(e.category||'—')}</td>` : '';
-      const nameCell = isFirst ? `<td${rowspan} style="vertical-align:middle"><strong>${esc(e.name)}</strong></td>` : '';
-      const setNum = si + 1;
-      return `<tr style="${rowNum%2===0?'background:#fdf2f2':''}">
-        ${catCell}${nameCell}
-        <td style="text-align:center">סט ${setNum}</td>
-        <td style="text-align:center">${s.targetReps||'—'}</td>
-        <td style="text-align:center"></td>
-        <td style="text-align:center">${s.weight||'—'}</td>
-        <td>${esc(s.notes||'')}</td>
-      </tr>`;
+  const workoutSections = workouts.map((w, wi) => {
+    const exercises = w.exercises.map(migrateExercise);
+    let rowNum = 0;
+    const rows = exercises.map(e => {
+      return e.setsData.map((s, si) => {
+        rowNum++;
+        const isFirst = si === 0;
+        const rowspan = isFirst ? ` rowspan="${e.setsData.length}"` : '';
+        const catCell = isFirst ? `<td${rowspan} style="text-align:center;vertical-align:middle">${esc(e.category||'—')}</td>` : '';
+        const nameLink = e.videoUrl ? `<a href="${esc(e.videoUrl)}" target="_blank" style="color:#c0392b;text-decoration:underline">${esc(e.name)}</a>` : `${esc(e.name)}`;
+        const nameCell = isFirst ? `<td${rowspan} style="vertical-align:middle"><strong>${nameLink}</strong></td>` : '';
+        return `<tr style="${rowNum%2===0?'background:#fdf2f2':''}">
+          ${catCell}${nameCell}
+          <td style="text-align:center">סט ${si+1}</td>
+          <td style="text-align:center">${s.targetReps||'—'}</td>
+          <td style="text-align:center"></td>
+          <td style="text-align:center">${s.weight||'—'}</td>
+          <td>${esc(s.notes||'')}</td>
+        </tr>`;
+      }).join('');
     }).join('');
+    return `${workouts.length>1?`<h2 style="color:#c0392b;font-size:18px;margin:24px 0 8px;${wi>0?'page-break-before:auto':''}">${esc(w.name)}</h2>`:''}
+      <table><thead><tr><th>קטגוריה</th><th>תרגיל</th><th>סט</th><th>מטרת חזרות</th><th>חזרות שהצלחתי</th><th>משקל</th><th>הערות</th></tr></thead><tbody>${rows}</tbody></table>`;
   }).join('');
 
   const html = `<!DOCTYPE html>
@@ -1363,10 +1531,12 @@ function exportPlanPDF(plan) {
   @media print { @page { margin: 15mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
   body{font-family:Arial,sans-serif;direction:rtl;text-align:right;margin:40px;color:#222;background:#fff}
   h1{color:#c0392b;font-size:22px;border-bottom:3px solid #c0392b;padding-bottom:8px;margin-bottom:6px}
+  h2{color:#c0392b;font-size:18px}
   .meta{color:#555;font-size:13px;margin-bottom:24px;line-height:2}
-  table{border-collapse:collapse;width:100%;font-size:13px}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:16px}
   th{background:#c0392b;color:#fff;padding:10px 12px;border:1px solid #a93226}
   td{padding:8px 12px;border:1px solid #ddd}
+  a{color:#c0392b}
   .footer{margin-top:28px;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:10px;text-align:center}
   .no-print{margin-bottom:20px}
   @media print{.no-print{display:none}}
@@ -1377,12 +1547,9 @@ function exportPlanPDF(plan) {
   <div class="meta">
     ${client?`<strong>מתאמן/ת:</strong> ${esc(client.name)}<br>`:'<strong>תבנית גנרית</strong><br>'}
     <strong>תאריך:</strong> ${today}<br>
-    <strong>מספר תרגילים:</strong> ${exercises.length}
+    <strong>מספר תרגילים:</strong> ${totalEx}${workouts.length>1?` · <strong>אימונים:</strong> ${workouts.length}`:''}
   </div>
-  <table>
-    <thead><tr><th>קטגוריה</th><th>תרגיל</th><th>סט</th><th>מטרת חזרות</th><th>חזרות שהצלחתי</th><th>משקל</th><th>הערות</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
+  ${workoutSections}
   <div class="footer">נוצר על ידי מערכת מאמן כושר</div>
   <script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
