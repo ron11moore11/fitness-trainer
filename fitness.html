@@ -276,6 +276,50 @@
     .log-add-exercise { background: none; border: 2px dashed var(--border); color: var(--muted); padding: 12px; border-radius: 10px; cursor: pointer; font-size: .85rem; width: 100%; margin-bottom: 16px; transition: all .2s; text-align: center; }
     .log-add-exercise:hover { border-color: var(--accent2); color: var(--accent2); }
 
+    /* LIVE WORKOUT */
+    .live-workout { padding: 0 4px; }
+    .live-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; margin-bottom: 12px; border-bottom: 2px solid var(--border); position: sticky; top: 56px; background: var(--bg); z-index: 10; }
+    .live-progress { color: var(--accent2); font-size: .9rem; font-weight: 600; }
+    .live-card { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+    .live-ex-name { font-size: 1.15rem; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
+    .live-ex-name a { color: var(--accent2); text-decoration: none; }
+    .live-ex-name a:hover { text-decoration: underline; }
+    .live-prev { background: rgba(168,218,220,.08); border: 1px solid rgba(168,218,220,.2); border-radius: 10px; padding: 10px 14px; margin: 12px 0; font-size: .82rem; color: var(--muted); }
+    .live-prev-title { color: var(--accent2); font-weight: 600; margin-bottom: 4px; font-size: .78rem; }
+    .live-prev-sets { display: flex; flex-wrap: wrap; gap: 8px; }
+    .live-prev-set { background: var(--bg); padding: 3px 8px; border-radius: 6px; font-size: .78rem; }
+    .live-set-row { display: grid; grid-template-columns: 36px 1fr 1fr 1.2fr auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .live-set-row span { font-size: .82rem; color: var(--muted); text-align: center; }
+    .live-set-row input { background: var(--bg); border: 2px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px; font-size: 16px; font-family: inherit; width: 100%; min-height: 44px; }
+    .live-set-row input:focus { outline: none; border-color: var(--accent2); }
+    .live-sets-header { display: grid; grid-template-columns: 36px 1fr 1fr 1.2fr auto; gap: 8px; margin-bottom: 6px; }
+    .live-sets-header span { font-size: .72rem; color: var(--muted); text-align: center; }
+    .live-nav { display: flex; gap: 12px; margin-top: 16px; }
+    .live-nav button { flex: 1; padding: 14px; font-size: 1rem; min-height: 48px; }
+    .live-swap-btn { background: none; border: 2px dashed var(--border); color: var(--muted); padding: 10px; border-radius: 10px; cursor: pointer; font-size: .85rem; width: 100%; margin-top: 12px; transition: all .2s; text-align: center; }
+    .live-swap-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+    .live-swap-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: flex; justify-content: center; align-items: flex-start; padding-top: 60px; }
+    .live-swap-panel { background: var(--card); border: 2px solid var(--border); border-radius: 14px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+    .live-swap-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 2px solid var(--border); }
+
+    /* CLIENT PROFILE */
+    .cp-back { background: none; border: none; color: var(--accent2); cursor: pointer; font-size: .9rem; padding: 8px 0; margin-bottom: 12px; }
+    .cp-back:hover { text-decoration: underline; }
+    .cp-header { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+    .cp-name { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .cp-info { display: flex; flex-wrap: wrap; gap: 16px; color: var(--muted); font-size: .88rem; }
+    .cp-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .cp-section { margin-bottom: 20px; }
+    .cp-section-title { color: var(--accent); font-size: .95rem; font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    .cp-plan-row { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; font-size: .88rem; }
+    .cp-month { color: var(--accent2); font-size: .85rem; font-weight: 600; margin: 16px 0 8px; }
+    .cp-session-row { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 6px; cursor: pointer; transition: background .2s; font-size: .86rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .cp-session-row:hover { background: rgba(168,218,220,.05); }
+    .cp-session-detail { background: var(--bg); border: 1px solid var(--border); border-radius: 0 0 10px 10px; padding: 12px; margin-top: -6px; margin-bottom: 6px; font-size: .82rem; }
+    .cp-log-ex { margin-bottom: 8px; }
+    .cp-log-ex-name { color: var(--accent2); font-weight: 600; font-size: .82rem; }
+    .cp-log-sets { color: var(--muted); font-size: .78rem; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+
     /* DAY POPUP */
     .day-session-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
     .day-session-info { font-size: .9rem; }
@@ -578,6 +622,8 @@ const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:re
 function switchTab(name) {
   if (_planBuilder.active && !confirm('יש תוכנית בעריכה — לצאת בלי לשמור?')) return;
   if (_planBuilder.active) _planBuilder.active = false;
+  if (_liveWorkout.active) { clearTimeout(_liveWorkout.saveTimer); liveDoSave(); _liveWorkout.active = false; }
+  if (_clientProfile.active) _clientProfile.active = false;
   document.querySelectorAll('section[id^="tab-"]').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
@@ -588,7 +634,82 @@ document.querySelectorAll('.nav-tab').forEach(btn=>btn.addEventListener('click',
 // ========================
 // ===== CLIENTS ==========
 // ========================
+let _clientProfile = { active: false, clientId: '', expandedSession: '' };
+function openClientProfile(clientId) { _clientProfile = { active:true, clientId, expandedSession:'' }; renderClients(); }
+function closeClientProfile() { _clientProfile = { active:false, clientId:'', expandedSession:'' }; renderClients(); }
+function cpToggleSession(sid) { _clientProfile.expandedSession = _clientProfile.expandedSession===sid?'':sid; renderClientProfile(); }
+
+function renderClientProfile() {
+  const c = load('clients').find(x=>x.id===_clientProfile.clientId);
+  if (!c) { closeClientProfile(); return; }
+  const plans = load('plans').filter(p=>p.clientId===c.id);
+  const sessions = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training').sort((a,b)=>b.date.localeCompare(a.date));
+
+  // Group sessions by month
+  const months = {};
+  sessions.forEach(s => { const m=s.date.slice(0,7); if(!months[m])months[m]=[]; months[m].push(s); });
+  const monthNames = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+  let plansHtml = plans.length ? plans.map(p => {
+    const workouts = getPlanWorkouts(p);
+    const totalEx = workouts.reduce((s,w)=>s+w.exercises.length,0);
+    return `<div class="cp-plan-row"><strong>${esc(p.name)}</strong> — ${workouts.length} אימונים, ${totalEx} תרגילים</div>`;
+  }).join('') : '<div style="color:var(--muted);font-size:.85rem">אין תוכניות</div>';
+
+  let sessionsHtml = '';
+  Object.keys(months).sort().reverse().forEach(m => {
+    const [y, mo] = m.split('-');
+    sessionsHtml += `<div class="cp-month">${monthNames[+mo-1]} ${y}</div>`;
+    months[m].forEach(s => {
+      const pName = s.planId ? planName(s.planId) : '';
+      const hasLog = s.log && s.log.length;
+      const isExpanded = _clientProfile.expandedSession === s.id;
+      sessionsHtml += `<div class="cp-session-row" onclick="cpToggleSession('${s.id}')" style="${isExpanded?'border-radius:10px 10px 0 0':''}">
+        <div>${fmtDate(s.date)} · ${esc(s.time||'')} ${pName?'· '+esc(pName):''}</div>
+        <div>${hasLog?'<span class="badge badge-logged">תועד</span>':''} ${isExpanded?'▲':'▼'}</div>
+      </div>`;
+      if (isExpanded && hasLog) {
+        sessionsHtml += '<div class="cp-session-detail">';
+        s.log.forEach(ex => {
+          const setsText = ex.sets.map((st,i)=>`<span class="live-prev-set">סט${i+1}: ${st.reps||'—'}×${st.weight||'—'}</span>`).join('');
+          sessionsHtml += `<div class="cp-log-ex"><div class="cp-log-ex-name">${esc(ex.exerciseName)}</div><div class="cp-log-sets">${setsText}</div></div>`;
+        });
+        sessionsHtml += '</div>';
+      } else if (isExpanded) {
+        sessionsHtml += '<div class="cp-session-detail" style="color:var(--muted)">לא תועד</div>';
+      }
+    });
+  });
+  if (!sessions.length) sessionsHtml = '<div style="color:var(--muted);font-size:.85rem">אין אימונים</div>';
+
+  document.getElementById('dashboard').innerHTML = '';
+  document.getElementById('clients-table').innerHTML = `
+    <button class="cp-back" onclick="closeClientProfile()">→ חזרה לרשימה</button>
+    <div class="cp-header">
+      <div class="cp-name">${esc(c.name)} <span class="badge ${statusBadgeClass(c.status||'פעיל')}">${esc(c.status||'פעיל')}</span></div>
+      <div class="cp-info">
+        ${c.phone?`<span>📱 ${esc(c.phone)}</span>`:''}
+        ${c.email?`<span>📧 ${esc(c.email)}</span>`:''}
+        ${c.age?`<span>גיל: ${esc(c.age)}</span>`:''}
+        ${c.goals?`<span>🎯 ${esc(c.goals)}</span>`:''}
+      </div>
+    </div>
+    <div class="cp-actions">
+      <button class="btn btn-sm" onclick="closeClientProfile();openEditClient('${c.id}')">✏ עריכה</button>
+      <button class="btn btn-teal btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ תוכנית</button>
+    </div>
+    <div class="cp-section">
+      <div class="cp-section-title">תוכניות אימון</div>
+      ${plansHtml}
+    </div>
+    <div class="cp-section">
+      <div class="cp-section-title">היסטוריית אימונים</div>
+      ${sessionsHtml}
+    </div>`;
+}
+
 function renderClients() {
+  if (_clientProfile.active) { renderClientProfile(); return; }
   const clients  = load('clients');
   const sessions = load('sessions');
   const payments = load('payments');
@@ -604,7 +725,7 @@ function renderClients() {
   document.getElementById('clients-table').innerHTML = `<table>
     <thead><tr><th>שם</th><th>סטטוס</th><th>טלפון</th><th>אימייל</th><th>גיל</th><th>מטרות</th><th>פעולות</th></tr></thead>
     <tbody>${filtered.map(c=>`<tr>
-      <td><strong>${esc(c.name)}</strong></td><td><span class="badge ${statusBadgeClass(c.status||'פעיל')}">${esc(c.status||'פעיל')}</span></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td>
+      <td><strong><a href="#" onclick="event.preventDefault();openClientProfile('${c.id}')" style="color:var(--accent2);text-decoration:none">${esc(c.name)}</a></strong></td><td><span class="badge ${statusBadgeClass(c.status||'פעיל')}">${esc(c.status||'פעיל')}</span></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td>
       <td>${esc(c.age)}</td><td>${esc(c.goals)}</td>
       <td class="actions">
         <button class="btn btn-ghost btn-sm" onclick="openEditClient('${c.id}')">עריכה</button>
@@ -667,7 +788,10 @@ async function deleteClient(id) {
 // ===== SCHEDULE =========
 // ========================
 let calYear, calMonth;
+let _liveWorkout = { active:false, sessionId:'', currentIdx:0, log:[], session:null, previousData:{}, saveTimer:null, showSwapBrowser:false, swapExpandedCat:'' };
+
 function renderSchedule() {
+  if (_liveWorkout.active) { renderLiveWorkout(); return; }
   const now = new Date();
   if (calYear === undefined) calYear = now.getFullYear();
   if (calMonth === undefined) calMonth = now.getMonth();
@@ -722,7 +846,7 @@ function handleCalDayClick(dateStr) {
     html += `<div class="day-session-item">
       <div class="day-session-info"><strong>${timeDisplay}</strong> ${name}${pName}${logBadge}</div>
       <div class="day-session-actions">
-        ${!isShift ? `<button class="btn btn-log btn-sm" onclick="closeModal();openWorkoutLog('${s.id}')">📋 יומן</button>` : ''}
+        ${!isShift ? `<button class="btn btn-log btn-sm" onclick="closeModal();openLiveWorkout('${s.id}')">📋 יומן</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="closeModal();openEditSession('${s.id}')">עריכה</button>
       </div>
     </div>`;
@@ -763,7 +887,7 @@ function renderSessionsTable() {
       <td>${planCol}</td>
       <td>${esc(s.notes)}${logBadge}</td>
       <td class="actions">
-        ${!isShift ? `<button class="btn btn-log btn-sm" onclick="openWorkoutLog('${s.id}')">📋</button>` : ''}
+        ${!isShift ? `<button class="btn btn-log btn-sm" onclick="openLiveWorkout('${s.id}')">📋</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="openEditSession('${s.id}')">עריכה</button>
         <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">מחק</button>
       </td></tr>`;
@@ -1016,6 +1140,194 @@ async function deleteFutureSessions(id) {
 // ========================
 let _logData = [];
 let _logSessionId = '';
+
+// ===== LIVE WORKOUT =====
+function openLiveWorkout(sessionId) {
+  const s = load('sessions').find(x=>x.id===sessionId);
+  if (!s) return;
+  let log;
+  if (s.log && s.log.length) {
+    log = JSON.parse(JSON.stringify(s.log));
+  } else if (s.planId) {
+    const plan = load('plans').find(p=>p.id===s.planId);
+    if (plan) {
+      const workouts = getPlanWorkouts(plan);
+      const workout = workouts[s.workoutIdx||0] || workouts[0];
+      if (workout && workout.exercises.length) {
+        log = workout.exercises.map(e => {
+          const ex = migrateExercise(e);
+          return { exerciseName:ex.name, category:ex.category||'', videoUrl:ex.videoUrl||'',
+            sets:ex.setsData.map(sd=>({ targetReps:+sd.targetReps||0, reps:'', weight:sd.weight||'', notes:sd.notes||'' })) };
+        });
+      } else { log = []; }
+    } else { log = []; }
+  } else { log = []; }
+  _liveWorkout = { active:true, sessionId, currentIdx:0, log, session:s, previousData:{}, saveTimer:null, showSwapBrowser:false, swapExpandedCat:'' };
+  loadPreviousSessionData(s.clientId, log);
+  renderSchedule();
+}
+function loadPreviousSessionData(clientId, log) {
+  const past = load('sessions').filter(s=>s.clientId===clientId&&s.log&&s.log.length&&s.id!==_liveWorkout.sessionId).sort((a,b)=>b.date.localeCompare(a.date));
+  const prev = {};
+  for (const ex of log) {
+    for (const s of past) {
+      const entry = s.log.find(l=>l.exerciseName===ex.exerciseName);
+      if (entry) { prev[ex.exerciseName] = { sets:entry.sets, date:s.date }; break; }
+    }
+  }
+  _liveWorkout.previousData = prev;
+}
+function closeLiveWorkout() {
+  clearTimeout(_liveWorkout.saveTimer);
+  liveDoSave();
+  _liveWorkout.active = false;
+  renderSchedule();
+  showToast('האימון נשמר ✓');
+}
+function liveAutoSave() {
+  clearTimeout(_liveWorkout.saveTimer);
+  _liveWorkout.saveTimer = setTimeout(()=>liveDoSave(), 1000);
+}
+async function liveDoSave() {
+  const s = _liveWorkout.session;
+  if (!s) return;
+  s.log = _liveWorkout.log.filter(ex=>ex.exerciseName.trim()).map(ex=>({
+    exerciseName:ex.exerciseName.trim(), category:ex.category||'', videoUrl:ex.videoUrl||'',
+    sets:ex.sets.map(st=>({ targetReps:+st.targetReps||0, reps:+st.reps||0, weight:st.weight||'', notes:(st.notes||'').trim() }))
+  }));
+  await saveItem('sessions', s);
+}
+
+function renderLiveWorkout() {
+  const s = _liveWorkout.session;
+  const total = _liveWorkout.log.length;
+  const clientN = s.clientId ? clientName(s.clientId) : '';
+  document.getElementById('cal-title').textContent = '';
+  document.querySelector('#tab-schedule .cal-nav')?.style && (document.querySelector('#tab-schedule .cal-nav').style.display='none');
+  document.getElementById('sessions-table-container')?.remove();
+
+  const mainEl = document.querySelector('#tab-schedule');
+  // Remove calendar grid if present
+  const existingBuilder = mainEl.querySelector('.live-workout');
+  if (!existingBuilder) {
+    mainEl.innerHTML = `<div class="live-workout">
+      <div class="live-header">
+        <div><span class="live-progress">תרגיל ${_liveWorkout.currentIdx+1} מתוך ${total}</span>${clientN?` · <span style="color:var(--muted);font-size:.82rem">${esc(clientN)}</span>`:''}</div>
+        <button class="btn btn-sm" onclick="closeLiveWorkout()">סיים אימון ✓</button>
+      </div>
+      <div id="live-card-container">${renderLiveCard()}</div>
+      ${_liveWorkout.showSwapBrowser?renderLiveSwapOverlay():''}
+    </div>`;
+  } else {
+    mainEl.innerHTML = `<div class="live-workout">
+      <div class="live-header">
+        <div><span class="live-progress">תרגיל ${_liveWorkout.currentIdx+1} מתוך ${total}</span>${clientN?` · <span style="color:var(--muted);font-size:.82rem">${esc(clientN)}</span>`:''}</div>
+        <button class="btn btn-sm" onclick="closeLiveWorkout()">סיים אימון ✓</button>
+      </div>
+      <div id="live-card-container">${renderLiveCard()}</div>
+      ${_liveWorkout.showSwapBrowser?renderLiveSwapOverlay():''}
+    </div>`;
+  }
+}
+
+function renderLiveCard() {
+  const idx = _liveWorkout.currentIdx;
+  const total = _liveWorkout.log.length;
+  if (!total) return '<div class="pb-empty">אין תרגילים באימון</div>';
+  const ex = _liveWorkout.log[idx];
+  const prev = _liveWorkout.previousData[ex.exerciseName];
+
+  let prevHtml = '';
+  if (prev) {
+    const prevSets = prev.sets.map((st,i)=>`<span class="live-prev-set">סט${i+1}: ${st.reps||'—'}×${st.weight||'—'}</span>`).join('');
+    prevHtml = `<div class="live-prev"><div class="live-prev-title">פעם קודמת (${fmtDate(prev.date)})</div><div class="live-prev-sets">${prevSets}</div></div>`;
+  }
+
+  const setsHtml = ex.sets.map((s,si)=>`<div class="live-set-row">
+    <span>סט ${si+1}</span>
+    <input type="number" min="0" placeholder="${s.targetReps||'חזרות'}" value="${s.reps||''}" oninput="_liveWorkout.log[${idx}].sets[${si}].reps=this.value;liveAutoSave()">
+    <input type="number" min="0" step="0.5" placeholder="${s.weight?s.weight:'משקל'}" value="${s.weight||''}" oninput="_liveWorkout.log[${idx}].sets[${si}].weight=this.value;liveAutoSave()">
+    <input placeholder="הערות" value="${esc(s.notes||'')}" oninput="_liveWorkout.log[${idx}].sets[${si}].notes=this.value;liveAutoSave()">
+    <button class="ex-remove" onclick="liveRemoveSet(${idx},${si})" style="font-size:.9rem;min-height:44px">✕</button>
+  </div>`).join('');
+
+  return `<div class="live-card">
+    <div class="live-ex-name">${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}
+      ${ex.category?` <span class="badge badge-cat">${esc(ex.category)}</span>`:''}
+    </div>
+    ${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank" style="color:var(--accent2);font-size:.8rem">▶ סרטון</a>`:''}
+    ${prevHtml}
+    <div style="margin:12px 0 6px;color:var(--muted);font-size:.78rem;font-weight:600">סטים</div>
+    <div class="live-sets-header"><span></span><span>חזרות</span><span>משקל</span><span>הערות</span><span></span></div>
+    ${setsHtml}
+    <button class="ex-add-set" onclick="liveAddSet(${idx})" style="min-height:40px">+ הוסף סט</button>
+    <button class="live-swap-btn" onclick="liveShowSwap()">🔄 החלף תרגיל</button>
+  </div>
+  <div class="live-nav">
+    <button class="btn btn-ghost" onclick="livePrev()" ${idx===0?'disabled':''}>← הקודם</button>
+    <button class="btn" onclick="liveNext()" ${idx>=total-1?'disabled':''}>${idx>=total-1?'סיום':'הבא →'}</button>
+  </div>`;
+}
+
+function liveNext() { if(_liveWorkout.currentIdx<_liveWorkout.log.length-1){_liveWorkout.currentIdx++;updateLiveCard();} }
+function livePrev() { if(_liveWorkout.currentIdx>0){_liveWorkout.currentIdx--;updateLiveCard();} }
+function updateLiveCard() {
+  const container = document.getElementById('live-card-container');
+  if(container) container.innerHTML = renderLiveCard();
+  document.querySelector('.live-progress').textContent = `תרגיל ${_liveWorkout.currentIdx+1} מתוך ${_liveWorkout.log.length}`;
+}
+function liveAddSet(idx) {
+  _liveWorkout.log[idx].sets.push({targetReps:'',reps:'',weight:'',notes:''});
+  updateLiveCard(); liveAutoSave();
+}
+function liveRemoveSet(idx, si) {
+  _liveWorkout.log[idx].sets.splice(si,1);
+  if(!_liveWorkout.log[idx].sets.length) _liveWorkout.log[idx].sets.push({targetReps:'',reps:'',weight:'',notes:''});
+  updateLiveCard(); liveAutoSave();
+}
+function liveShowSwap() { _liveWorkout.showSwapBrowser=true; _liveWorkout.swapExpandedCat=''; renderLiveWorkout(); }
+function liveHideSwap() { _liveWorkout.showSwapBrowser=false; renderLiveWorkout(); }
+function renderLiveSwapOverlay() {
+  const allExercises = load('exercises');
+  const cats = EX_CATS.filter(cat=>allExercises.some(e=>e.category===cat));
+  let listHtml;
+  if (_liveWorkout.swapExpandedCat) {
+    const exs = allExercises.filter(e=>e.category===_liveWorkout.swapExpandedCat);
+    listHtml = exs.map(e=>`<div class="pb-ex-item" onclick="liveConfirmSwap('${e.id}')">
+      <div class="pb-ex-names"><div class="pb-ex-name">${esc(e.name)}</div>${e.nameEn?`<div class="pb-ex-name-en">${esc(e.nameEn)}</div>`:''}</div>
+      <div class="pb-ex-actions"><button class="pb-ex-add" style="opacity:1">+</button></div>
+    </div>`).join('');
+  } else { listHtml = ''; }
+  const catsHtml = cats.map(cat=>{
+    const count = allExercises.filter(e=>e.category===cat).length;
+    const isOpen = _liveWorkout.swapExpandedCat===cat;
+    return `<button class="pb-group-btn${isOpen?' active':''}" onclick="_liveWorkout.swapExpandedCat=_liveWorkout.swapExpandedCat==='${cat}'?'':'${cat}';renderLiveWorkout()"><span>${esc(cat)}</span><span class="pb-count">${count}</span></button>${isOpen?listHtml:''}`;
+  }).join('');
+  return `<div class="live-swap-overlay" onclick="liveHideSwap()">
+    <div class="live-swap-panel" onclick="event.stopPropagation()">
+      <div class="live-swap-panel-header"><span style="font-weight:600;color:var(--accent2)">החלף תרגיל</span><button class="ex-remove" onclick="liveHideSwap()" style="font-size:1.2rem">✕</button></div>
+      ${catsHtml}
+    </div>
+  </div>`;
+}
+function liveConfirmSwap(exId) {
+  const ex = load('exercises').find(e=>e.id===exId);
+  if(!ex) return;
+  const idx = _liveWorkout.currentIdx;
+  const old = _liveWorkout.log[idx];
+  _liveWorkout.log[idx] = { exerciseName:ex.name, category:ex.category||'', videoUrl:ex.videoUrl||'',
+    sets:old.sets.length?old.sets:[{targetReps:10,reps:'',weight:'',notes:''}] };
+  // Lookup previous data for new exercise
+  const past = load('sessions').filter(s=>s.clientId===_liveWorkout.session.clientId&&s.log&&s.log.length&&s.id!==_liveWorkout.sessionId).sort((a,b)=>b.date.localeCompare(a.date));
+  for (const s of past) {
+    const entry = s.log.find(l=>l.exerciseName===ex.name);
+    if (entry) { _liveWorkout.previousData[ex.name] = { sets:entry.sets, date:s.date }; break; }
+  }
+  _liveWorkout.showSwapBrowser = false;
+  liveAutoSave();
+  renderLiveWorkout();
+  showToast(`הוחלף ל-${ex.name} ✓`);
+}
 
 function openWorkoutLog(sessionId) {
   const s = load('sessions').find(x => x.id === sessionId);
