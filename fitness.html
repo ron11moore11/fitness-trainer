@@ -392,7 +392,7 @@
 
   <section id="tab-exercises">
     <div class="card">
-      <div class="section-header"><h2>בנק תרגילים</h2><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="uploadExerciseBank()">📥 טען מאגר</button><button class="btn" onclick="openAddExercise()">+ הוסף תרגיל</button></div></div>
+      <div class="section-header"><h2>בנק תרגילים</h2><button class="btn" onclick="openAddExercise()">+ הוסף תרגיל</button></div>
       <div class="table-wrap" id="exercises-table"></div>
     </div>
   </section>
@@ -602,9 +602,9 @@ function renderClients() {
   `;
   if (!filtered.length) { document.getElementById('clients-table').innerHTML=`<div class="empty">${clients.length?'אין לקוחות בסטטוס הנבחר.':'אין לקוחות עדיין. הוסף את הראשון!'}</div>`; return; }
   document.getElementById('clients-table').innerHTML = `<table>
-    <thead><tr><th>שם</th><th>טלפון</th><th>אימייל</th><th>גיל</th><th>מטרות</th><th>פעולות</th></tr></thead>
+    <thead><tr><th>שם</th><th>סטטוס</th><th>טלפון</th><th>אימייל</th><th>גיל</th><th>מטרות</th><th>פעולות</th></tr></thead>
     <tbody>${filtered.map(c=>`<tr>
-      <td><strong>${esc(c.name)}</strong> <span class="badge ${statusBadgeClass(c.status||'פעיל')}">${esc(c.status||'פעיל')}</span></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td>
+      <td><strong>${esc(c.name)}</strong></td><td><span class="badge ${statusBadgeClass(c.status||'פעיל')}">${esc(c.status||'פעיל')}</span></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td>
       <td>${esc(c.age)}</td><td>${esc(c.goals)}</td>
       <td class="actions">
         <button class="btn btn-ghost btn-sm" onclick="openEditClient('${c.id}')">עריכה</button>
