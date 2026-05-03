@@ -137,7 +137,6 @@
     .cal-day.today .cal-day-num { color: var(--accent2); font-weight: bold; }
     .cal-day.selected { border-color: var(--accent); background: rgba(233,69,96,.1); }
     .cal-day.selected .cal-day-num { color: var(--accent); font-weight: bold; }
-    .cal-day.week-selected { background: rgba(233,69,96,.06); border-color: rgba(233,69,96,.3); }
     .cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
     .cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
     .cal-dot.shift-dot { background: var(--shift); }
@@ -429,8 +428,8 @@
       <div class="section-header">
         <h2>אימונים</h2>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-ghost" onclick="openAddSession(_calSelected.from,'shift')">+ משמרת</button>
-          <button class="btn" onclick="openAddSession(_calSelected.from,'training')">+ אימון</button>
+          <button class="btn btn-ghost" onclick="openAddSession(_calSelectedDate,'shift')">+ משמרת</button>
+          <button class="btn" onclick="openAddSession(_calSelectedDate,'training')">+ אימון</button>
         </div>
       </div>
       <div class="table-wrap" id="sessions-table"></div>
@@ -791,7 +790,7 @@ async function deleteClient(id) {
 // ===== SCHEDULE =========
 // ========================
 let calYear, calMonth;
-let _calSelected = { from:new Date().toISOString().slice(0,10), to:new Date().toISOString().slice(0,10) };
+let _calSelectedDate = new Date().toISOString().slice(0,10);
 let _liveWorkout = { active:false, sessionId:'', currentIdx:0, log:[], session:null, previousData:{}, saveTimer:null, showSwapBrowser:false, swapExpandedCat:'' };
 
 function renderSchedule() {
@@ -829,36 +828,23 @@ function renderCalendar() {
       ).join('');
       dots = `<div class="cal-dots">${dotHtml}</div>`;
     }
-    const inRange = ds>=_calSelected.from && ds<=_calSelected.to;
-    const isEdge = ds===_calSelected.from || ds===_calSelected.to;
-    html+=`<div class="cal-day${ds===today?' today':''}${isEdge?' selected':''}${inRange&&!isEdge?' week-selected':''}" onclick="handleCalDayClick(event,'${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
+    html+=`<div class="cal-day${ds===today?' today':''}${ds===_calSelectedDate?' selected':''}" onclick="handleCalDayClick('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
   }
   document.getElementById('cal-grid').innerHTML=html;
 }
 
-function handleCalDayClick(event, dateStr) {
-  if (_calSelected.from === _calSelected.to) {
-    // Single day selected — this click sets the end of range (or new single day if same)
-    if (dateStr === _calSelected.from) return; // clicked same day, do nothing
-    const from = dateStr < _calSelected.from ? dateStr : _calSelected.from;
-    const to = dateStr > _calSelected.from ? dateStr : _calSelected.from;
-    _calSelected = { from, to };
-  } else {
-    // Range selected — start fresh with new single day
-    _calSelected = { from:dateStr, to:dateStr };
-  }
+function handleCalDayClick(dateStr) {
+  _calSelectedDate = dateStr;
   renderCalendar(); renderSessionsTable();
 }
 
 function renderSessionsTable() {
   const allSessions = load('sessions');
-  const isRange = _calSelected.from !== _calSelected.to;
-  const filtered = allSessions.filter(s=>s.date>=_calSelected.from&&s.date<=_calSelected.to)
-    .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1);
-  const heading = isRange ? `${fmtDate(_calSelected.from)} — ${fmtDate(_calSelected.to)}` : fmtDateLong(_calSelected.from);
+  const filtered = allSessions.filter(s=>s.date===_calSelectedDate)
+    .sort((a,b)=>(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1);
   const headingEl = document.querySelector('#tab-schedule .card:last-child .section-header h2');
-  if (headingEl) headingEl.textContent = heading;
-  if (!filtered.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים בתקופה הזו.</div>'; return; }
+  if (headingEl) headingEl.textContent = fmtDateLong(_calSelectedDate);
+  if (!filtered.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים ביום הזה.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
     <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>פרטים</th><th>תוכנית</th><th>הערות</th><th>פעולות</th></tr></thead>
     <tbody>${filtered.map(s=>{
