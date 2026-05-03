@@ -338,6 +338,16 @@
     .cp-log-ex-name { color: var(--accent2); font-weight: 600; font-size: .82rem; }
     .cp-log-sets { color: var(--muted); font-size: .78rem; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
 
+    /* TRACKING */
+    .tr-exercise { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .tr-exercise-name { font-size: 1rem; font-weight: 700; color: var(--accent2); margin-bottom: 10px; }
+    .tr-table { width: 100%; border-collapse: collapse; font-size: .8rem; margin-bottom: 12px; }
+    .tr-table th { background: var(--bg); color: var(--muted); padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--border); font-weight: 600; }
+    .tr-table td { padding: 5px 8px; text-align: center; border-bottom: 1px solid rgba(15,52,96,.3); }
+    .tr-chart { width: 100%; height: 120px; position: relative; margin-top: 8px; }
+    .tr-chart svg { width: 100%; height: 100%; }
+    .tr-legend { display: flex; gap: 16px; justify-content: center; font-size: .72rem; color: var(--muted); margin-top: 4px; }
+
     /* DAY POPUP */
     .day-session-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
     .day-session-info { font-size: .9rem; }
@@ -417,6 +427,7 @@
     <button class="nav-tab" data-tab="schedule">לוח זמנים</button>
     <button class="nav-tab" data-tab="exercises">בנק תרגילים</button>
     <button class="nav-tab" data-tab="workouts">תוכניות אימון</button>
+    <button class="nav-tab" data-tab="tracking">מעקב</button>
     <button class="nav-tab" data-tab="payments">תשלומים</button>
     <button class="nav-tab" data-tab="reminders">תזכורות</button>
   </div>
@@ -474,6 +485,18 @@
       </div>
     </div>
     <div id="workouts-content"></div>
+  </section>
+
+  <section id="tab-tracking">
+    <div class="card">
+      <div class="section-header">
+        <h2>מעקב מתאמן</h2>
+        <div class="form-group" style="margin:0;min-width:200px">
+          <select id="tracking-client-sel" onchange="renderTracking()"><option value="">— בחר מתאמן —</option></select>
+        </div>
+      </div>
+      <div id="tracking-content"></div>
+    </div>
   </section>
 
   <section id="tab-payments">
@@ -642,7 +665,7 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
 });
 
 // ===== TAB NAVIGATION =====
-const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, reminders:renderReminders };
+const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, tracking:renderTracking, payments:renderPayments, reminders:renderReminders };
 async function switchTab(name) {
   if (_planBuilder.active && !confirm('יש תוכנית בעריכה — לצאת בלי לשמור?')) return;
   if (_planBuilder.active) _planBuilder.active = false;
@@ -667,44 +690,17 @@ function renderClientProfile() {
   const c = load('clients').find(x=>x.id===_clientProfile.clientId);
   if (!c) { closeClientProfile(); return; }
   const plans = load('plans').filter(p=>p.clientId===c.id);
-  const sessions = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training').sort((a,b)=>b.date.localeCompare(a.date));
-
-  // Group sessions by month
-  const months = {};
-  sessions.forEach(s => { const m=s.date.slice(0,7); if(!months[m])months[m]=[]; months[m].push(s); });
-  const monthNames = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  const sessions = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training');
+  const sessionsUsed = sessions.length;
+  const sessionsBought = +c.personalSessions || 0;
+  const isPersonal = c.serviceType === 'plan_and_training';
+  const serviceLabel = isPersonal ? 'תוכנית + אימונים אישיים' : 'תוכנית בלבד';
 
   let plansHtml = plans.length ? plans.map(p => {
     const workouts = getPlanWorkouts(p);
     const totalEx = workouts.reduce((s,w)=>s+w.exercises.length,0);
     return `<div class="cp-plan-row"><strong>${esc(p.name)}</strong> — ${workouts.length} אימונים, ${totalEx} תרגילים</div>`;
   }).join('') : '<div style="color:var(--muted);font-size:.85rem">אין תוכניות</div>';
-
-  let sessionsHtml = '';
-  Object.keys(months).sort().reverse().forEach(m => {
-    const [y, mo] = m.split('-');
-    sessionsHtml += `<div class="cp-month">${monthNames[+mo-1]} ${y}</div>`;
-    months[m].forEach(s => {
-      const pName = s.planId ? planName(s.planId) : '';
-      const hasLog = s.log && s.log.length;
-      const isExpanded = _clientProfile.expandedSession === s.id;
-      sessionsHtml += `<div class="cp-session-row" onclick="cpToggleSession('${s.id}')" style="${isExpanded?'border-radius:10px 10px 0 0':''}">
-        <div>${fmtDate(s.date)} · ${esc(s.time||'')} ${pName?'· '+esc(pName):''}</div>
-        <div>${hasLog?'<span class="badge badge-logged">תועד</span>':''} ${isExpanded?'▲':'▼'}</div>
-      </div>`;
-      if (isExpanded && hasLog) {
-        sessionsHtml += '<div class="cp-session-detail">';
-        s.log.forEach(ex => {
-          const setsText = ex.sets.map((st,i)=>`<span class="live-prev-set">סט${i+1}: ${st.reps||'—'}×${st.weight||'—'}</span>`).join('');
-          sessionsHtml += `<div class="cp-log-ex"><div class="cp-log-ex-name">${esc(ex.exerciseName)}</div><div class="cp-log-sets">${setsText}</div></div>`;
-        });
-        sessionsHtml += '</div>';
-      } else if (isExpanded) {
-        sessionsHtml += '<div class="cp-session-detail" style="color:var(--muted)">לא תועד</div>';
-      }
-    });
-  });
-  if (!sessions.length) sessionsHtml = '<div style="color:var(--muted);font-size:.85rem">אין אימונים</div>';
 
   document.getElementById('dashboard').innerHTML = '';
   document.getElementById('clients-table').innerHTML = `
@@ -717,18 +713,19 @@ function renderClientProfile() {
         ${c.age?`<span>גיל: ${esc(c.age)}</span>`:''}
         ${c.goals?`<span>🎯 ${esc(c.goals)}</span>`:''}
       </div>
+      <div class="cp-info" style="margin-top:8px">
+        <span>📋 ${esc(serviceLabel)}</span>
+        ${isPersonal?`<span>🏋️ ${sessionsUsed}/${sessionsBought} אימונים נוצלו</span>`:''}
+      </div>
     </div>
     <div class="cp-actions">
       <button class="btn btn-sm" onclick="closeClientProfile();openEditClient('${c.id}')">✏ עריכה</button>
       <button class="btn btn-teal btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ תוכנית</button>
+      <button class="btn btn-sm" onclick="closeClientProfile();openTracking('${c.id}')">📊 מעקב</button>
     </div>
     <div class="cp-section">
       <div class="cp-section-title">תוכניות אימון</div>
       ${plansHtml}
-    </div>
-    <div class="cp-section">
-      <div class="cp-section-title">היסטוריית אימונים</div>
-      ${sessionsHtml}
     </div>`;
 }
 
@@ -772,6 +769,13 @@ function clientForm(c={}) {
     </div>
     <div class="form-row">
       <div class="form-group"><label>סטטוס</label><select name="status"><option value="פעיל"${(c.status||'פעיל')==='פעיל'?' selected':''}>פעיל</option><option value="בהשהיה"${c.status==='בהשהיה'?' selected':''}>בהשהיה</option><option value="הפסיק"${c.status==='הפסיק'?' selected':''}>הפסיק</option></select></div>
+      <div class="form-group"><label>סוג שירות</label><select name="serviceType" onchange="document.getElementById('personal-sessions-group').style.display=this.value==='plan_and_training'?'':'none'">
+        <option value="plan_only"${(c.serviceType||'plan_only')==='plan_only'?' selected':''}>תוכנית בלבד</option>
+        <option value="plan_and_training"${c.serviceType==='plan_and_training'?' selected':''}>תוכנית + אימונים אישיים</option>
+      </select></div>
+    </div>
+    <div class="form-row" id="personal-sessions-group" style="${c.serviceType==='plan_and_training'?'':'display:none'}">
+      <div class="form-group"><label>מספר אימונים אישיים שנרכשו</label><input name="personalSessions" type="number" min="0" value="${esc(c.personalSessions||'')}"></div>
       <div class="form-group"></div>
     </div>
     <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(c.notes||'')}</textarea></div>
@@ -782,14 +786,14 @@ function clientForm(c={}) {
 }
 function openAddClient() {
   openModal('הוסף לקוח', clientForm(), async fd => {
-    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל'});
+    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל', serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||''});
     renderClients();
   });
 }
 function openEditClient(id) {
   const c = load('clients').find(x=>x.id===id);
   openModal('עריכת לקוח', clientForm(c), async fd => {
-    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')});
+    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status'), serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||''});
     await saveItem('clients', c);
     renderClients();
   });
@@ -1961,6 +1965,106 @@ function sendPlanToWhatsApp(planId) {
     }
   }
   showToast('התוכנית נפתחה — שמור כ-PDF ושלח בוואטסאפ 📎');
+}
+
+// ========================
+// ===== TRACKING =========
+// ========================
+let _trackingClientId = '';
+function openTracking(clientId) {
+  _trackingClientId = clientId;
+  switchTab('tracking');
+}
+function renderTracking() {
+  // Populate client dropdown
+  const sel = document.getElementById('tracking-client-sel');
+  if (sel) {
+    const selVal = sel.value || _trackingClientId;
+    sel.innerHTML = '<option value="">— בחר מתאמן —</option>' + clientOptions(selVal);
+    _trackingClientId = selVal;
+  }
+  const container = document.getElementById('tracking-content');
+  if (!_trackingClientId) { container.innerHTML = '<div class="empty">בחר מתאמן כדי לראות מעקב.</div>'; return; }
+
+  // Get all logged sessions for this client, sorted by date
+  const sessions = load('sessions')
+    .filter(s => s.clientId === _trackingClientId && s.log && s.log.length)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  if (!sessions.length) { container.innerHTML = '<div class="empty">אין אימונים מתועדים למתאמן זה.</div>'; return; }
+
+  // Build exercise history: { exerciseName: [ { date, sets: [{reps, weight}] } ] }
+  const exerciseHistory = {};
+  sessions.forEach(s => {
+    s.log.forEach(ex => {
+      if (!ex.exerciseName) return;
+      if (!exerciseHistory[ex.exerciseName]) exerciseHistory[ex.exerciseName] = [];
+      exerciseHistory[ex.exerciseName].push({ date: s.date, sets: ex.sets || [] });
+    });
+  });
+
+  let html = '';
+  Object.keys(exerciseHistory).forEach(exName => {
+    const entries = exerciseHistory[exName];
+    // Table
+    const tableRows = entries.map(e => {
+      const setsStr = e.sets.map((s,i) => `${s.reps||'—'}×${s.weight||'—'}`).join(' | ');
+      const maxWeight = Math.max(...e.sets.map(s => +s.weight || 0));
+      const totalReps = e.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
+      return `<tr><td>${fmtDate(e.date)}</td><td>${e.sets.length}</td><td>${setsStr}</td><td>${maxWeight||'—'}</td><td>${totalReps}</td></tr>`;
+    }).join('');
+
+    // Chart data: max weight per session
+    const chartData = entries.map(e => ({
+      date: e.date,
+      weight: Math.max(...e.sets.map(s => +s.weight || 0)),
+      reps: e.sets.reduce((sum,s) => sum + (+s.reps||0), 0)
+    }));
+    const chartSvg = renderTrackingChart(chartData);
+
+    html += `<div class="tr-exercise">
+      <div class="tr-exercise-name">${esc(exName)}</div>
+      <table class="tr-table">
+        <thead><tr><th>תאריך</th><th>סטים</th><th>חזרות×משקל</th><th>משקל מקס׳</th><th>סה״כ חזרות</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+      <div class="tr-chart">${chartSvg}</div>
+      <div class="tr-legend"><span style="color:var(--accent)">● משקל מקסימלי</span> <span style="color:var(--accent2)">● סה״כ חזרות</span></div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderTrackingChart(data) {
+  if (data.length < 2) return '<div style="color:var(--muted);font-size:.78rem;text-align:center">נדרשים לפחות 2 אימונים להצגת גרף</div>';
+  const w = 600, h = 110, pad = 30;
+  const maxW = Math.max(...data.map(d=>d.weight)) || 1;
+  const maxR = Math.max(...data.map(d=>d.reps)) || 1;
+  const xStep = (w - pad*2) / (data.length - 1);
+
+  let weightPath = '', repsPath = '';
+  const weightDots = [], repsDots = [];
+  data.forEach((d,i) => {
+    const x = pad + i * xStep;
+    const yW = h - pad - (d.weight/maxW) * (h - pad*2);
+    const yR = h - pad - (d.reps/maxR) * (h - pad*2);
+    weightPath += (i===0?'M':'L') + `${x},${yW}`;
+    repsPath += (i===0?'M':'L') + `${x},${yR}`;
+    weightDots.push(`<circle cx="${x}" cy="${yW}" r="3" fill="var(--accent)"/>`);
+    repsDots.push(`<circle cx="${x}" cy="${yR}" r="3" fill="var(--accent2)"/>`);
+  });
+
+  // X axis labels (dates)
+  const labels = data.map((d,i) => {
+    const x = pad + i * xStep;
+    const short = d.date.slice(5).replace('-','/');
+    return `<text x="${x}" y="${h-5}" text-anchor="middle" fill="var(--muted)" font-size="9">${short}</text>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${weightPath}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <path d="${repsPath}" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-dasharray="4,3"/>
+    ${weightDots.join('')}${repsDots.join('')}${labels}
+  </svg>`;
 }
 
 // ========================
