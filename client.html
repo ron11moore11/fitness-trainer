@@ -797,6 +797,8 @@ function liveConfirmSwap(exId) {
 // ===========================
 let _trackingSessionIdx = 0;
 let _trackingChartExercise = '';
+let _trackingSubTab = 'sessions';
+let _trackingChartSelectedEx = '';
 
 function selectTrackingSession(idx) {
   _trackingSessionIdx = idx;
@@ -809,9 +811,21 @@ function toggleTrackingChart(exName) {
   renderTrackingContent();
 }
 
+function setTrackingSubTab(tab) {
+  _trackingSubTab = tab;
+  renderTrackingContent();
+}
+
+function editSessionFromTracking(sessionId) {
+  // Open live workout for this session to edit it
+  switchTab('newworkout');
+  openLiveWorkout(sessionId);
+}
+
 function renderTracking() {
   _trackingSessionIdx = 0;
   _trackingChartExercise = '';
+  _trackingSubTab = 'sessions';
   renderTrackingContent();
 }
 
@@ -824,9 +838,21 @@ function renderTrackingContent() {
     .sort((a,b) => b.date.localeCompare(a.date));
   if (!sessions.length) { container.innerHTML = '<div class="empty">אין אימונים מתועדים עדיין. התחל להתאמן!</div>'; return; }
 
+  // Sub-tab toggle
+  const subTabs = `<div style="display:flex;justify-content:center;margin-bottom:16px">
+    <div style="display:flex;gap:0;border:2px solid var(--border);border-radius:8px;overflow:hidden">
+      <button style="background:${_trackingSubTab==='sessions'?'var(--accent)':'none'};border:none;color:${_trackingSubTab==='sessions'?'#fff':'var(--muted)'};padding:5px 14px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:all .2s" onclick="setTrackingSubTab('sessions')">אימונים</button>
+      <button style="background:${_trackingSubTab==='charts'?'var(--accent)':'none'};border:none;color:${_trackingSubTab==='charts'?'#fff':'var(--muted)'};padding:5px 14px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:all .2s" onclick="setTrackingSubTab('charts')">גרפים</button>
+    </div>
+  </div>`;
+
+  if (_trackingSubTab === 'charts') {
+    container.innerHTML = subTabs + renderTrackingChartsTab(sessions);
+    return;
+  }
+
   if (_trackingSessionIdx >= sessions.length) _trackingSessionIdx = 0;
 
-  // Date pills
   const pills = sessions.map((s,i) => {
     const wName = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
     return `<button class="tr-date-pill${i===_trackingSessionIdx?' active':''}" onclick="selectTrackingSession(${i})">
@@ -835,7 +861,6 @@ function renderTrackingContent() {
     </button>`;
   }).join('');
 
-  // Selected session
   const current = sessions[_trackingSessionIdx];
   const pName = current.planId ? planName(current.planId) : '';
   const wName = current.planId ? getWorkoutName(current.planId, current.workoutIdx) : '';
@@ -847,7 +872,7 @@ function renderTrackingContent() {
     if (!ex.exerciseName) return '';
     const currentMaxW = Math.max(...ex.sets.map(s => +s.weight || 0));
     const currentTotalR = ex.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
-    const setsHtml = ex.sets.map((s,i) => `<span class="tr-ex-set">סט${i+1}: ${s.reps||'—'}x${s.weight||'—'}</span>`).join('');
+    const setsHtml = ex.sets.map((s,i) => `<span class="tr-ex-set">סט${i+1}: ${s.reps||'---'}x${s.weight||'---'}</span>`).join('');
 
     let prevHtml = '';
     if (prevSession) {
@@ -855,7 +880,7 @@ function renderTrackingContent() {
       if (prevEx) {
         const prevMaxW = Math.max(...prevEx.sets.map(s => +s.weight || 0));
         const prevTotalR = prevEx.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
-        const prevSets = prevEx.sets.map((s,i) => `${s.reps||'—'}x${s.weight||'—'}`).join(', ');
+        const prevSets = prevEx.sets.map((s,i) => `${s.reps||'---'}x${s.weight||'---'}`).join(', ');
 
         let deltaHtml = '';
         if (currentMaxW > 0 && prevMaxW > 0) {
@@ -898,16 +923,68 @@ function renderTrackingContent() {
     </div>`;
   }).join('');
 
-  container.innerHTML = `
+  container.innerHTML = `${subTabs}
     <div class="tr-date-pills">${pills}</div>
     <div class="tr-session-header">
       <div>
         <div class="tr-session-title">${pName?esc(pName)+' &#183; ':''}${wName?esc(wName)+' &#183; ':''}${fmtDate(current.date)}</div>
         <div class="tr-session-meta">${current.time?esc(current.time)+' &#183; ':''}${current.log.length} תרגילים</div>
       </div>
-      ${source}
+      <div style="display:flex;gap:8px;align-items:center">
+        ${source}
+        <button class="btn btn-sm" style="background:#5c4b9e" onclick="editSessionFromTracking('${current.id}')">&#9998; ערוך</button>
+      </div>
     </div>
     ${exRows}`;
+}
+
+function renderTrackingChartsTab(sessions) {
+  const allExNames = [];
+  sessions.forEach(s => {
+    s.log.forEach(ex => {
+      if (ex.exerciseName && !allExNames.includes(ex.exerciseName)) allExNames.push(ex.exerciseName);
+    });
+  });
+
+  if (!allExNames.length) return '<div class="empty">אין תרגילים מתועדים.</div>';
+
+  if (!_trackingChartSelectedEx || !allExNames.includes(_trackingChartSelectedEx)) {
+    _trackingChartSelectedEx = allExNames[0];
+  }
+
+  const options = allExNames.map(name =>
+    `<option value="${esc(name)}"${name===_trackingChartSelectedEx?' selected':''}>${esc(name)}</option>`
+  ).join('');
+
+  const dropdown = `<div class="form-group" style="margin-bottom:16px;max-width:400px">
+    <label>בחר תרגיל</label>
+    <select onchange="_trackingChartSelectedEx=this.value;renderTrackingContent()">${options}</select>
+  </div>`;
+
+  const chartHtml = renderExerciseChart(_trackingChartSelectedEx, sessions);
+
+  const data = [];
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    const s = sessions[i];
+    const ex = s.log.find(e => e.exerciseName === _trackingChartSelectedEx);
+    if (ex) data.push({ date: s.date, sets: ex.sets });
+  }
+
+  const tableRows = data.map(e => {
+    const setsStr = e.sets.map((s,i) => `${s.reps||'---'}x${s.weight||'---'}`).join(' | ');
+    const maxWeight = Math.max(...e.sets.map(s => +s.weight || 0));
+    const totalReps = e.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
+    return `<tr><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${fmtDate(e.date)}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${e.sets.length}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${setsStr}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${maxWeight||'---'}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${totalReps}</td></tr>`;
+  }).join('');
+
+  const table = data.length ? `<div class="tr-ex-row" style="margin-top:16px">
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+      <thead><tr><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">תאריך</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">סטים</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">חזרות x משקל</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">משקל מקס׳</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">סה״כ חזרות</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+  </div>` : '';
+
+  return `${dropdown}${chartHtml}${table}`;
 }
 
 function renderExerciseChart(exName, sessions) {

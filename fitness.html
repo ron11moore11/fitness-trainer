@@ -1598,7 +1598,8 @@ async function saveWorkoutLog() {
   s.log = cleanLog;
   await saveItem('sessions', s);
   closeModal();
-  renderCalendar(); renderSessionsTable();
+  if (document.querySelector('#tab-tracking.active')) renderTrackingContent();
+  else { renderCalendar(); renderSessionsTable(); }
   showToast('היומן נשמר ✓');
 }
 
@@ -2044,11 +2045,14 @@ function sendPlanToWhatsApp(planId) {
 let _trackingClientId = '';
 let _trackingSessionIdx = 0;
 let _trackingChartExercise = '';
+let _trackingSubTab = 'sessions'; // 'sessions' | 'charts'
+let _trackingChartSelectedEx = '';
 
 function openTracking(clientId) {
   _trackingClientId = clientId;
   _trackingSessionIdx = 0;
   _trackingChartExercise = '';
+  _trackingSubTab = 'sessions';
   switchTab('tracking');
 }
 
@@ -2063,12 +2067,17 @@ function toggleTrackingChart(exName) {
   renderTrackingContent();
 }
 
+function setTrackingSubTab(tab) {
+  _trackingSubTab = tab;
+  renderTrackingContent();
+}
+
 function renderTracking() {
   const sel = document.getElementById('tracking-client-sel');
   if (sel) {
     const selVal = sel.value || _trackingClientId;
     sel.innerHTML = '<option value="">— בחר מתאמן —</option>' + clientOptions(selVal);
-    if (selVal !== _trackingClientId) { _trackingSessionIdx = 0; _trackingChartExercise = ''; }
+    if (selVal !== _trackingClientId) { _trackingSessionIdx = 0; _trackingChartExercise = ''; _trackingSubTab = 'sessions'; }
     _trackingClientId = selVal;
   }
   renderTrackingContent();
@@ -2082,6 +2091,19 @@ function renderTrackingContent() {
     .filter(s => s.clientId === _trackingClientId && s.log && s.log.length)
     .sort((a,b) => b.date.localeCompare(a.date));
   if (!sessions.length) { container.innerHTML = '<div class="empty">אין אימונים מתועדים למתאמן זה.</div>'; return; }
+
+  // Sub-tab toggle
+  const subTabs = `<div style="display:flex;justify-content:center;margin-bottom:16px">
+    <div class="cal-view-toggle">
+      <button class="cal-view-btn${_trackingSubTab==='sessions'?' active':''}" onclick="setTrackingSubTab('sessions')">אימונים</button>
+      <button class="cal-view-btn${_trackingSubTab==='charts'?' active':''}" onclick="setTrackingSubTab('charts')">גרפים</button>
+    </div>
+  </div>`;
+
+  if (_trackingSubTab === 'charts') {
+    container.innerHTML = subTabs + renderTrackingChartsTab(sessions);
+    return;
+  }
 
   if (_trackingSessionIdx >= sessions.length) _trackingSessionIdx = 0;
 
@@ -2100,7 +2122,6 @@ function renderTrackingContent() {
   const wName = current.planId ? getTrackingWorkoutName(current.planId, current.workoutIdx) : '';
   const source = current.source === 'client' ? '<span class="badge" style="background:rgba(168,218,220,.15);color:var(--accent2)">עצמאי</span>' : '<span class="badge" style="background:rgba(233,69,96,.15);color:var(--accent)">עם מאמן</span>';
 
-  // Find previous session (the one right after in the sorted-desc array)
   const prevSession = sessions[_trackingSessionIdx + 1] || null;
 
   // Build exercise rows
@@ -2110,7 +2131,6 @@ function renderTrackingContent() {
     const currentTotalR = ex.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
     const setsHtml = ex.sets.map((s,i) => `<span class="tr-ex-set">סט${i+1}: ${s.reps||'—'}x${s.weight||'—'}</span>`).join('');
 
-    // Find same exercise in previous session
     let prevHtml = '';
     if (prevSession) {
       const prevEx = prevSession.log.find(e => e.exerciseName === ex.exerciseName);
@@ -2160,16 +2180,74 @@ function renderTrackingContent() {
     </div>`;
   }).join('');
 
-  container.innerHTML = `
+  container.innerHTML = `${subTabs}
     <div class="tr-date-pills">${pills}</div>
     <div class="tr-session-header">
       <div>
         <div class="tr-session-title">${pName?esc(pName)+' · ':''}${wName?esc(wName)+' · ':''}${fmtDate(current.date)}</div>
         <div class="tr-session-meta">${current.time?esc(current.time)+' · ':''}${current.log.length} תרגילים</div>
       </div>
-      ${source}
+      <div style="display:flex;gap:8px;align-items:center">
+        ${source}
+        <button class="btn btn-sm btn-log" onclick="openWorkoutLog('${current.id}')">✏️ ערוך</button>
+      </div>
     </div>
     ${exRows}`;
+}
+
+function renderTrackingChartsTab(sessions) {
+  // Collect all unique exercise names
+  const allExNames = [];
+  sessions.forEach(s => {
+    s.log.forEach(ex => {
+      if (ex.exerciseName && !allExNames.includes(ex.exerciseName)) allExNames.push(ex.exerciseName);
+    });
+  });
+
+  if (!allExNames.length) return '<div class="empty">אין תרגילים מתועדים.</div>';
+
+  // Exercise dropdown
+  if (!_trackingChartSelectedEx || !allExNames.includes(_trackingChartSelectedEx)) {
+    _trackingChartSelectedEx = allExNames[0];
+  }
+
+  const options = allExNames.map(name =>
+    `<option value="${esc(name)}"${name===_trackingChartSelectedEx?' selected':''}>${esc(name)}</option>`
+  ).join('');
+
+  const dropdown = `<div class="form-group" style="margin-bottom:16px;max-width:400px">
+    <label>בחר תרגיל</label>
+    <select onchange="_trackingChartSelectedEx=this.value;renderTrackingContent()">${options}</select>
+  </div>`;
+
+  // Build chart for selected exercise
+  const chartHtml = renderExerciseChart(_trackingChartSelectedEx, sessions);
+
+  // Also show history table for context
+  const data = [];
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    const s = sessions[i];
+    const ex = s.log.find(e => e.exerciseName === _trackingChartSelectedEx);
+    if (ex) {
+      data.push({ date: s.date, sets: ex.sets });
+    }
+  }
+
+  const tableRows = data.map(e => {
+    const setsStr = e.sets.map((s,i) => `${s.reps||'—'}x${s.weight||'—'}`).join(' | ');
+    const maxWeight = Math.max(...e.sets.map(s => +s.weight || 0));
+    const totalReps = e.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
+    return `<tr><td>${fmtDate(e.date)}</td><td>${e.sets.length}</td><td>${setsStr}</td><td>${maxWeight||'—'}</td><td>${totalReps}</td></tr>`;
+  }).join('');
+
+  const table = data.length ? `<div class="tr-ex-row" style="margin-top:16px">
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+      <thead><tr><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">תאריך</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">סטים</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">חזרות×משקל</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">משקל מקס׳</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">סה״כ חזרות</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+  </div>` : '';
+
+  return `${dropdown}${chartHtml}${table}`;
 }
 
 function getTrackingWorkoutName(planId, workoutIdx) {
