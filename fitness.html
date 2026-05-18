@@ -1269,6 +1269,33 @@ async function closeLiveWorkout() {
   clearTimeout(_liveWorkout.saveTimer);
   await liveDoSave();
   _liveWorkout.active = false;
+  document.querySelector('.live-swap-overlay')?.remove();
+  // Restore schedule tab HTML since renderLiveWorkout replaced it
+  const schedEl = document.querySelector('#tab-schedule');
+  schedEl.innerHTML = `<div class="card" style="margin-bottom:20px">
+    <div style="display:flex;justify-content:center;margin-bottom:10px">
+      <div class="cal-view-toggle">
+        <button class="cal-view-btn" id="cal-view-month" onclick="setCalView('month')">חודשי</button>
+        <button class="cal-view-btn" id="cal-view-week" onclick="setCalView('week')">שבועי</button>
+      </div>
+    </div>
+    <div class="cal-nav">
+      <button class="btn btn-ghost btn-sm" onclick="calPrev()">&#8250;</button>
+      <h3 id="cal-title"></h3>
+      <button class="btn btn-ghost btn-sm" onclick="calNext()">&#8249;</button>
+    </div>
+    <div id="cal-container"></div>
+  </div>
+  <div class="card">
+    <div class="section-header">
+      <h2>אימונים</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost" onclick="openAddSession(_calSelectedDate,'shift')">+ משמרת</button>
+        <button class="btn" onclick="openAddSession(_calSelectedDate,'training')">+ אימון</button>
+      </div>
+    </div>
+    <div class="table-wrap" id="sessions-table"></div>
+  </div>`;
   renderSchedule();
   showToast('האימון נשמר ✓');
 }
@@ -1338,10 +1365,11 @@ function renderLiveCard() {
     ${setsHtml}
     <button class="ex-add-set" onclick="liveAddSet(${idx})" style="min-height:40px">+ הוסף סט</button>
     <button class="live-swap-btn" onclick="liveShowSwap()">🔄 החלף תרגיל</button>
+    <button class="live-swap-btn" onclick="liveAddExercise()">+ הוסף תרגיל</button>
   </div>
   <div class="live-nav">
     <button class="btn btn-ghost" onclick="livePrev()" ${idx===0?'disabled':''}>← הקודם</button>
-    <button class="btn" onclick="liveNext()" ${idx>=total-1?'disabled':''}>${idx>=total-1?'סיום':'הבא →'}</button>
+    <button class="btn" onclick="${idx>=total-1?'closeLiveWorkout()':'liveNext()'}">${idx>=total-1?'סיום ✓':'הבא →'}</button>
   </div>`;
 }
 
@@ -1396,6 +1424,14 @@ function renderLiveSwapOverlay() {
       ${catsHtml}
     </div>
   </div>`;
+}
+function liveAddExercise() {
+  _liveWorkout.log.push({ exerciseName:'', category:'', videoUrl:'', sets:[{targetReps:'',reps:'',weight:'',notes:''}] });
+  _liveWorkout.currentIdx = _liveWorkout.log.length - 1;
+  updateLiveCard();
+  liveAutoSave();
+  // Open swap browser to pick the exercise
+  liveShowSwap();
 }
 function refreshSwapOverlay() {
   document.querySelector('.live-swap-overlay')?.remove();
