@@ -316,7 +316,7 @@
   <div class="nav-tabs">
     <button class="nav-tab" data-tab="myworkouts">האימונים שלי</button>
     <button class="nav-tab" data-tab="newworkout">טבלת אימונים</button>
-    <button class="nav-tab" data-tab="tracking">מעקב התקדמות</button>
+    <button class="nav-tab" data-tab="tracking">גרפים</button>
   </div>
 </nav>
 
@@ -352,7 +352,7 @@
 
   <section id="tab-tracking">
     <div class="card">
-      <div class="section-header"><h2>מעקב התקדמות</h2></div>
+      <div class="section-header"><h2>גרפים</h2></div>
       <div id="tracking-content"></div>
     </div>
   </section>
@@ -1227,9 +1227,6 @@ function editSessionFromTracking(sessionId) {
 }
 
 function renderTracking() {
-  _trackingSessionIdx = -1;
-  _trackingChartExercise = '';
-  _trackingSubTab = 'sessions';
   renderTrackingContent();
 }
 
@@ -1242,105 +1239,7 @@ function renderTrackingContent() {
     .sort((a,b) => a.date.localeCompare(b.date));
   if (!sessions.length) { container.innerHTML = '<div class="empty">אין אימונים מתועדים עדיין. התחל להתאמן!</div>'; return; }
 
-  // Default to newest (last in ascending array)
-  if (_trackingSessionIdx < 0 || _trackingSessionIdx >= sessions.length) _trackingSessionIdx = sessions.length - 1;
-
-  // Sub-tab toggle
-  const subTabs = `<div style="display:flex;justify-content:center;margin-bottom:16px">
-    <div style="display:flex;gap:0;border:2px solid var(--border);border-radius:8px;overflow:hidden">
-      <button style="background:${_trackingSubTab==='sessions'?'var(--accent)':'none'};border:none;color:${_trackingSubTab==='sessions'?'#fff':'var(--muted)'};padding:5px 14px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:all .2s" onclick="setTrackingSubTab('sessions')">אימונים</button>
-      <button style="background:${_trackingSubTab==='charts'?'var(--accent)':'none'};border:none;color:${_trackingSubTab==='charts'?'#fff':'var(--muted)'};padding:5px 14px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:all .2s" onclick="setTrackingSubTab('charts')">גרפים</button>
-    </div>
-  </div>`;
-
-  if (_trackingSubTab === 'charts') {
-    container.innerHTML = subTabs + renderTrackingChartsTab(sessions);
-    return;
-  }
-
-  const pills = sessions.map((s,i) => {
-    const wName = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
-    return `<button class="tr-date-pill${i===_trackingSessionIdx?' active':''}" onclick="selectTrackingSession(${i})">
-      <div class="tr-pill-date">${fmtDate(s.date)}</div>
-      ${wName?`<div class="tr-pill-name">${esc(wName)}</div>`:''}
-    </button>`;
-  }).join('');
-
-  const current = sessions[_trackingSessionIdx];
-  const pName = current.planId ? planName(current.planId) : '';
-  const wName = current.planId ? getWorkoutName(current.planId, current.workoutIdx) : '';
-  const source = current.source === 'client' ? '<span class="badge badge-self">עצמאי</span>' : '<span class="badge badge-trainer">עם מאמן</span>';
-
-  const prevSession = _trackingSessionIdx > 0 ? sessions[_trackingSessionIdx - 1] : null;
-
-  const exRows = current.log.map(ex => {
-    if (!ex.exerciseName) return '';
-    const currentMaxW = Math.max(...ex.sets.map(s => +s.weight || 0));
-    const currentTotalR = ex.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
-    const setsHtml = ex.sets.map((s,i) => `<span class="tr-ex-set">סט${i+1}: ${s.reps||'---'}x${s.weight||'---'}</span>`).join('');
-
-    let prevHtml = '';
-    if (prevSession) {
-      const prevEx = prevSession.log.find(e => e.exerciseName === ex.exerciseName);
-      if (prevEx) {
-        const prevMaxW = Math.max(...prevEx.sets.map(s => +s.weight || 0));
-        const prevTotalR = prevEx.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
-        const prevSets = prevEx.sets.map((s,i) => `${s.reps||'---'}x${s.weight||'---'}`).join(', ');
-
-        let deltaHtml = '';
-        if (currentMaxW > 0 && prevMaxW > 0) {
-          const diff = currentMaxW - prevMaxW;
-          if (diff > 0) deltaHtml = `<span class="tr-delta tr-delta-up">+${diff}kg &#8593;</span>`;
-          else if (diff < 0) deltaHtml = `<span class="tr-delta tr-delta-down">${diff}kg &#8595;</span>`;
-          else deltaHtml = `<span class="tr-delta tr-delta-same">ללא שינוי</span>`;
-        }
-        if (!deltaHtml && currentTotalR > 0 && prevTotalR > 0) {
-          const diff = currentTotalR - prevTotalR;
-          if (diff > 0) deltaHtml = `<span class="tr-delta tr-delta-up">+${diff} חזרות &#8593;</span>`;
-          else if (diff < 0) deltaHtml = `<span class="tr-delta tr-delta-down">${diff} חזרות &#8595;</span>`;
-          else deltaHtml = `<span class="tr-delta tr-delta-same">ללא שינוי</span>`;
-        }
-
-        prevHtml = `<div class="tr-ex-prev">
-          <span>קודם (${fmtDate(prevSession.date)}): ${prevSets}</span>
-          ${deltaHtml}
-        </div>`;
-      } else {
-        prevHtml = '<div class="tr-ex-prev"><span>תרגיל חדש באימון זה</span></div>';
-      }
-    }
-
-    const isChartOpen = _trackingChartExercise === ex.exerciseName;
-    let chartHtml = '';
-    if (isChartOpen) {
-      chartHtml = renderExerciseChart(ex.exerciseName, sessions);
-    }
-
-    return `<div class="tr-ex-row">
-      <div class="tr-ex-name" onclick="toggleTrackingChart('${esc(ex.exerciseName).replace(/'/g,"\\'")}')">
-        ${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank" onclick="event.stopPropagation()">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}
-        ${ex.category?` <span class="badge badge-cat">${esc(ex.category)}</span>`:''}
-        <span style="font-size:.72rem;color:var(--muted);margin-right:6px">${isChartOpen?'&#9650; הסתר גרף':'&#9660; גרף'}</span>
-      </div>
-      <div class="tr-ex-sets">${setsHtml}</div>
-      ${prevHtml}
-      ${chartHtml}
-    </div>`;
-  }).join('');
-
-  container.innerHTML = `${subTabs}
-    <div class="tr-date-pills">${pills}</div>
-    <div class="tr-session-header">
-      <div>
-        <div class="tr-session-title">${pName?esc(pName)+' &#183; ':''}${wName?esc(wName)+' &#183; ':''}${fmtDate(current.date)}</div>
-        <div class="tr-session-meta">${current.time?esc(current.time)+' &#183; ':''}${current.log.length} תרגילים</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        ${source}
-        <button class="btn btn-sm" style="background:#5c4b9e" onclick="editSessionFromTracking('${current.id}')">&#9998; ערוך</button>
-      </div>
-    </div>
-    ${exRows}`;
+  container.innerHTML = renderTrackingChartsTab(sessions);
 }
 
 function renderTrackingChartsTab(sessions) {
