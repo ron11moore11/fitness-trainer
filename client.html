@@ -929,11 +929,14 @@ function renderNewWorkout() {
         const ex = s.log.find(e => e.exerciseName === exName);
         if (!ex) return '<td style="padding:6px;text-align:center;color:var(--border);border-bottom:1px solid rgba(15,52,96,.3)">—</td>';
 
-        // Format sets: each set as "reps×weight" on its own line
-        const setsHtml = ex.sets.map(st => {
+        // Format sets: each set as "reps חזרות · weight kg"
+        const setsHtml = ex.sets.map((st,si) => {
           const r = st.reps || '—';
           const w = st.weight || '—';
-          return `<div style="font-size:.78rem">${r}x${w}</div>`;
+          return `<div style="font-size:.76rem;padding:2px 0;${si>0?'border-top:1px solid rgba(15,52,96,.2)':''}">
+            <span style="color:var(--accent)">${r}</span><span style="color:var(--muted);font-size:.65rem"> חזרות </span>
+            <span style="color:var(--accent2)">${w}</span><span style="color:var(--muted);font-size:.65rem"> kg</span>
+          </div>`;
         }).join('');
 
         return `<td style="padding:6px;text-align:center;border-bottom:1px solid rgba(15,52,96,.3)">${setsHtml}</td>`;
