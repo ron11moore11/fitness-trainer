@@ -873,7 +873,64 @@ function renderNewWorkout() {
     </div>`;
   });
   html += '</div>';
+
+  // Past workouts history
+  const sessions = load('sessions')
+    .filter(s => s.clientId === _currentClientId && s.type === 'training')
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.time||'').localeCompare(a.time||''));
+
+  if (sessions.length) {
+    html += '<h2 style="font-size:1.1rem;color:var(--accent2);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">אימונים קודמים</h2>';
+    html += sessions.map(s => {
+      const pName = s.planId ? planName(s.planId) : '';
+      const wName = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
+      const exCount = (s.log && s.log.length) ? s.log.length + ' תרגילים' : 'טרם תועד';
+      const isSelf = s.source === 'client';
+      const sourceBadge = isSelf ? '<span class="badge badge-self">עצמאית</span>' : '<span class="badge badge-trainer">עם מאמן</span>';
+      const isExpanded = _expandedSession === s.id;
+
+      let detailHtml = '';
+      if (isExpanded && s.log && s.log.length) {
+        detailHtml = '<div class="workout-card-detail">' + s.log.map(ex => {
+          const setsStr = ex.sets.map((st,i) => `<span class="wcd-set">סט${i+1}: ${st.reps||'—'}x${st.weight||'—'}</span>`).join('');
+          return `<div class="wcd-exercise">
+            <div class="wcd-ex-name">${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}${ex.category?` <span class="badge badge-cat">${esc(ex.category)}</span>`:''}</div>
+            <div class="wcd-sets">${setsStr}</div>
+          </div>`;
+        }).join('') + '</div>';
+      } else if (isExpanded) {
+        detailHtml = '<div class="workout-card-detail"><div class="empty" style="padding:12px">לא תועדו תרגילים</div></div>';
+      }
+
+      const editBtn = isSelf
+        ? `<button class="btn btn-sm" onclick="event.stopPropagation();editClientSession('${s.id}')" title="ערוך">&#9998;</button>`
+        : '';
+      const deleteBtn = isSelf
+        ? `<button class="btn btn-sm" style="background:#7b1d2e" onclick="event.stopPropagation();deleteClientSession('${s.id}')" title="מחק">&#128465;</button>`
+        : '';
+      const liveBtn = `<button class="btn btn-sm" style="background:#5c4b9e" onclick="event.stopPropagation();openLiveFromCalendar('${s.id}')" title="אימון חי">&#128203;</button>`;
+
+      return `<div class="workout-card${isExpanded?' expanded':''}" onclick="toggleSessionInTable('${s.id}')">
+        <div class="workout-card-header">
+          <div>
+            <div class="workout-card-date">${fmtDate(s.date)}${s.time?' · '+esc(s.time):''}</div>
+            <div class="workout-card-info">${pName?esc(pName):''} ${wName?'· '+esc(wName):''} · ${exCount}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            ${sourceBadge} ${editBtn} ${deleteBtn} ${liveBtn}
+          </div>
+        </div>
+        ${detailHtml}
+      </div>`;
+    }).join('');
+  }
+
   container.innerHTML = html;
+}
+
+function toggleSessionInTable(sessionId) {
+  _expandedSession = _expandedSession === sessionId ? '' : sessionId;
+  renderNewWorkout();
 }
 
 async function startClientWorkout(planId, workoutIdx) {
