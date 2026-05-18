@@ -234,6 +234,44 @@
     .tr-chart-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 16px; }
     .tr-chart-title { font-size: .9rem; font-weight: 600; color: var(--accent2); margin-bottom: 8px; }
 
+    /* CALENDAR */
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .cal-nav h3 { color: var(--accent2); font-size: 1.1rem; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 24px; }
+    .cal-day-name { text-align: center; font-size: .75rem; color: var(--muted); padding: 4px 0; }
+    .cal-day { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 4px; min-height: 52px; text-align: center; cursor: pointer; transition: border-color .2s; }
+    .cal-day:hover { border-color: var(--accent); }
+    .cal-day.today { border-color: var(--accent2); }
+    .cal-day.empty-day { background: none; border-color: transparent; cursor: default; }
+    .cal-day-num { font-size: .85rem; color: var(--muted); }
+    .cal-day.today .cal-day-num { color: var(--accent2); font-weight: bold; }
+    .cal-day.selected { border-color: var(--accent); background: rgba(233,69,96,.1); }
+    .cal-day.selected .cal-day-num { color: var(--accent); font-weight: bold; }
+    .cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
+    .cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    .cal-dot.self-dot { background: var(--accent2); }
+    .cal-view-toggle { display: flex; gap: 0; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .cal-view-btn { background: none; border: none; color: var(--muted); padding: 5px 14px; cursor: pointer; font-size: .8rem; font-family: inherit; transition: all .2s; }
+    .cal-view-btn.active { background: var(--accent); color: #fff; }
+    .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
+    .week-col { background: var(--card); border: 2px solid var(--border); border-radius: 10px; padding: 8px 6px; min-height: 120px; cursor: pointer; transition: border-color .2s; }
+    .week-col:hover { border-color: var(--accent); }
+    .week-col.selected { border-color: var(--accent); background: rgba(233,69,96,.1); }
+    .week-col.today { border-color: var(--accent2); }
+    .week-col-header { text-align: center; margin-bottom: 6px; }
+    .week-col-day { font-size: .75rem; color: var(--muted); }
+    .week-col-num { font-size: 1rem; font-weight: 600; color: var(--text); }
+    .week-col.today .week-col-num { color: var(--accent2); }
+    .week-col.selected .week-col-num { color: var(--accent); }
+    .week-session { font-size: .72rem; padding: 3px 4px; margin-bottom: 3px; border-radius: 4px; background: rgba(233,69,96,.1); color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .week-session.self { background: rgba(168,218,220,.1); color: var(--accent2); }
+    .day-session-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .day-session-info { font-size: .9rem; }
+    .day-session-info strong { color: var(--accent2); }
+    .day-session-actions { display: flex; gap: 6px; }
+    .source-radio { display: flex; gap: 12px; }
+    .source-radio label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: .9rem; }
+
     @media (max-width: 640px) {
       nav { flex-direction: column; height: auto; padding: 12px; gap: 8px; }
       .nav-tabs { justify-content: center; }
@@ -242,6 +280,8 @@
       .live-set-row input:nth-child(4) { display: none; }
       .live-sets-header { grid-template-columns: 30px 1fr 1fr auto; }
       .live-sets-header span:nth-child(4) { display: none; }
+      .week-grid { grid-template-columns: repeat(3,1fr); }
+      .week-col { min-height: 80px; }
     }
   </style>
 </head>
@@ -275,19 +315,38 @@
   <button class="logout-btn" onclick="handleLogout()">התנתק</button>
   <div class="nav-tabs">
     <button class="nav-tab" data-tab="myworkouts">האימונים שלי</button>
-    <button class="nav-tab" data-tab="newworkout">אימון עצמאי</button>
+    <button class="nav-tab" data-tab="newworkout">טבלת אימונים</button>
     <button class="nav-tab" data-tab="tracking">מעקב התקדמות</button>
   </div>
 </nav>
 
 <main>
   <section id="tab-myworkouts">
-    <div class="section-header"><h2>האימונים שלי</h2></div>
-    <div id="myworkouts-content"></div>
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;justify-content:center;margin-bottom:10px">
+        <div class="cal-view-toggle">
+          <button class="cal-view-btn active" id="client-cal-view-month" onclick="setClientCalView('month')">חודשי</button>
+          <button class="cal-view-btn" id="client-cal-view-week" onclick="setClientCalView('week')">שבועי</button>
+        </div>
+      </div>
+      <div class="cal-nav">
+        <button class="btn btn-ghost btn-sm" onclick="clientCalPrev()">&#8250;</button>
+        <h3 id="client-cal-title"></h3>
+        <button class="btn btn-ghost btn-sm" onclick="clientCalNext()">&#8249;</button>
+      </div>
+      <div id="client-cal-container"></div>
+    </div>
+    <div class="card">
+      <div class="section-header">
+        <h2>אימונים</h2>
+        <button class="btn" onclick="openAddClientSession()">+ הוסף אימון</button>
+      </div>
+      <div id="client-sessions-table"></div>
+    </div>
   </section>
 
   <section id="tab-newworkout">
-    <div class="section-header"><h2>התחל אימון עצמאי</h2></div>
+    <div class="section-header"><h2>טבלת אימונים</h2></div>
     <div id="newworkout-content"></div>
   </section>
 
@@ -478,28 +537,139 @@ function handleLogout() {
 // ===== MY WORKOUTS =========
 // ===========================
 let _expandedSession = '';
+let _clientCalYear, _clientCalMonth;
+let _clientCalSelectedDate = new Date().toISOString().slice(0,10);
+let _clientCalView = 'month';
+let _clientCalWeekStart = '';
+
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 function renderMyWorkouts() {
-  const container = document.getElementById('myworkouts-content');
+  const now = new Date();
+  if (!_clientCalYear) { _clientCalYear = now.getFullYear(); _clientCalMonth = now.getMonth(); }
+  if (!_clientCalWeekStart) {
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dayOfWeek = today.getDay(); // 0=Sun
+    today.setDate(today.getDate() - dayOfWeek);
+    _clientCalWeekStart = today.toISOString().slice(0,10);
+  }
+  // Update view toggle buttons
+  document.getElementById('client-cal-view-month')?.classList.toggle('active', _clientCalView==='month');
+  document.getElementById('client-cal-view-week')?.classList.toggle('active', _clientCalView==='week');
+
+  if (_clientCalView === 'month') {
+    renderClientCalendarMonth();
+  } else {
+    renderClientCalendarWeek();
+  }
+  renderClientSessionsTable();
+}
+
+function renderClientCalendarMonth() {
+  const container = document.getElementById('client-cal-container');
+  const titleEl = document.getElementById('client-cal-title');
+  const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  titleEl.textContent = months[_clientCalMonth] + ' ' + _clientCalYear;
+
+  const sessions = load('sessions').filter(s => s.clientId === _currentClientId && s.type === 'training');
+  const sessionsByDate = {};
+  sessions.forEach(s => {
+    if (!sessionsByDate[s.date]) sessionsByDate[s.date] = [];
+    sessionsByDate[s.date].push(s);
+  });
+
+  const firstDay = new Date(_clientCalYear, _clientCalMonth, 1);
+  const lastDay = new Date(_clientCalYear, _clientCalMonth + 1, 0);
+  const startDay = firstDay.getDay(); // 0=Sun
+  const totalDays = lastDay.getDate();
+  const todayStr = new Date().toISOString().slice(0,10);
+
+  const dayNames = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+  let html = '<div class="cal-grid">';
+  dayNames.forEach(d => { html += `<div class="cal-day-name">${d}</div>`; });
+
+  for (let i = 0; i < startDay; i++) html += '<div class="cal-day empty-day"></div>';
+  for (let d = 1; d <= totalDays; d++) {
+    const dateStr = `${_clientCalYear}-${String(_clientCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+    const isSelected = dateStr === _clientCalSelectedDate;
+    const daySessions = sessionsByDate[dateStr] || [];
+    const dots = daySessions.map(s => {
+      const isSelf = s.source === 'client';
+      return `<div class="cal-dot${isSelf?' self-dot':''}"></div>`;
+    }).join('');
+    html += `<div class="cal-day${isToday?' today':''}${isSelected?' selected':''}" onclick="handleClientDayClick('${dateStr}')">
+      <div class="cal-day-num">${d}</div>
+      ${dots?`<div class="cal-dots">${dots}</div>`:''}
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderClientCalendarWeek() {
+  const container = document.getElementById('client-cal-container');
+  const titleEl = document.getElementById('client-cal-title');
+  const sessions = load('sessions').filter(s => s.clientId === _currentClientId && s.type === 'training');
+  const sessionsByDate = {};
+  sessions.forEach(s => {
+    if (!sessionsByDate[s.date]) sessionsByDate[s.date] = [];
+    sessionsByDate[s.date].push(s);
+  });
+
+  const todayStr = new Date().toISOString().slice(0,10);
+  const dayNames = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const startDate = _clientCalWeekStart;
+  const endDate = addDays(startDate, 6);
+  titleEl.textContent = fmtDate(startDate) + ' — ' + fmtDate(endDate);
+
+  let html = '<div class="week-grid">';
+  for (let i = 0; i < 7; i++) {
+    const dateStr = addDays(startDate, i);
+    const d = new Date(dateStr + 'T00:00');
+    const isToday = dateStr === todayStr;
+    const isSelected = dateStr === _clientCalSelectedDate;
+    const daySessions = sessionsByDate[dateStr] || [];
+    const sessHtml = daySessions.map(s => {
+      const wName = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
+      const isSelf = s.source === 'client';
+      return `<div class="week-session${isSelf?' self':''}">${s.time?s.time+' ':''}${esc(wName)||'אימון'}</div>`;
+    }).join('');
+    html += `<div class="week-col${isToday?' today':''}${isSelected?' selected':''}" onclick="handleClientDayClick('${dateStr}')">
+      <div class="week-col-header"><div class="week-col-day">${dayNames[d.getDay()]}</div><div class="week-col-num">${d.getDate()}</div></div>
+      ${sessHtml}
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderClientSessionsTable() {
+  const container = document.getElementById('client-sessions-table');
   const sessions = load('sessions')
-    .filter(s => s.clientId === _currentClientId && s.type === 'training')
-    .sort((a,b) => b.date.localeCompare(a.date) || (b.time||'').localeCompare(a.time||''));
+    .filter(s => s.clientId === _currentClientId && s.type === 'training' && s.date === _clientCalSelectedDate)
+    .sort((a,b) => (a.time||'').localeCompare(b.time||''));
 
   if (!sessions.length) {
-    container.innerHTML = '<div class="empty">אין אימונים עדיין. התחל אימון עצמאי!</div>';
+    container.innerHTML = `<div class="empty" style="padding:20px">אין אימונים ב-${fmtDate(_clientCalSelectedDate)}</div>`;
     return;
   }
 
   container.innerHTML = sessions.map(s => {
     const pName = s.planId ? planName(s.planId) : '';
-    const workout = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
-    const exCount = (s.log && s.log.length) ? s.log.length : 0;
+    const wName = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
+    const isSelf = s.source === 'client';
+    const sourceBadge = isSelf ? '<span class="badge badge-self">עצמאית</span>' : '<span class="badge badge-trainer">עם מאמן</span>';
+    const exCount = (s.log && s.log.length) ? s.log.length + ' תרגילים' : '';
     const isExpanded = _expandedSession === s.id;
-    const source = s.source === 'client' ? '<span class="badge badge-self">עצמאי</span>' : '<span class="badge badge-trainer">עם מאמן</span>';
 
     let detailHtml = '';
     if (isExpanded && s.log && s.log.length) {
-      detailHtml = '<div class="workout-card-detail">' + s.log.map(ex => {
+      detailHtml = '<div class="workout-card-detail" style="width:100%">' + s.log.map(ex => {
         const setsStr = ex.sets.map((st,i) => `<span class="wcd-set">סט${i+1}: ${st.reps||'—'}x${st.weight||'—'}</span>`).join('');
         return `<div class="wcd-exercise">
           <div class="wcd-ex-name">${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}${ex.category?` <span class="badge badge-cat">${esc(ex.category)}</span>`:''}</div>
@@ -507,20 +677,140 @@ function renderMyWorkouts() {
         </div>`;
       }).join('') + '</div>';
     } else if (isExpanded) {
-      detailHtml = '<div class="workout-card-detail"><div class="empty" style="padding:16px">לא תועדו תרגילים באימון זה</div></div>';
+      detailHtml = '<div class="workout-card-detail" style="width:100%"><div class="empty" style="padding:16px">לא תועדו תרגילים באימון זה</div></div>';
     }
 
-    return `<div class="workout-card${isExpanded?' expanded':''}" onclick="toggleSession('${s.id}')">
-      <div class="workout-card-header">
-        <div>
-          <div class="workout-card-date">${fmtDate(s.date)}${s.time?' · '+esc(s.time):''}</div>
-          <div class="workout-card-info">${pName?esc(pName):''} ${workout?'· '+esc(workout):''} ${exCount?'· '+exCount+' תרגילים':''}</div>
-        </div>
-        <div>${source} ${exCount?'<span class="badge badge-logged">מתועד</span>':''}</div>
+    const editBtn = isSelf
+      ? `<button class="btn btn-sm" onclick="event.stopPropagation();editClientSession('${s.id}')" title="ערוך">&#9998;</button>`
+      : `<button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();toggleSession('${s.id}')" title="צפה">&#128065;</button>`;
+    const liveBtn = `<button class="btn btn-sm" style="background:#5c4b9e" onclick="event.stopPropagation();openLiveFromCalendar('${s.id}')" title="אימון חי">&#128203;</button>`;
+
+    return `<div class="day-session-item" style="cursor:pointer;flex-wrap:wrap" onclick="toggleSession('${s.id}')">
+      <div class="day-session-info">
+        <strong>${s.time||''}</strong> ${pName?esc(pName):''} ${wName?'· '+esc(wName):''} ${exCount?'· '+exCount:''}
+      </div>
+      <div class="day-session-actions">
+        ${sourceBadge} ${editBtn} ${liveBtn}
       </div>
       ${detailHtml}
     </div>`;
   }).join('');
+}
+
+function handleClientDayClick(dateStr) {
+  _clientCalSelectedDate = dateStr;
+  renderMyWorkouts();
+}
+
+function clientCalPrev() {
+  if (_clientCalView === 'month') {
+    _clientCalMonth--;
+    if (_clientCalMonth < 0) { _clientCalMonth = 11; _clientCalYear--; }
+  } else {
+    _clientCalWeekStart = addDays(_clientCalWeekStart, -7);
+  }
+  renderMyWorkouts();
+}
+
+function clientCalNext() {
+  if (_clientCalView === 'month') {
+    _clientCalMonth++;
+    if (_clientCalMonth > 11) { _clientCalMonth = 0; _clientCalYear++; }
+  } else {
+    _clientCalWeekStart = addDays(_clientCalWeekStart, 7);
+  }
+  renderMyWorkouts();
+}
+
+function setClientCalView(view) {
+  _clientCalView = view;
+  if (view === 'week' && !_clientCalWeekStart) {
+    const today = new Date();
+    today.setDate(today.getDate() - today.getDay());
+    _clientCalWeekStart = today.toISOString().slice(0,10);
+  }
+  renderMyWorkouts();
+}
+
+function editClientSession(sessionId) {
+  switchTab('newworkout');
+  openLiveWorkout(sessionId);
+}
+
+function openLiveFromCalendar(sessionId) {
+  switchTab('newworkout');
+  openLiveWorkout(sessionId);
+}
+
+function openAddClientSession() {
+  const plans = load('plans').filter(p => p.clientId === _currentClientId && !p.isTemplate);
+  const planOptions = plans.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  const firstPlan = plans[0];
+  const workoutOptions = firstPlan ? getPlanWorkouts(firstPlan).map((w,i) => `<option value="${i}">${esc(w.name)}</option>`).join('') : '';
+
+  const html = `<form id="modal-form">
+    <div class="form-group">
+      <label>תאריך</label>
+      <input type="date" name="date" value="${_clientCalSelectedDate}" required>
+    </div>
+    <div class="form-group">
+      <label>שעה</label>
+      <input type="time" name="time" value="${new Date().toTimeString().slice(0,5)}">
+    </div>
+    <div class="form-group">
+      <label>תוכנית</label>
+      <select name="planId" onchange="updateAddSessionWorkouts(this.value)">
+        ${planOptions || '<option value="">אין תוכניות</option>'}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>אימון</label>
+      <select name="workoutIdx" id="add-session-workout-select">
+        ${workoutOptions}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>סוג</label>
+      <div class="source-radio">
+        <label><input type="radio" name="source" value="client" checked> עצמאית</label>
+        <label><input type="radio" name="source" value="client_trainer"> עם מאמן</label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button type="submit" class="btn">שמור</button>
+    </div>
+  </form>`;
+
+  openModal('הוסף אימון', html, async (fd) => {
+    const session = {
+      id: uid(),
+      type: 'training',
+      clientId: _currentClientId,
+      planId: fd.get('planId') || '',
+      workoutIdx: +(fd.get('workoutIdx') || 0),
+      date: fd.get('date'),
+      time: fd.get('time') || '',
+      duration: '',
+      notes: '',
+      source: fd.get('source') === 'client_trainer' ? 'client_trainer' : 'client',
+      isRecurring: false,
+      recurringGroupId: '',
+      log: []
+    };
+    await saveItem('sessions', session);
+    _clientCalSelectedDate = session.date;
+    showToast('אימון נוסף ✓');
+    renderMyWorkouts();
+  });
+}
+
+function updateAddSessionWorkouts(planId) {
+  const plan = load('plans').find(p => p.id === planId);
+  const sel = document.getElementById('add-session-workout-select');
+  if (!plan || !sel) return;
+  const workouts = getPlanWorkouts(plan);
+  sel.innerHTML = workouts.map((w,i) => `<option value="${i}">${esc(w.name)}</option>`).join('');
 }
 
 function getWorkoutName(planId, workoutIdx) {
@@ -532,7 +822,11 @@ function getWorkoutName(planId, workoutIdx) {
 
 function toggleSession(sessionId) {
   _expandedSession = _expandedSession === sessionId ? '' : sessionId;
-  renderMyWorkouts();
+  // Re-render whichever tab is active
+  const myTab = document.getElementById('tab-myworkouts');
+  if (myTab && myTab.classList.contains('active')) {
+    renderClientSessionsTable();
+  }
 }
 
 // ============================
