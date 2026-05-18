@@ -342,7 +342,7 @@
     .tr-date-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; }
     .tr-date-pills::-webkit-scrollbar { height: 4px; }
     .tr-date-pills::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    .tr-date-pill { background: var(--bg); border: 2px solid var(--border); border-radius: 10px; padding: 8px 16px; cursor: pointer; white-space: nowrap; font-size: .82rem; transition: all .2s; flex-shrink: 0; text-align: center; }
+    .tr-date-pill { background: var(--bg); border: 2px solid var(--border); border-radius: 10px; padding: 8px 16px; cursor: pointer; white-space: nowrap; font-size: .82rem; transition: all .2s; flex-shrink: 0; text-align: center; color: var(--text); }
     .tr-date-pill:hover { border-color: var(--accent); color: var(--accent); }
     .tr-date-pill.active { border-color: var(--accent); background: rgba(233,69,96,.1); color: var(--accent); font-weight: 600; }
     .tr-date-pill .tr-pill-date { font-weight: 600; }
@@ -2056,7 +2056,7 @@ let _trackingChartSelectedEx = '';
 
 function openTracking(clientId) {
   _trackingClientId = clientId;
-  _trackingSessionIdx = 0;
+  _trackingSessionIdx = -1;
   _trackingChartExercise = '';
   _trackingSubTab = 'sessions';
   switchTab('tracking');
@@ -2083,7 +2083,7 @@ function renderTracking() {
   if (sel) {
     const selVal = sel.value || _trackingClientId;
     sel.innerHTML = '<option value="">— בחר מתאמן —</option>' + clientOptions(selVal);
-    if (selVal !== _trackingClientId) { _trackingSessionIdx = 0; _trackingChartExercise = ''; _trackingSubTab = 'sessions'; }
+    if (selVal !== _trackingClientId) { _trackingSessionIdx = -1; _trackingChartExercise = ''; _trackingSubTab = 'sessions'; }
     _trackingClientId = selVal;
   }
   renderTrackingContent();
@@ -2095,8 +2095,11 @@ function renderTrackingContent() {
 
   const sessions = load('sessions')
     .filter(s => s.clientId === _trackingClientId && s.log && s.log.length)
-    .sort((a,b) => b.date.localeCompare(a.date));
+    .sort((a,b) => a.date.localeCompare(b.date));
   if (!sessions.length) { container.innerHTML = '<div class="empty">אין אימונים מתועדים למתאמן זה.</div>'; return; }
+
+  // Default to newest (last in ascending array)
+  if (_trackingSessionIdx < 0 || _trackingSessionIdx >= sessions.length) _trackingSessionIdx = sessions.length - 1;
 
   // Sub-tab toggle
   const subTabs = `<div style="display:flex;justify-content:center;margin-bottom:16px">
@@ -2110,8 +2113,6 @@ function renderTrackingContent() {
     container.innerHTML = subTabs + renderTrackingChartsTab(sessions);
     return;
   }
-
-  if (_trackingSessionIdx >= sessions.length) _trackingSessionIdx = 0;
 
   // Date pills
   const pills = sessions.map((s,i) => {
@@ -2128,7 +2129,7 @@ function renderTrackingContent() {
   const wName = current.planId ? getTrackingWorkoutName(current.planId, current.workoutIdx) : '';
   const source = current.source === 'client' ? '<span class="badge" style="background:rgba(168,218,220,.15);color:var(--accent2)">עצמאי</span>' : '<span class="badge" style="background:rgba(233,69,96,.15);color:var(--accent)">עם מאמן</span>';
 
-  const prevSession = sessions[_trackingSessionIdx + 1] || null;
+  const prevSession = _trackingSessionIdx > 0 ? sessions[_trackingSessionIdx - 1] : null;
 
   // Build exercise rows
   const exRows = current.log.map(ex => {

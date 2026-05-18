@@ -207,7 +207,7 @@
     .tr-date-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; }
     .tr-date-pills::-webkit-scrollbar { height: 4px; }
     .tr-date-pills::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    .tr-date-pill { background: var(--bg); border: 2px solid var(--border); border-radius: 10px; padding: 8px 16px; cursor: pointer; white-space: nowrap; font-size: .82rem; transition: all .2s; flex-shrink: 0; text-align: center; }
+    .tr-date-pill { background: var(--bg); border: 2px solid var(--border); border-radius: 10px; padding: 8px 16px; cursor: pointer; white-space: nowrap; font-size: .82rem; transition: all .2s; flex-shrink: 0; text-align: center; color: var(--text); }
     .tr-date-pill:hover { border-color: var(--accent); color: var(--accent); }
     .tr-date-pill.active { border-color: var(--accent); background: rgba(233,69,96,.1); color: var(--accent); font-weight: 600; }
     .tr-date-pill .tr-pill-date { font-weight: 600; }
@@ -823,7 +823,7 @@ function editSessionFromTracking(sessionId) {
 }
 
 function renderTracking() {
-  _trackingSessionIdx = 0;
+  _trackingSessionIdx = -1;
   _trackingChartExercise = '';
   _trackingSubTab = 'sessions';
   renderTrackingContent();
@@ -835,8 +835,11 @@ function renderTrackingContent() {
 
   const sessions = load('sessions')
     .filter(s => s.clientId === _currentClientId && s.log && s.log.length)
-    .sort((a,b) => b.date.localeCompare(a.date));
+    .sort((a,b) => a.date.localeCompare(b.date));
   if (!sessions.length) { container.innerHTML = '<div class="empty">אין אימונים מתועדים עדיין. התחל להתאמן!</div>'; return; }
+
+  // Default to newest (last in ascending array)
+  if (_trackingSessionIdx < 0 || _trackingSessionIdx >= sessions.length) _trackingSessionIdx = sessions.length - 1;
 
   // Sub-tab toggle
   const subTabs = `<div style="display:flex;justify-content:center;margin-bottom:16px">
@@ -851,8 +854,6 @@ function renderTrackingContent() {
     return;
   }
 
-  if (_trackingSessionIdx >= sessions.length) _trackingSessionIdx = 0;
-
   const pills = sessions.map((s,i) => {
     const wName = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
     return `<button class="tr-date-pill${i===_trackingSessionIdx?' active':''}" onclick="selectTrackingSession(${i})">
@@ -866,7 +867,7 @@ function renderTrackingContent() {
   const wName = current.planId ? getWorkoutName(current.planId, current.workoutIdx) : '';
   const source = current.source === 'client' ? '<span class="badge badge-self">עצמאי</span>' : '<span class="badge badge-trainer">עם מאמן</span>';
 
-  const prevSession = sessions[_trackingSessionIdx + 1] || null;
+  const prevSession = _trackingSessionIdx > 0 ? sessions[_trackingSessionIdx - 1] : null;
 
   const exRows = current.log.map(ex => {
     if (!ex.exerciseName) return '';
