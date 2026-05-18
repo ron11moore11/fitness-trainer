@@ -898,62 +898,65 @@ function renderNewWorkout() {
     .sort((a,b) => b.date.localeCompare(a.date) || (b.time||'').localeCompare(a.time||''));
 
   if (sessions.length) {
-    html += '<h3 style="color:var(--accent2);margin:24px 0 14px">אימונים קודמים</h3>';
+    // Build matrix: exercises as rows, sessions as columns
+    // Collect all unique exercise names in order of first appearance
+    const allExNames = [];
     sessions.forEach(s => {
+      if (!s.log) return;
+      s.log.forEach(ex => {
+        if (ex.exerciseName && !allExNames.includes(ex.exerciseName)) allExNames.push(ex.exerciseName);
+      });
+    });
+
+    // Sort sessions ascending for left-to-right reading (oldest → newest)
+    const sortedSessions = [...sessions].sort((a,b) => a.date.localeCompare(b.date));
+
+    // Column headers: date + workout name
+    const colHeaders = sortedSessions.map(s => {
       const wName = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
       const isSelf = s.source === 'client';
-      const sourceBadge = isSelf ? '<span class="badge badge-self">עצמאית</span>' : '<span class="badge badge-trainer">עם מאמן</span>';
+      return `<th style="padding:8px 6px;text-align:center;color:var(--text);border-bottom:2px solid var(--border);font-weight:600;font-size:.78rem;min-width:90px;vertical-align:bottom">
+        <div>${fmtDate(s.date)}</div>
+        ${wName?'<div style="color:var(--accent2);font-size:.7rem">'+esc(wName)+'</div>':''}
+        <div style="margin-top:3px">${isSelf?'<span class="badge badge-self" style="font-size:.65rem">עצמאית</span>':'<span class="badge badge-trainer" style="font-size:.65rem">עם מאמן</span>'}</div>
+      </th>`;
+    }).join('');
 
-      const editBtn = isSelf ? `<button class="btn btn-sm" onclick="editClientSession('${s.id}')" title="ערוך">&#9998;</button>` : '';
-      const deleteBtn = isSelf ? `<button class="btn btn-sm" style="background:#7b1d2e" onclick="deleteClientSession('${s.id}')" title="מחק">&#128465;</button>` : '';
-      const liveBtn = `<button class="btn btn-sm" style="background:#5c4b9e" onclick="openLiveFromCalendar('${s.id}')" title="אימון חי">&#128203;</button>`;
+    // Exercise rows
+    const exRows = allExNames.map(exName => {
+      const cells = sortedSessions.map(s => {
+        if (!s.log) return '<td style="padding:6px;text-align:center;color:var(--border);border-bottom:1px solid rgba(15,52,96,.3)">—</td>';
+        const ex = s.log.find(e => e.exerciseName === exName);
+        if (!ex) return '<td style="padding:6px;text-align:center;color:var(--border);border-bottom:1px solid rgba(15,52,96,.3)">—</td>';
 
-      // Session header
-      html += `<div class="card" style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-          <div>
-            <span style="font-weight:700;color:var(--text)">${fmtDate(s.date)}</span>
-            ${s.time?' · <span style="color:var(--muted)">'+esc(s.time)+'</span>':''}
-            ${wName?' · <span style="color:var(--accent2);font-weight:600">'+esc(wName)+'</span>':''}
-          </div>
-          <div style="display:flex;gap:6px;align-items:center">${sourceBadge} ${editBtn}${deleteBtn}${liveBtn}</div>
-        </div>`;
+        // Format sets: each set as "reps×weight" on its own line
+        const setsHtml = ex.sets.map(st => {
+          const r = st.reps || '—';
+          const w = st.weight || '—';
+          return `<div style="font-size:.78rem">${r}x${w}</div>`;
+        }).join('');
 
-      // Exercise table - always open
-      if (s.log && s.log.length) {
-        const maxSets = Math.max(...s.log.map(ex => ex.sets.length));
-        const setHeaders = Array.from({length:maxSets}, (_,i) => `<th style="padding:5px 8px;text-align:center;color:var(--muted);font-size:.75rem;font-weight:600;border-bottom:1px solid var(--border)">ס${i+1}</th>`).join('');
+        return `<td style="padding:6px;text-align:center;border-bottom:1px solid rgba(15,52,96,.3)">${setsHtml}</td>`;
+      }).join('');
 
-        html += `<div class="table-wrap">
-          <table style="width:100%;border-collapse:collapse;font-size:.82rem">
-            <thead><tr>
-              <th style="padding:5px 10px;text-align:right;color:var(--accent2);font-size:.78rem;font-weight:600;border-bottom:1px solid var(--border)">תרגיל</th>
-              ${setHeaders}
-            </tr></thead>
-            <tbody>`;
+      return `<tr>
+        <td style="padding:6px 10px;color:var(--accent2);font-weight:600;font-size:.82rem;border-bottom:1px solid rgba(15,52,96,.3);white-space:nowrap">${esc(exName)}</td>
+        ${cells}
+      </tr>`;
+    }).join('');
 
-        s.log.forEach(ex => {
-          const setCells = Array.from({length:maxSets}, (_,i) => {
-            const set = ex.sets[i];
-            if (!set) return '<td style="padding:4px 8px;text-align:center;color:var(--border)">—</td>';
-            const reps = set.reps || '—';
-            const weight = set.weight || '—';
-            return `<td style="padding:4px 8px;text-align:center">${reps}x${weight}</td>`;
-          }).join('');
-
-          html += `<tr style="border-bottom:1px solid rgba(15,52,96,.3)">
-            <td style="padding:5px 10px;color:var(--accent2);font-weight:600">${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank" style="color:var(--accent2);text-decoration:none">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}</td>
-            ${setCells}
-          </tr>`;
-        });
-
-        html += '</tbody></table></div>';
-      } else {
-        html += '<div style="color:var(--muted);font-size:.85rem;padding:8px 0">טרם תועד</div>';
-      }
-
-      html += '</div>';
-    });
+    html += `<div class="card">
+      <h3 style="color:var(--accent2);margin-bottom:14px">אימונים קודמים</h3>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted);border-bottom:2px solid var(--border);font-weight:600;font-size:.82rem;position:sticky;right:0;background:var(--card);z-index:1">תרגיל</th>
+            ${colHeaders}
+          </tr></thead>
+          <tbody>${exRows}</tbody>
+        </table>
+      </div>
+    </div>`;
   }
 
   container.innerHTML = html;
