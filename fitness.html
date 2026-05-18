@@ -339,14 +339,35 @@
     .cp-log-sets { color: var(--muted); font-size: .78rem; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
 
     /* TRACKING */
-    .tr-exercise { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    .tr-exercise-name { font-size: 1rem; font-weight: 700; color: var(--accent2); margin-bottom: 10px; }
-    .tr-table { width: 100%; border-collapse: collapse; font-size: .8rem; margin-bottom: 12px; }
-    .tr-table th { background: var(--bg); color: var(--muted); padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--border); font-weight: 600; }
-    .tr-table td { padding: 5px 8px; text-align: center; border-bottom: 1px solid rgba(15,52,96,.3); }
+    .tr-date-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; }
+    .tr-date-pills::-webkit-scrollbar { height: 4px; }
+    .tr-date-pills::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .tr-date-pill { background: var(--bg); border: 2px solid var(--border); border-radius: 10px; padding: 8px 16px; cursor: pointer; white-space: nowrap; font-size: .82rem; transition: all .2s; flex-shrink: 0; text-align: center; }
+    .tr-date-pill:hover { border-color: var(--accent); color: var(--accent); }
+    .tr-date-pill.active { border-color: var(--accent); background: rgba(233,69,96,.1); color: var(--accent); font-weight: 600; }
+    .tr-date-pill .tr-pill-date { font-weight: 600; }
+    .tr-date-pill .tr-pill-name { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .tr-date-pill.active .tr-pill-name { color: var(--accent); opacity: .7; }
+    .tr-session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+    .tr-session-title { font-size: 1.1rem; font-weight: 700; color: var(--accent2); }
+    .tr-session-meta { font-size: .82rem; color: var(--muted); }
+    .tr-ex-row { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 10px; }
+    .tr-ex-name { font-size: .95rem; font-weight: 700; color: var(--accent2); margin-bottom: 8px; cursor: pointer; }
+    .tr-ex-name:hover { text-decoration: underline; }
+    .tr-ex-name a { color: var(--accent2); text-decoration: none; }
+    .tr-ex-name a:hover { text-decoration: underline; }
+    .tr-ex-sets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+    .tr-ex-set { background: var(--bg); padding: 5px 12px; border-radius: 8px; font-size: .82rem; }
+    .tr-ex-prev { font-size: .78rem; color: var(--muted); margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tr-delta { font-size: .78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+    .tr-delta-up { background: rgba(76,175,80,.15); color: #4caf50; }
+    .tr-delta-down { background: rgba(233,69,96,.15); color: var(--accent); }
+    .tr-delta-same { background: rgba(136,136,136,.15); color: var(--muted); }
     .tr-chart { width: 100%; height: 120px; position: relative; margin-top: 8px; }
     .tr-chart svg { width: 100%; height: 100%; }
     .tr-legend { display: flex; gap: 16px; justify-content: center; font-size: .72rem; color: var(--muted); margin-top: 4px; }
+    .tr-chart-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 16px; }
+    .tr-chart-title { font-size: .9rem; font-weight: 600; color: var(--accent2); margin-bottom: 8px; }
 
     /* DAY POPUP */
     .day-session-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -2021,71 +2042,169 @@ function sendPlanToWhatsApp(planId) {
 // ===== TRACKING =========
 // ========================
 let _trackingClientId = '';
+let _trackingSessionIdx = 0;
+let _trackingChartExercise = '';
+
 function openTracking(clientId) {
   _trackingClientId = clientId;
+  _trackingSessionIdx = 0;
+  _trackingChartExercise = '';
   switchTab('tracking');
 }
+
+function selectTrackingSession(idx) {
+  _trackingSessionIdx = idx;
+  _trackingChartExercise = '';
+  renderTrackingContent();
+}
+
+function toggleTrackingChart(exName) {
+  _trackingChartExercise = _trackingChartExercise === exName ? '' : exName;
+  renderTrackingContent();
+}
+
 function renderTracking() {
-  // Populate client dropdown
   const sel = document.getElementById('tracking-client-sel');
   if (sel) {
     const selVal = sel.value || _trackingClientId;
     sel.innerHTML = '<option value="">— בחר מתאמן —</option>' + clientOptions(selVal);
+    if (selVal !== _trackingClientId) { _trackingSessionIdx = 0; _trackingChartExercise = ''; }
     _trackingClientId = selVal;
   }
+  renderTrackingContent();
+}
+
+function renderTrackingContent() {
   const container = document.getElementById('tracking-content');
   if (!_trackingClientId) { container.innerHTML = '<div class="empty">בחר מתאמן כדי לראות מעקב.</div>'; return; }
 
-  // Get all logged sessions for this client, sorted by date
   const sessions = load('sessions')
     .filter(s => s.clientId === _trackingClientId && s.log && s.log.length)
-    .sort((a,b) => a.date.localeCompare(b.date));
+    .sort((a,b) => b.date.localeCompare(a.date));
   if (!sessions.length) { container.innerHTML = '<div class="empty">אין אימונים מתועדים למתאמן זה.</div>'; return; }
 
-  // Build exercise history: { exerciseName: [ { date, sets: [{reps, weight}] } ] }
-  const exerciseHistory = {};
-  sessions.forEach(s => {
-    s.log.forEach(ex => {
-      if (!ex.exerciseName) return;
-      if (!exerciseHistory[ex.exerciseName]) exerciseHistory[ex.exerciseName] = [];
-      exerciseHistory[ex.exerciseName].push({ date: s.date, sets: ex.sets || [] });
-    });
-  });
+  if (_trackingSessionIdx >= sessions.length) _trackingSessionIdx = 0;
 
-  let html = '';
-  Object.keys(exerciseHistory).forEach(exName => {
-    const entries = exerciseHistory[exName];
-    // Table
-    const tableRows = entries.map(e => {
-      const setsStr = e.sets.map((s,i) => `${s.reps||'—'}×${s.weight||'—'}`).join(' | ');
-      const maxWeight = Math.max(...e.sets.map(s => +s.weight || 0));
-      const totalReps = e.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
-      return `<tr><td>${fmtDate(e.date)}</td><td>${e.sets.length}</td><td>${setsStr}</td><td>${maxWeight||'—'}</td><td>${totalReps}</td></tr>`;
-    }).join('');
+  // Date pills
+  const pills = sessions.map((s,i) => {
+    const wName = s.planId ? getTrackingWorkoutName(s.planId, s.workoutIdx) : '';
+    return `<button class="tr-date-pill${i===_trackingSessionIdx?' active':''}" onclick="selectTrackingSession(${i})">
+      <div class="tr-pill-date">${fmtDate(s.date)}</div>
+      ${wName?`<div class="tr-pill-name">${esc(wName)}</div>`:''}
+    </button>`;
+  }).join('');
 
-    // Chart data: max weight per session
-    const chartData = entries.map(e => ({
-      date: e.date,
-      weight: Math.max(...e.sets.map(s => +s.weight || 0)),
-      reps: e.sets.reduce((sum,s) => sum + (+s.reps||0), 0)
-    }));
-    const chartSvg = renderTrackingChart(chartData);
+  // Selected session
+  const current = sessions[_trackingSessionIdx];
+  const pName = current.planId ? planName(current.planId) : '';
+  const wName = current.planId ? getTrackingWorkoutName(current.planId, current.workoutIdx) : '';
+  const source = current.source === 'client' ? '<span class="badge" style="background:rgba(168,218,220,.15);color:var(--accent2)">עצמאי</span>' : '<span class="badge" style="background:rgba(233,69,96,.15);color:var(--accent)">עם מאמן</span>';
 
-    html += `<div class="tr-exercise">
-      <div class="tr-exercise-name">${esc(exName)}</div>
-      <table class="tr-table">
-        <thead><tr><th>תאריך</th><th>סטים</th><th>חזרות×משקל</th><th>משקל מקס׳</th><th>סה״כ חזרות</th></tr></thead>
-        <tbody>${tableRows}</tbody>
-      </table>
-      <div class="tr-chart">${chartSvg}</div>
-      <div class="tr-legend"><span style="color:var(--accent)">● משקל מקסימלי</span> <span style="color:var(--accent2)">● סה״כ חזרות</span></div>
+  // Find previous session (the one right after in the sorted-desc array)
+  const prevSession = sessions[_trackingSessionIdx + 1] || null;
+
+  // Build exercise rows
+  const exRows = current.log.map(ex => {
+    if (!ex.exerciseName) return '';
+    const currentMaxW = Math.max(...ex.sets.map(s => +s.weight || 0));
+    const currentTotalR = ex.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
+    const setsHtml = ex.sets.map((s,i) => `<span class="tr-ex-set">סט${i+1}: ${s.reps||'—'}x${s.weight||'—'}</span>`).join('');
+
+    // Find same exercise in previous session
+    let prevHtml = '';
+    if (prevSession) {
+      const prevEx = prevSession.log.find(e => e.exerciseName === ex.exerciseName);
+      if (prevEx) {
+        const prevMaxW = Math.max(...prevEx.sets.map(s => +s.weight || 0));
+        const prevTotalR = prevEx.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
+        const prevSets = prevEx.sets.map((s,i) => `${s.reps||'—'}x${s.weight||'—'}`).join(', ');
+
+        let deltaHtml = '';
+        if (currentMaxW > 0 && prevMaxW > 0) {
+          const diff = currentMaxW - prevMaxW;
+          if (diff > 0) deltaHtml = `<span class="tr-delta tr-delta-up">+${diff}kg ↑</span>`;
+          else if (diff < 0) deltaHtml = `<span class="tr-delta tr-delta-down">${diff}kg ↓</span>`;
+          else deltaHtml = `<span class="tr-delta tr-delta-same">ללא שינוי</span>`;
+        }
+        if (!deltaHtml && currentTotalR > 0 && prevTotalR > 0) {
+          const diff = currentTotalR - prevTotalR;
+          if (diff > 0) deltaHtml = `<span class="tr-delta tr-delta-up">+${diff} חזרות ↑</span>`;
+          else if (diff < 0) deltaHtml = `<span class="tr-delta tr-delta-down">${diff} חזרות ↓</span>`;
+          else deltaHtml = `<span class="tr-delta tr-delta-same">ללא שינוי</span>`;
+        }
+
+        prevHtml = `<div class="tr-ex-prev">
+          <span>קודם (${fmtDate(prevSession.date)}): ${prevSets}</span>
+          ${deltaHtml}
+        </div>`;
+      } else {
+        prevHtml = '<div class="tr-ex-prev"><span>תרגיל חדש באימון זה</span></div>';
+      }
+    }
+
+    const isChartOpen = _trackingChartExercise === ex.exerciseName;
+    let chartHtml = '';
+    if (isChartOpen) {
+      chartHtml = renderExerciseChart(ex.exerciseName, sessions);
+    }
+
+    return `<div class="tr-ex-row">
+      <div class="tr-ex-name" onclick="toggleTrackingChart('${esc(ex.exerciseName).replace(/'/g,"\\'")}')">
+        ${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank" onclick="event.stopPropagation()">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}
+        ${ex.category?` <span class="badge badge-cat">${esc(ex.category)}</span>`:''}
+        <span style="font-size:.72rem;color:var(--muted);margin-right:6px">${isChartOpen?'▲ הסתר גרף':'▼ גרף'}</span>
+      </div>
+      <div class="tr-ex-sets">${setsHtml}</div>
+      ${prevHtml}
+      ${chartHtml}
     </div>`;
-  });
-  container.innerHTML = html;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="tr-date-pills">${pills}</div>
+    <div class="tr-session-header">
+      <div>
+        <div class="tr-session-title">${pName?esc(pName)+' · ':''}${wName?esc(wName)+' · ':''}${fmtDate(current.date)}</div>
+        <div class="tr-session-meta">${current.time?esc(current.time)+' · ':''}${current.log.length} תרגילים</div>
+      </div>
+      ${source}
+    </div>
+    ${exRows}`;
+}
+
+function getTrackingWorkoutName(planId, workoutIdx) {
+  const plan = load('plans').find(p=>p.id===planId);
+  if (!plan) return '';
+  const workouts = getPlanWorkouts(plan);
+  return (workouts[workoutIdx||0]||{}).name || '';
+}
+
+function renderExerciseChart(exName, sessions) {
+  // Gather all data for this exercise across all sessions
+  const data = [];
+  // sessions is already sorted desc, reverse for chart (oldest first)
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    const s = sessions[i];
+    const ex = s.log.find(e => e.exerciseName === exName);
+    if (ex) {
+      data.push({
+        date: s.date,
+        weight: Math.max(...ex.sets.map(st => +st.weight || 0)),
+        reps: ex.sets.reduce((sum,st) => sum + (+st.reps||0), 0)
+      });
+    }
+  }
+  if (data.length < 2) return '<div style="color:var(--muted);font-size:.78rem;text-align:center;padding:8px">נדרשים לפחות 2 אימונים להצגת גרף</div>';
+
+  const chartSvg = renderTrackingChart(data);
+  return `<div class="tr-chart-card">
+    <div class="tr-chart-title">התקדמות: ${esc(exName)}</div>
+    <div class="tr-chart">${chartSvg}</div>
+    <div class="tr-legend"><span style="color:var(--accent)">● משקל מקסימלי</span> <span style="color:var(--accent2)">● סה״כ חזרות</span></div>
+  </div>`;
 }
 
 function renderTrackingChart(data) {
-  if (data.length < 2) return '<div style="color:var(--muted);font-size:.78rem;text-align:center">נדרשים לפחות 2 אימונים להצגת גרף</div>';
   const w = 600, h = 110, pad = 30;
   const maxW = Math.max(...data.map(d=>d.weight)) || 1;
   const maxR = Math.max(...data.map(d=>d.reps)) || 1;
@@ -2103,7 +2222,6 @@ function renderTrackingChart(data) {
     repsDots.push(`<circle cx="${x}" cy="${yR}" r="3" fill="var(--accent2)"/>`);
   });
 
-  // X axis labels (dates)
   const labels = data.map((d,i) => {
     const x = pad + i * xStep;
     const short = d.date.slice(5).replace('-','/');
