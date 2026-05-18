@@ -856,73 +856,120 @@ function renderNewWorkout() {
   }
 
   const plans = load('plans').filter(p => p.clientId === _currentClientId && !p.isTemplate);
-  if (!plans.length) {
-    container.innerHTML = '<div class="empty">אין תוכניות אימון מוקצות. פנה למאמן כדי לקבל תוכנית.</div>';
-    return;
-  }
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0,10);
+  const nowTime = now.toTimeString().slice(0,5);
 
-  let html = '<div class="plan-picker">';
-  plans.forEach(plan => {
-    const workouts = getPlanWorkouts(plan);
-    const btns = workouts.map((w,i) =>
-      `<button class="workout-btn" onclick="startClientWorkout('${plan.id}',${i})">${esc(w.name)}<br><small style="color:var(--muted)">${w.exercises.length} תרגילים</small></button>`
-    ).join('');
-    html += `<div class="plan-pick-card">
-      <div class="plan-pick-name">${esc(plan.name)}</div>
-      <div class="workout-btns">${btns}</div>
+  // New workout section
+  let html = `<div class="card" style="margin-bottom:20px">
+    <h3 style="color:var(--accent2);margin-bottom:14px">הוספת אימון חדש</h3>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
+      <div class="form-group" style="margin:0;min-width:140px">
+        <label>תאריך</label>
+        <input type="date" id="new-workout-date" value="${todayStr}">
+      </div>
+      <div class="form-group" style="margin:0;min-width:100px">
+        <label>שעה</label>
+        <input type="time" id="new-workout-time" value="${nowTime}">
+      </div>
     </div>`;
-  });
+
+  if (!plans.length) {
+    html += '<div class="empty" style="padding:16px">אין תוכניות אימון מוקצות. פנה למאמן כדי לקבל תוכנית.</div>';
+  } else {
+    html += '<div class="plan-picker">';
+    plans.forEach(plan => {
+      const workouts = getPlanWorkouts(plan);
+      const btns = workouts.map((w,i) =>
+        `<button class="workout-btn" onclick="startClientWorkout('${plan.id}',${i})">${esc(w.name)}<br><small style="color:var(--muted)">${w.exercises.length} תרגילים</small></button>`
+      ).join('');
+      html += `<div class="plan-pick-card">
+        <div class="plan-pick-name">${esc(plan.name)}</div>
+        <div class="workout-btns">${btns}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
   html += '</div>';
 
-  // Past workouts history
+  // Past workouts table
   const sessions = load('sessions')
     .filter(s => s.clientId === _currentClientId && s.type === 'training')
     .sort((a,b) => b.date.localeCompare(a.date) || (b.time||'').localeCompare(a.time||''));
 
   if (sessions.length) {
-    html += '<h2 style="font-size:1.1rem;color:var(--accent2);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">אימונים קודמים</h2>';
-    html += sessions.map(s => {
-      const pName = s.planId ? planName(s.planId) : '';
+    html += `<div class="card">
+      <h3 style="color:var(--accent2);margin-bottom:14px">אימונים קודמים</h3>
+      <div class="table-wrap">
+        <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+          <thead>
+            <tr>
+              <th style="padding:8px 10px;text-align:right;color:var(--muted);border-bottom:2px solid var(--border);font-weight:600">תאריך</th>
+              <th style="padding:8px 10px;text-align:right;color:var(--muted);border-bottom:2px solid var(--border);font-weight:600">אימון</th>
+              <th style="padding:8px 10px;text-align:center;color:var(--muted);border-bottom:2px solid var(--border);font-weight:600">תרגילים</th>
+              <th style="padding:8px 10px;text-align:center;color:var(--muted);border-bottom:2px solid var(--border);font-weight:600">סוג</th>
+              <th style="padding:8px 10px;text-align:center;color:var(--muted);border-bottom:2px solid var(--border);font-weight:600">פעולות</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+    sessions.forEach(s => {
       const wName = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
-      const exCount = (s.log && s.log.length) ? s.log.length + ' תרגילים' : 'טרם תועד';
+      const exCount = (s.log && s.log.length) || 0;
       const isSelf = s.source === 'client';
       const sourceBadge = isSelf ? '<span class="badge badge-self">עצמאית</span>' : '<span class="badge badge-trainer">עם מאמן</span>';
       const isExpanded = _expandedSession === s.id;
 
-      let detailHtml = '';
-      if (isExpanded && s.log && s.log.length) {
-        detailHtml = '<div class="workout-card-detail">' + s.log.map(ex => {
-          const setsStr = ex.sets.map((st,i) => `<span class="wcd-set">סט${i+1}: ${st.reps||'—'}x${st.weight||'—'}</span>`).join('');
-          return `<div class="wcd-exercise">
-            <div class="wcd-ex-name">${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}${ex.category?` <span class="badge badge-cat">${esc(ex.category)}</span>`:''}</div>
-            <div class="wcd-sets">${setsStr}</div>
-          </div>`;
-        }).join('') + '</div>';
-      } else if (isExpanded) {
-        detailHtml = '<div class="workout-card-detail"><div class="empty" style="padding:12px">לא תועדו תרגילים</div></div>';
-      }
-
-      const editBtn = isSelf
-        ? `<button class="btn btn-sm" onclick="event.stopPropagation();editClientSession('${s.id}')" title="ערוך">&#9998;</button>`
-        : '';
-      const deleteBtn = isSelf
-        ? `<button class="btn btn-sm" style="background:#7b1d2e" onclick="event.stopPropagation();deleteClientSession('${s.id}')" title="מחק">&#128465;</button>`
-        : '';
+      const editBtn = isSelf ? `<button class="btn btn-sm" onclick="event.stopPropagation();editClientSession('${s.id}')" title="ערוך">&#9998;</button>` : '';
+      const deleteBtn = isSelf ? `<button class="btn btn-sm" style="background:#7b1d2e" onclick="event.stopPropagation();deleteClientSession('${s.id}')" title="מחק">&#128465;</button>` : '';
       const liveBtn = `<button class="btn btn-sm" style="background:#5c4b9e" onclick="event.stopPropagation();openLiveFromCalendar('${s.id}')" title="אימון חי">&#128203;</button>`;
 
-      return `<div class="workout-card${isExpanded?' expanded':''}" onclick="toggleSessionInTable('${s.id}')">
-        <div class="workout-card-header">
-          <div>
-            <div class="workout-card-date">${fmtDate(s.date)}${s.time?' · '+esc(s.time):''}</div>
-            <div class="workout-card-info">${pName?esc(pName):''} ${wName?'· '+esc(wName):''} · ${exCount}</div>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center">
-            ${sourceBadge} ${editBtn} ${deleteBtn} ${liveBtn}
-          </div>
-        </div>
-        ${detailHtml}
-      </div>`;
-    }).join('');
+      html += `<tr style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="toggleSessionInTable('${s.id}')">
+        <td style="padding:10px">${fmtDate(s.date)}${s.time?' · '+esc(s.time):''}</td>
+        <td style="padding:10px">${wName?esc(wName):'—'}</td>
+        <td style="padding:10px;text-align:center">${exCount||'—'}</td>
+        <td style="padding:10px;text-align:center">${sourceBadge}</td>
+        <td style="padding:10px;text-align:center"><div style="display:flex;gap:4px;justify-content:center">${editBtn}${deleteBtn}${liveBtn}</div></td>
+      </tr>`;
+
+      // Expanded exercise detail row
+      if (isExpanded) {
+        if (s.log && s.log.length) {
+          // Find max sets count for table columns
+          const maxSets = Math.max(...s.log.map(ex => ex.sets.length));
+          const setHeaders = Array.from({length:maxSets}, (_,i) => `<th style="padding:4px 8px;text-align:center;color:var(--muted);font-size:.75rem;font-weight:600">ס${i+1}</th>`).join('');
+
+          html += `<tr><td colspan="5" style="padding:0;background:var(--bg)">
+            <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin:0">
+              <thead><tr>
+                <th style="padding:6px 10px;text-align:right;color:var(--accent2);font-size:.78rem;border-bottom:1px solid var(--border)">תרגיל</th>
+                ${setHeaders}
+              </tr></thead>
+              <tbody>`;
+
+          s.log.forEach(ex => {
+            const setCells = Array.from({length:maxSets}, (_,i) => {
+              const set = ex.sets[i];
+              if (!set) return '<td style="padding:4px 8px;text-align:center;color:var(--border)">—</td>';
+              const reps = set.reps || '—';
+              const weight = set.weight || '—';
+              return `<td style="padding:4px 8px;text-align:center">${reps}x${weight}</td>`;
+            }).join('');
+
+            html += `<tr style="border-bottom:1px solid rgba(15,52,96,.3)">
+              <td style="padding:6px 10px;color:var(--accent2);font-weight:600">${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank" style="color:var(--accent2);text-decoration:none">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}</td>
+              ${setCells}
+            </tr>`;
+          });
+
+          html += '</tbody></table></td></tr>';
+        } else {
+          html += `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--muted);background:var(--bg)">לא תועדו תרגילים</td></tr>`;
+        }
+      }
+    });
+
+    html += '</tbody></table></div></div>';
   }
 
   container.innerHTML = html;
@@ -934,6 +981,8 @@ function toggleSessionInTable(sessionId) {
 }
 
 async function startClientWorkout(planId, workoutIdx) {
+  const dateInput = document.getElementById('new-workout-date');
+  const timeInput = document.getElementById('new-workout-time');
   const now = new Date();
   const session = {
     id: uid(),
@@ -941,8 +990,8 @@ async function startClientWorkout(planId, workoutIdx) {
     clientId: _currentClientId,
     planId: planId,
     workoutIdx: workoutIdx,
-    date: now.toISOString().slice(0,10),
-    time: now.toTimeString().slice(0,5),
+    date: (dateInput && dateInput.value) || now.toISOString().slice(0,10),
+    time: (timeInput && timeInput.value) || now.toTimeString().slice(0,5),
     duration: '',
     notes: '',
     source: 'client',
