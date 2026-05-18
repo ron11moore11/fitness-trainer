@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>האימונים שלי</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #1a1a2e;
+      --card:    #16213e;
+      --border:  #0f3460;
+      --accent:  #e94560;
+      --accent2: #a8dadc;
+      --text:    #e0e0e0;
+      --muted:   #888;
+    }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* LOADING */
+    #loading-overlay {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; z-index: 999;
+    }
+    .loading-box { text-align: center; color: var(--accent2); }
+    .spinner {
+      width: 44px; height: 44px; border: 4px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .8s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-box p { font-size: 1rem; }
+    .loading-box small { color: var(--muted); font-size: .82rem; margin-top: 6px; display: block; }
+
+    /* NAV */
+    nav {
+      background: var(--card); border-bottom: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 60px; position: sticky; top: 0; z-index: 100; gap: 12px;
+    }
+    .app-title { color: var(--accent); font-size: 1.2rem; font-weight: bold; text-shadow: 0 0 15px rgba(233,69,96,.5); white-space: nowrap; }
+    .nav-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .nav-tab {
+      background: none; border: 2px solid transparent; color: var(--muted);
+      padding: 7px 13px; border-radius: 8px; cursor: pointer; font-size: .85rem; transition: all .2s;
+    }
+    .nav-tab:hover { color: var(--text); border-color: var(--border); }
+    .nav-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(233,69,96,.1); }
+
+    /* MAIN */
+    main { padding: 24px; max-width: 900px; margin: 0 auto; }
+    section[id^="tab-"] { display: none; }
+    section[id^="tab-"].active { display: block; }
+
+    /* CARDS */
+    .card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 18px; }
+    .card-title { color: var(--accent2); font-size: 1rem; margin-bottom: 6px; }
+
+    /* SECTION HEADER */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+    .section-header h2 { font-size: 1.2rem; color: var(--accent2); }
+
+    /* BUTTONS */
+    .btn {
+      background: var(--accent); color: #fff; border: none; padding: 8px 20px;
+      border-radius: 8px; cursor: pointer; font-size: .9rem;
+      transition: background .2s, transform .1s; text-decoration: none; display: inline-block;
+    }
+    .btn:hover { background: #c73652; transform: scale(1.03); }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn-sm { padding: 4px 12px; font-size: .8rem; }
+    .btn-ghost { background: none; border: 2px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: none; transform: scale(1.03); }
+
+    /* BADGES */
+    .badge { padding: 3px 10px; border-radius: 10px; font-size: .75rem; font-weight: 600; display: inline-block; }
+    .badge-cat { background: rgba(168,218,220,.15); color: var(--accent2); }
+    .badge-trainer { background: rgba(233,69,96,.15); color: var(--accent); }
+    .badge-self { background: rgba(168,218,220,.15); color: var(--accent2); }
+    .badge-logged { background: rgba(92,75,158,.2); color: #b39ddb; }
+
+    /* EMPTY */
+    .empty { text-align: center; color: var(--muted); padding: 40px; font-size: 1rem; }
+
+    /* FORM */
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-group label { font-size: .85rem; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea { background: var(--bg); border: 2px solid var(--border); border-radius: 8px; color: var(--text); padding: 9px 12px; font-size: .9rem; font-family: inherit; width: 100%; transition: border-color .2s; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent2); }
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+
+    /* MODAL */
+    #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; justify-content: center; align-items: center; padding: 20px; }
+    #modal-overlay.open { display: flex; }
+    #modal-box { background: var(--card); border: 2px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; position: relative; }
+    #modal-title { color: var(--accent2); font-size: 1.2rem; margin-bottom: 20px; }
+    #modal-close { position: absolute; top: 16px; left: 16px; background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; line-height: 1; }
+    #modal-close:hover { color: var(--accent); }
+
+    /* LOGIN */
+    #login-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .login-box {
+      background: var(--card); border: 2px solid var(--border); border-radius: 16px;
+      padding: 40px 32px; width: 100%; max-width: 360px; text-align: center;
+    }
+    .login-box h1 { color: var(--accent); font-size: 1.6rem; margin-bottom: 8px; }
+    .login-box p { color: var(--muted); font-size: .9rem; margin-bottom: 24px; }
+    .login-box input {
+      width: 100%; background: var(--bg); border: 2px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: 12px 14px; font-size: 1rem; font-family: inherit;
+      text-align: center; margin-bottom: 16px; transition: border-color .2s;
+    }
+    .login-box input:focus { outline: none; border-color: var(--accent2); }
+    .login-error { color: var(--accent); font-size: .85rem; margin-bottom: 12px; min-height: 1.2em; }
+    .logout-btn {
+      background: none; border: 2px solid var(--border); color: var(--muted);
+      padding: 5px 14px; border-radius: 8px; cursor: pointer; font-size: .8rem; transition: all .2s;
+    }
+    .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); border: 2px solid var(--accent2); color: var(--text); padding: 12px 24px; border-radius: 12px; z-index: 500; opacity: 0; transition: all .3s; font-size: .95rem; white-space: nowrap; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* MY WORKOUTS */
+    .workout-card {
+      background: var(--card); border: 2px solid var(--border); border-radius: 12px;
+      padding: 16px; margin-bottom: 10px; cursor: pointer; transition: border-color .2s;
+    }
+    .workout-card:hover { border-color: var(--accent2); }
+    .workout-card.expanded { border-color: var(--accent); }
+    .workout-card-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .workout-card-date { font-size: .95rem; font-weight: 600; color: var(--text); }
+    .workout-card-info { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+    .workout-card-detail {
+      margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+    }
+    .wcd-exercise { margin-bottom: 10px; }
+    .wcd-ex-name { color: var(--accent2); font-weight: 600; font-size: .88rem; margin-bottom: 4px; }
+    .wcd-ex-name a { color: var(--accent2); text-decoration: none; }
+    .wcd-ex-name a:hover { text-decoration: underline; }
+    .wcd-sets { display: flex; flex-wrap: wrap; gap: 6px; }
+    .wcd-set { background: var(--bg); padding: 3px 10px; border-radius: 6px; font-size: .78rem; color: var(--muted); }
+
+    /* NEW WORKOUT - PICKER */
+    .plan-picker { display: flex; flex-direction: column; gap: 16px; }
+    .plan-pick-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 18px; }
+    .plan-pick-name { font-size: 1.05rem; font-weight: 700; color: var(--accent2); margin-bottom: 12px; }
+    .workout-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .workout-btn {
+      background: var(--bg); border: 2px solid var(--border); color: var(--text);
+      padding: 12px 24px; border-radius: 10px; cursor: pointer; font-size: .95rem;
+      transition: all .2s; min-width: 100px; text-align: center;
+    }
+    .workout-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(233,69,96,.08); }
+
+    /* LIVE WORKOUT */
+    .live-workout { padding: 0 4px; }
+    .live-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; margin-bottom: 12px; border-bottom: 2px solid var(--border); position: sticky; top: 56px; background: var(--bg); z-index: 10; }
+    .live-progress { color: var(--accent2); font-size: .9rem; font-weight: 600; }
+    .live-card { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+    .live-ex-name { font-size: 1.15rem; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
+    .live-ex-name a { color: var(--accent2); text-decoration: none; }
+    .live-ex-name a:hover { text-decoration: underline; }
+    .live-prev { background: rgba(168,218,220,.08); border: 1px solid rgba(168,218,220,.2); border-radius: 10px; padding: 10px 14px; margin: 12px 0; font-size: .82rem; color: var(--muted); }
+    .live-prev-title { color: var(--accent2); font-weight: 600; margin-bottom: 4px; font-size: .78rem; }
+    .live-prev-sets { display: flex; flex-wrap: wrap; gap: 8px; }
+    .live-prev-set { background: var(--bg); padding: 3px 8px; border-radius: 6px; font-size: .78rem; }
+    .live-set-row { display: grid; grid-template-columns: 36px 1fr 1fr 1.2fr auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .live-set-row span { font-size: .82rem; color: var(--muted); text-align: center; }
+    .live-set-row input { background: var(--bg); border: 2px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px; font-size: 16px; font-family: inherit; width: 100%; min-height: 44px; }
+    .live-set-row input:focus { outline: none; border-color: var(--accent2); }
+    .live-sets-header { display: grid; grid-template-columns: 36px 1fr 1fr 1.2fr auto; gap: 8px; margin-bottom: 6px; }
+    .live-sets-header span { font-size: .72rem; color: var(--muted); text-align: center; }
+    .live-nav { display: flex; gap: 12px; margin-top: 16px; }
+    .live-nav button { flex: 1; padding: 14px; font-size: 1rem; min-height: 48px; }
+    .live-swap-btn { background: none; border: 2px dashed var(--border); color: var(--muted); padding: 10px; border-radius: 10px; cursor: pointer; font-size: .85rem; width: 100%; margin-top: 12px; transition: all .2s; text-align: center; }
+    .live-swap-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+    .live-swap-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: flex; justify-content: center; align-items: flex-start; padding-top: 60px; }
+    .live-swap-panel { background: var(--card); border: 2px solid var(--border); border-radius: 14px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+    .live-swap-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 2px solid var(--border); }
+    .ex-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 2px 6px; border-radius: 4px; }
+    .ex-remove:hover { color: var(--accent); background: rgba(233,69,96,.1); }
+    .ex-add-set { background: none; border: 1px dashed var(--border); color: var(--muted); padding: 4px; border-radius: 6px; cursor: pointer; font-size: .78rem; width: 100%; margin-top: 4px; }
+    .ex-add-set:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* SWAP BROWSER */
+    .pb-group-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: right; padding: 10px 16px; background: none; border: none; border-bottom: 1px solid rgba(15,52,96,.4); color: var(--text); font-size: .88rem; cursor: pointer; transition: background .2s; }
+    .pb-group-btn:hover { background: rgba(233,69,96,.08); }
+    .pb-group-btn.active { background: rgba(233,69,96,.12); color: var(--accent); font-weight: 600; }
+    .pb-group-btn .pb-count { color: var(--muted); font-size: .75rem; }
+    .pb-ex-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px 8px 12px; padding-right: 28px; border-bottom: 1px solid rgba(15,52,96,.3); cursor: pointer; transition: background .2s; font-size: .84rem; }
+    .pb-ex-item:hover { background: rgba(168,218,220,.08); }
+    .pb-ex-names { flex: 1; }
+    .pb-ex-name { color: var(--accent2); }
+    .pb-ex-name-en { color: var(--muted); font-size: .75rem; }
+    .pb-ex-actions { display: flex; align-items: center; gap: 6px; }
+    .pb-ex-add { color: var(--accent); font-size: 1.2rem; opacity: 0; transition: opacity .2s; background: none; border: none; cursor: pointer; padding: 2px 6px; }
+    .pb-ex-item:hover .pb-ex-add { opacity: 1; }
+    .pb-empty { text-align: center; color: var(--muted); padding: 40px 20px; font-size: .9rem; }
+
+    /* TRACKING */
+    .tr-exercise { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .tr-exercise-name { font-size: 1rem; font-weight: 700; color: var(--accent2); margin-bottom: 10px; }
+    .tr-table { width: 100%; border-collapse: collapse; font-size: .8rem; margin-bottom: 12px; }
+    .tr-table th { background: var(--bg); color: var(--muted); padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--border); font-weight: 600; }
+    .tr-table td { padding: 5px 8px; text-align: center; border-bottom: 1px solid rgba(15,52,96,.3); }
+    .tr-chart { width: 100%; height: 120px; position: relative; margin-top: 8px; }
+    .tr-chart svg { width: 100%; height: 100%; }
+    .tr-legend { display: flex; gap: 16px; justify-content: center; font-size: .72rem; color: var(--muted); margin-top: 4px; }
+
+    @media (max-width: 640px) {
+      nav { flex-direction: column; height: auto; padding: 12px; gap: 8px; }
+      .nav-tabs { justify-content: center; }
+      main { padding: 14px; }
+      .live-set-row { grid-template-columns: 30px 1fr 1fr auto; }
+      .live-set-row input:nth-child(4) { display: none; }
+      .live-sets-header { grid-template-columns: 30px 1fr 1fr auto; }
+      .live-sets-header span:nth-child(4) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>💪 האימונים שלי</h1>
+    <p>הזן מספר טלפון וקוד כניסה</p>
+    <form id="login-form" onsubmit="handleClientLogin(event)">
+      <input type="tel" id="login-phone" placeholder="מספר טלפון" inputmode="numeric" pattern="[0-9]{9,15}" autocomplete="tel" autofocus>
+      <input type="password" id="login-pin" placeholder="קוד PIN" inputmode="numeric" autocomplete="current-password">
+      <div class="login-error" id="login-error"></div>
+      <button type="submit" class="btn" style="width:100%">כניסה</button>
+    </form>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-overlay" style="display:none">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p>טוען את האימונים שלך...</p>
+    <small>Firebase Firestore</small>
+  </div>
+</div>
+
+<nav>
+  <div class="app-title">💪 האימונים שלי</div>
+  <button class="logout-btn" onclick="handleLogout()">התנתק</button>
+  <div class="nav-tabs">
+    <button class="nav-tab" data-tab="myworkouts">האימונים שלי</button>
+    <button class="nav-tab" data-tab="newworkout">אימון עצמאי</button>
+    <button class="nav-tab" data-tab="tracking">מעקב התקדמות</button>
+  </div>
+</nav>
+
+<main>
+  <section id="tab-myworkouts">
+    <div class="section-header"><h2>האימונים שלי</h2></div>
+    <div id="myworkouts-content"></div>
+  </section>
+
+  <section id="tab-newworkout">
+    <div class="section-header"><h2>התחל אימון עצמאי</h2></div>
+    <div id="newworkout-content"></div>
+  </section>
+
+  <section id="tab-tracking">
+    <div class="card">
+      <div class="section-header"><h2>מעקב התקדמות</h2></div>
+      <div id="tracking-content"></div>
+    </div>
+  </section>
+</main>
+
+<div id="modal-overlay">
+  <div id="modal-box">
+    <button id="modal-close" onclick="closeModal()">&#10005;</button>
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ===== FIREBASE INIT =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBKqoqMqqpbaVYTJzTwHxiWGTY44uLFqyY",
+  authDomain: "fitness-trainer-84b8c.firebaseapp.com",
+  projectId: "fitness-trainer-84b8c",
+  storageBucket: "fitness-trainer-84b8c.firebasestorage.app",
+  messagingSenderId: "218384462790",
+  appId: "1:218384462790:web:c2ae4960ca4888a97bb8c7"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ===== IN-MEMORY CACHE =====
+const cache = { clients:[], sessions:[], plans:[], exercises:[] };
+function load(col) { return cache[col] || []; }
+
+async function saveItem(col, item) {
+  const idx = cache[col].findIndex(x => x.id === item.id);
+  if (idx >= 0) cache[col][idx] = item;
+  else cache[col].push(item);
+  await db.collection(col).doc(item.id).set(item);
+}
+
+async function initDB() {
+  const cols = Object.keys(cache);
+  await Promise.all(cols.map(async col => {
+    const snap = await db.collection(col).get();
+    cache[col] = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+  }));
+}
+
+// ===== CLIENT AUTH STATE =====
+let _currentClientId = '';
+let _currentClientName = '';
+
+// ===== HELPERS =====
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(d) { if (!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+function fmtDateLong(d) { if (!d) return ''; return new Date(d+'T00:00').toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); }
+function planName(id) { const p = load('plans').find(x=>x.id===id); return p ? p.name : ''; }
+
+function migrateExercise(e) {
+  if (e.setsData && e.setsData.length) return e;
+  const numSets = +e.sets || 3;
+  const reps = +e.reps || 10;
+  return { name:e.name||'', category:e.category||'', videoUrl:e.videoUrl||'',
+    setsData: Array.from({length:numSets}, ()=>({targetReps:reps, weight:'', notes:''})) };
+}
+
+function getPlanWorkouts(plan) {
+  if (plan.workouts) return plan.workouts;
+  return [{ name:'אימון A', exercises:(plan.exercises||[]).map(migrateExercise) }];
+}
+
+const EX_CATS = ['חזה עליון','חזה','יד אחורית','כתף צידית','גב (אנכי)','גב (אופקי)','גב (פולאובר)','יד קדמית','ארבע ראשי','האמסטרינג','תאומים','בטן','תחת','כתף אחורית','כתף קדמית','טרפזים','אמות','מקרבים'];
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ===== MODAL =====
+let _onModalSubmit = null;
+function openModal(title, bodyHTML, onSubmit) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHTML;
+  document.getElementById('modal-overlay').classList.add('open');
+  _onModalSubmit = onSubmit;
+  const form = document.getElementById('modal-form');
+  if (form && onSubmit) form.addEventListener('submit', handleModalSubmit);
+}
+async function handleModalSubmit(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('[type=submit]');
+  if (btn) { btn.disabled = true; btn.textContent = 'שומר...'; }
+  try {
+    if (_onModalSubmit) await _onModalSubmit(new FormData(e.target));
+    closeModal();
+  } catch(err) {
+    console.error(err);
+    showToast('שגיאה בשמירה');
+    if (btn) { btn.disabled = false; btn.textContent = 'שמור'; }
+  }
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('modal-body').innerHTML = '';
+  _onModalSubmit = null;
+}
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+// ===== TAB NAVIGATION =====
+const RENDERERS = { myworkouts:renderMyWorkouts, newworkout:renderNewWorkout, tracking:renderTracking };
+function switchTab(name) {
+  if (_liveWorkout.active) { closeLiveWorkout(); }
+  document.querySelectorAll('section[id^="tab-"]').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  RENDERERS[name]();
+}
+document.querySelectorAll('.nav-tab').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
+
+// ===========================
+// ===== AUTHENTICATION ======
+// ===========================
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function handleClientLogin(e) {
+  e.preventDefault();
+  const phone = document.getElementById('login-phone').value.trim();
+  const pin = document.getElementById('login-pin').value;
+  const errEl = document.getElementById('login-error');
+
+  if (!phone || !pin) { errEl.textContent = 'הזן מספר טלפון וקוד'; return; }
+
+  errEl.textContent = 'מתחבר...';
+  try {
+    // Load clients from Firestore
+    const snap = await db.collection('clients').get();
+    const clients = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+
+    // Find client by phone (normalize: remove non-digits)
+    const normalizedPhone = phone.replace(/\D/g,'');
+    const client = clients.find(c => {
+      const cPhone = (c.phone||'').replace(/\D/g,'');
+      return cPhone === normalizedPhone;
+    });
+
+    if (!client) { errEl.textContent = 'מספר טלפון לא נמצא'; document.getElementById('login-phone').focus(); return; }
+    if (!client.pinHash) { errEl.textContent = 'לא הוגדר קוד כניסה — פנה למאמן'; return; }
+
+    const hash = await sha256(pin);
+    if (hash !== client.pinHash) { errEl.textContent = 'קוד שגוי'; document.getElementById('login-pin').value = ''; document.getElementById('login-pin').focus(); return; }
+
+    // Success
+    localStorage.setItem('ft_client_auth', JSON.stringify({ clientId: client.id, phone: normalizedPhone }));
+    _currentClientId = client.id;
+    _currentClientName = client.name;
+    document.getElementById('login-screen').style.display = 'none';
+    init();
+  } catch(err) {
+    console.error(err);
+    errEl.textContent = 'שגיאה בהתחברות — נסה שוב';
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('ft_client_auth');
+  location.reload();
+}
+
+// ===========================
+// ===== MY WORKOUTS =========
+// ===========================
+let _expandedSession = '';
+
+function renderMyWorkouts() {
+  const container = document.getElementById('myworkouts-content');
+  const sessions = load('sessions')
+    .filter(s => s.clientId === _currentClientId && s.type === 'training')
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.time||'').localeCompare(a.time||''));
+
+  if (!sessions.length) {
+    container.innerHTML = '<div class="empty">אין אימונים עדיין. התחל אימון עצמאי!</div>';
+    return;
+  }
+
+  container.innerHTML = sessions.map(s => {
+    const pName = s.planId ? planName(s.planId) : '';
+    const workout = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
+    const exCount = (s.log && s.log.length) ? s.log.length : 0;
+    const isExpanded = _expandedSession === s.id;
+    const source = s.source === 'client' ? '<span class="badge badge-self">עצמאי</span>' : '<span class="badge badge-trainer">עם מאמן</span>';
+
+    let detailHtml = '';
+    if (isExpanded && s.log && s.log.length) {
+      detailHtml = '<div class="workout-card-detail">' + s.log.map(ex => {
+        const setsStr = ex.sets.map((st,i) => `<span class="wcd-set">סט${i+1}: ${st.reps||'—'}x${st.weight||'—'}</span>`).join('');
+        return `<div class="wcd-exercise">
+          <div class="wcd-ex-name">${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}${ex.category?` <span class="badge badge-cat">${esc(ex.category)}</span>`:''}</div>
+          <div class="wcd-sets">${setsStr}</div>
+        </div>`;
+      }).join('') + '</div>';
+    } else if (isExpanded) {
+      detailHtml = '<div class="workout-card-detail"><div class="empty" style="padding:16px">לא תועדו תרגילים באימון זה</div></div>';
+    }
+
+    return `<div class="workout-card${isExpanded?' expanded':''}" onclick="toggleSession('${s.id}')">
+      <div class="workout-card-header">
+        <div>
+          <div class="workout-card-date">${fmtDate(s.date)}${s.time?' · '+esc(s.time):''}</div>
+          <div class="workout-card-info">${pName?esc(pName):''} ${workout?'· '+esc(workout):''} ${exCount?'· '+exCount+' תרגילים':''}</div>
+        </div>
+        <div>${source} ${exCount?'<span class="badge badge-logged">מתועד</span>':''}</div>
+      </div>
+      ${detailHtml}
+    </div>`;
+  }).join('');
+}
+
+function getWorkoutName(planId, workoutIdx) {
+  const plan = load('plans').find(p=>p.id===planId);
+  if (!plan) return '';
+  const workouts = getPlanWorkouts(plan);
+  return (workouts[workoutIdx||0]||{}).name || '';
+}
+
+function toggleSession(sessionId) {
+  _expandedSession = _expandedSession === sessionId ? '' : sessionId;
+  renderMyWorkouts();
+}
+
+// ============================
+// ===== NEW WORKOUT ==========
+// ============================
+let _liveWorkout = { active:false, sessionId:'', currentIdx:0, log:[], session:null, previousData:{}, saveTimer:null, showSwapBrowser:false, swapExpandedCat:'' };
+
+function renderNewWorkout() {
+  const container = document.getElementById('newworkout-content');
+
+  if (_liveWorkout.active) {
+    renderLiveWorkout();
+    return;
+  }
+
+  const plans = load('plans').filter(p => p.clientId === _currentClientId && !p.isTemplate);
+  if (!plans.length) {
+    container.innerHTML = '<div class="empty">אין תוכניות אימון מוקצות. פנה למאמן כדי לקבל תוכנית.</div>';
+    return;
+  }
+
+  let html = '<div class="plan-picker">';
+  plans.forEach(plan => {
+    const workouts = getPlanWorkouts(plan);
+    const btns = workouts.map((w,i) =>
+      `<button class="workout-btn" onclick="startClientWorkout('${plan.id}',${i})">${esc(w.name)}<br><small style="color:var(--muted)">${w.exercises.length} תרגילים</small></button>`
+    ).join('');
+    html += `<div class="plan-pick-card">
+      <div class="plan-pick-name">${esc(plan.name)}</div>
+      <div class="workout-btns">${btns}</div>
+    </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+async function startClientWorkout(planId, workoutIdx) {
+  const now = new Date();
+  const session = {
+    id: uid(),
+    type: 'training',
+    clientId: _currentClientId,
+    planId: planId,
+    workoutIdx: workoutIdx,
+    date: now.toISOString().slice(0,10),
+    time: now.toTimeString().slice(0,5),
+    duration: '',
+    notes: '',
+    source: 'client',
+    isRecurring: false,
+    recurringGroupId: '',
+    log: []
+  };
+  await saveItem('sessions', session);
+  openLiveWorkout(session.id);
+}
+
+// ===========================
+// ===== LIVE WORKOUT ========
+// ===========================
+function openLiveWorkout(sessionId) {
+  const s = load('sessions').find(x=>x.id===sessionId);
+  if (!s) return;
+  let log;
+  if (s.log && s.log.length) {
+    log = JSON.parse(JSON.stringify(s.log));
+  } else if (s.planId) {
+    const plan = load('plans').find(p=>p.id===s.planId);
+    if (plan) {
+      const workouts = getPlanWorkouts(plan);
+      const workout = workouts[s.workoutIdx||0] || workouts[0];
+      if (workout && workout.exercises.length) {
+        log = workout.exercises.map(e => {
+          const ex = migrateExercise(e);
+          return { exerciseName:ex.name, category:ex.category||'', videoUrl:ex.videoUrl||'',
+            sets:ex.setsData.map(sd=>({ targetReps:+sd.targetReps||0, reps:'', weight:sd.weight||'', notes:sd.notes||'' })) };
+        });
+      } else { log = []; }
+    } else { log = []; }
+  } else { log = []; }
+  _liveWorkout = { active:true, sessionId, currentIdx:0, log, session:s, previousData:{}, saveTimer:null, showSwapBrowser:false, swapExpandedCat:'' };
+  loadPreviousSessionData(_currentClientId, log);
+  renderNewWorkout();
+}
+
+function loadPreviousSessionData(clientId, log) {
+  const past = load('sessions').filter(s=>s.clientId===clientId&&s.log&&s.log.length&&s.id!==_liveWorkout.sessionId).sort((a,b)=>b.date.localeCompare(a.date));
+  const prev = {};
+  for (const ex of log) {
+    for (const s of past) {
+      const entry = s.log.find(l=>l.exerciseName===ex.exerciseName);
+      if (entry) { prev[ex.exerciseName] = { sets:entry.sets, date:s.date }; break; }
+    }
+  }
+  _liveWorkout.previousData = prev;
+}
+
+async function closeLiveWorkout() {
+  clearTimeout(_liveWorkout.saveTimer);
+  await liveDoSave();
+  _liveWorkout.active = false;
+  renderNewWorkout();
+  showToast('האימון נשמר ✓');
+}
+
+function liveAutoSave() {
+  clearTimeout(_liveWorkout.saveTimer);
+  _liveWorkout.saveTimer = setTimeout(()=>liveDoSave(), 1000);
+}
+
+async function liveDoSave() {
+  const s = _liveWorkout.session;
+  if (!s) return;
+  s.log = _liveWorkout.log.filter(ex=>ex.exerciseName.trim()).map(ex=>({
+    exerciseName:ex.exerciseName.trim(), category:ex.category||'', videoUrl:ex.videoUrl||'',
+    sets:ex.sets.map(st=>({ targetReps:+st.targetReps||0, reps:+st.reps||0, weight:st.weight||'', notes:(st.notes||'').trim() }))
+  }));
+  await saveItem('sessions', s);
+}
+
+function renderLiveWorkout() {
+  const container = document.getElementById('newworkout-content');
+  const total = _liveWorkout.log.length;
+
+  container.innerHTML = `<div class="live-workout">
+    <div class="live-header">
+      <div><span class="live-progress">תרגיל ${_liveWorkout.currentIdx+1} מתוך ${total}</span></div>
+      <button class="btn btn-sm" onclick="closeLiveWorkout()">סיים אימון &#10003;</button>
+    </div>
+    <div id="live-card-container">${renderLiveCard()}</div>
+    ${_liveWorkout.showSwapBrowser?renderLiveSwapOverlay():''}
+  </div>`;
+}
+
+function renderLiveCard() {
+  const idx = _liveWorkout.currentIdx;
+  const total = _liveWorkout.log.length;
+  if (!total) return '<div class="pb-empty">אין תרגילים באימון</div>';
+  const ex = _liveWorkout.log[idx];
+  const prev = _liveWorkout.previousData[ex.exerciseName];
+
+  let prevHtml = '';
+  if (prev) {
+    const prevSets = prev.sets.map((st,i)=>`<span class="live-prev-set">סט${i+1}: ${st.reps||'—'}x${st.weight||'—'}</span>`).join('');
+    prevHtml = `<div class="live-prev"><div class="live-prev-title">פעם קודמת (${fmtDate(prev.date)})</div><div class="live-prev-sets">${prevSets}</div></div>`;
+  }
+
+  const setsHtml = ex.sets.map((s,si)=>`<div class="live-set-row">
+    <span>סט ${si+1}</span>
+    <input type="number" min="0" placeholder="${s.targetReps||'חזרות'}" value="${s.reps||''}" oninput="_liveWorkout.log[${idx}].sets[${si}].reps=this.value;liveAutoSave()">
+    <input type="number" min="0" step="0.5" placeholder="${s.weight?s.weight:'משקל'}" value="${s.weight||''}" oninput="_liveWorkout.log[${idx}].sets[${si}].weight=this.value;liveAutoSave()">
+    <input placeholder="הערות" value="${esc(s.notes||'')}" oninput="_liveWorkout.log[${idx}].sets[${si}].notes=this.value;liveAutoSave()">
+    <button class="ex-remove" onclick="liveRemoveSet(${idx},${si})" style="font-size:.9rem;min-height:44px">&#10005;</button>
+  </div>`).join('');
+
+  return `<div class="live-card">
+    <div class="live-ex-name">${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}
+      ${ex.category?` <span class="badge badge-cat">${esc(ex.category)}</span>`:''}
+    </div>
+    ${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank" style="color:var(--accent2);font-size:.8rem">&#9654; סרטון</a>`:''}
+    ${prevHtml}
+    <div style="margin:12px 0 6px;color:var(--muted);font-size:.78rem;font-weight:600">סטים</div>
+    <div class="live-sets-header"><span></span><span>חזרות</span><span>משקל</span><span>הערות</span><span></span></div>
+    ${setsHtml}
+    <button class="ex-add-set" onclick="liveAddSet(${idx})" style="min-height:40px">+ הוסף סט</button>
+    <button class="live-swap-btn" onclick="liveShowSwap()">&#128260; החלף תרגיל</button>
+  </div>
+  <div class="live-nav">
+    <button class="btn btn-ghost" onclick="livePrev()" ${idx===0?'disabled':''}>&#8592; הקודם</button>
+    <button class="btn" onclick="liveNext()" ${idx>=total-1?'disabled':''}>${idx>=total-1?'סיום':'הבא &#8594;'}</button>
+  </div>`;
+}
+
+function liveNext() { if(_liveWorkout.currentIdx<_liveWorkout.log.length-1){_liveWorkout.currentIdx++;updateLiveCard();} }
+function livePrev() { if(_liveWorkout.currentIdx>0){_liveWorkout.currentIdx--;updateLiveCard();} }
+function updateLiveCard() {
+  const container = document.getElementById('live-card-container');
+  if(container) container.innerHTML = renderLiveCard();
+  const prog = document.querySelector('.live-progress');
+  if (prog) prog.textContent = `תרגיל ${_liveWorkout.currentIdx+1} מתוך ${_liveWorkout.log.length}`;
+}
+function liveAddSet(idx) {
+  _liveWorkout.log[idx].sets.push({targetReps:'',reps:'',weight:'',notes:''});
+  updateLiveCard(); liveAutoSave();
+}
+function liveRemoveSet(idx, si) {
+  _liveWorkout.log[idx].sets.splice(si,1);
+  if(!_liveWorkout.log[idx].sets.length) _liveWorkout.log[idx].sets.push({targetReps:'',reps:'',weight:'',notes:''});
+  updateLiveCard(); liveAutoSave();
+}
+function liveShowSwap() { _liveWorkout.showSwapBrowser=true; _liveWorkout.swapExpandedCat=''; renderLiveWorkout(); }
+function liveHideSwap() { _liveWorkout.showSwapBrowser=false; renderLiveWorkout(); }
+
+function renderLiveSwapOverlay() {
+  const allExercises = load('exercises');
+  const cats = EX_CATS.filter(cat=>allExercises.some(e=>e.category===cat));
+  let listHtml;
+  if (_liveWorkout.swapExpandedCat) {
+    const exs = allExercises.filter(e=>e.category===_liveWorkout.swapExpandedCat);
+    listHtml = exs.map(e=>`<div class="pb-ex-item" onclick="liveConfirmSwap('${e.id}')">
+      <div class="pb-ex-names"><div class="pb-ex-name">${esc(e.name)}</div>${e.nameEn?`<div class="pb-ex-name-en">${esc(e.nameEn)}</div>`:''}</div>
+      <div class="pb-ex-actions"><button class="pb-ex-add" style="opacity:1">+</button></div>
+    </div>`).join('');
+  } else { listHtml = ''; }
+  const catsHtml = cats.map(cat=>{
+    const count = allExercises.filter(e=>e.category===cat).length;
+    const isOpen = _liveWorkout.swapExpandedCat===cat;
+    return `<button class="pb-group-btn${isOpen?' active':''}" onclick="_liveWorkout.swapExpandedCat=_liveWorkout.swapExpandedCat==='${cat}'?'':'${cat}';renderLiveWorkout()"><span>${esc(cat)}</span><span class="pb-count">${count}</span></button>${isOpen?listHtml:''}`;
+  }).join('');
+  return `<div class="live-swap-overlay" onclick="liveHideSwap()">
+    <div class="live-swap-panel" onclick="event.stopPropagation()">
+      <div class="live-swap-panel-header"><span style="font-weight:600;color:var(--accent2)">החלף תרגיל</span><button class="ex-remove" onclick="liveHideSwap()" style="font-size:1.2rem">&#10005;</button></div>
+      ${catsHtml}
+    </div>
+  </div>`;
+}
+
+function liveConfirmSwap(exId) {
+  const ex = load('exercises').find(e=>e.id===exId);
+  if(!ex) return;
+  const idx = _liveWorkout.currentIdx;
+  const old = _liveWorkout.log[idx];
+  _liveWorkout.log[idx] = { exerciseName:ex.name, category:ex.category||'', videoUrl:ex.videoUrl||'',
+    sets:old.sets.length?old.sets:[{targetReps:10,reps:'',weight:'',notes:''}] };
+  const past = load('sessions').filter(s=>s.clientId===_currentClientId&&s.log&&s.log.length&&s.id!==_liveWorkout.sessionId).sort((a,b)=>b.date.localeCompare(a.date));
+  for (const s of past) {
+    const entry = s.log.find(l=>l.exerciseName===ex.name);
+    if (entry) { _liveWorkout.previousData[ex.name] = { sets:entry.sets, date:s.date }; break; }
+  }
+  _liveWorkout.showSwapBrowser = false;
+  liveAutoSave();
+  renderLiveWorkout();
+  showToast(`הוחלף ל-${ex.name} ✓`);
+}
+
+// ===========================
+// ===== TRACKING ============
+// ===========================
+function renderTracking() {
+  const container = document.getElementById('tracking-content');
+  if (!_currentClientId) { container.innerHTML = '<div class="empty">יש להתחבר קודם.</div>'; return; }
+
+  const sessions = load('sessions')
+    .filter(s => s.clientId === _currentClientId && s.log && s.log.length)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  if (!sessions.length) { container.innerHTML = '<div class="empty">אין אימונים מתועדים עדיין. התחל להתאמן!</div>'; return; }
+
+  const exerciseHistory = {};
+  sessions.forEach(s => {
+    s.log.forEach(ex => {
+      if (!ex.exerciseName) return;
+      if (!exerciseHistory[ex.exerciseName]) exerciseHistory[ex.exerciseName] = [];
+      exerciseHistory[ex.exerciseName].push({ date: s.date, sets: ex.sets || [] });
+    });
+  });
+
+  let html = '';
+  Object.keys(exerciseHistory).forEach(exName => {
+    const entries = exerciseHistory[exName];
+    const tableRows = entries.map(e => {
+      const setsStr = e.sets.map((s,i) => `${s.reps||'—'}x${s.weight||'—'}`).join(' | ');
+      const maxWeight = Math.max(...e.sets.map(s => +s.weight || 0));
+      const totalReps = e.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
+      return `<tr><td>${fmtDate(e.date)}</td><td>${e.sets.length}</td><td>${setsStr}</td><td>${maxWeight||'—'}</td><td>${totalReps}</td></tr>`;
+    }).join('');
+
+    const chartData = entries.map(e => ({
+      date: e.date,
+      weight: Math.max(...e.sets.map(s => +s.weight || 0)),
+      reps: e.sets.reduce((sum,s) => sum + (+s.reps||0), 0)
+    }));
+    const chartSvg = renderTrackingChart(chartData);
+
+    html += `<div class="tr-exercise">
+      <div class="tr-exercise-name">${esc(exName)}</div>
+      <table class="tr-table">
+        <thead><tr><th>תאריך</th><th>סטים</th><th>חזרות x משקל</th><th>משקל מקס׳</th><th>סה״כ חזרות</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+      <div class="tr-chart">${chartSvg}</div>
+      <div class="tr-legend"><span style="color:var(--accent)">&#9679; משקל מקסימלי</span> <span style="color:var(--accent2)">&#9679; סה״כ חזרות</span></div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderTrackingChart(data) {
+  if (data.length < 2) return '<div style="color:var(--muted);font-size:.78rem;text-align:center">נדרשים לפחות 2 אימונים להצגת גרף</div>';
+  const w = 600, h = 110, pad = 30;
+  const maxW = Math.max(...data.map(d=>d.weight)) || 1;
+  const maxR = Math.max(...data.map(d=>d.reps)) || 1;
+  const xStep = (w - pad*2) / (data.length - 1);
+
+  let weightPath = '', repsPath = '';
+  const weightDots = [], repsDots = [];
+  data.forEach((d,i) => {
+    const x = pad + i * xStep;
+    const yW = h - pad - (d.weight/maxW) * (h - pad*2);
+    const yR = h - pad - (d.reps/maxR) * (h - pad*2);
+    weightPath += (i===0?'M':'L') + `${x},${yW}`;
+    repsPath += (i===0?'M':'L') + `${x},${yR}`;
+    weightDots.push(`<circle cx="${x}" cy="${yW}" r="3" fill="var(--accent)"/>`);
+    repsDots.push(`<circle cx="${x}" cy="${yR}" r="3" fill="var(--accent2)"/>`);
+  });
+
+  const labels = data.map((d,i) => {
+    const x = pad + i * xStep;
+    const short = d.date.slice(5).replace('-','/');
+    return `<text x="${x}" y="${h-5}" text-anchor="middle" fill="var(--muted)" font-size="9">${short}</text>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${weightPath}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <path d="${repsPath}" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-dasharray="4,3"/>
+    ${weightDots.join('')}${repsDots.join('')}${labels}
+  </svg>`;
+}
+
+// ===========================
+// ===== INIT ================
+// ===========================
+async function init() {
+  document.getElementById('loading-overlay').style.display = 'flex';
+  try {
+    await initDB();
+    // Verify client still exists
+    const client = load('clients').find(c => c.id === _currentClientId);
+    if (!client) {
+      handleLogout();
+      return;
+    }
+    _currentClientName = client.name;
+    document.getElementById('loading-overlay').style.display = 'none';
+    switchTab('myworkouts');
+  } catch(err) {
+    console.error(err);
+    document.querySelector('.loading-box p').textContent = 'שגיאה בטעינה — רענן את הדף';
+  }
+}
+
+// Auto-login on page load
+(async function() {
+  const stored = localStorage.getItem('ft_client_auth');
+  if (stored) {
+    try {
+      const { clientId, phone } = JSON.parse(stored);
+      _currentClientId = clientId;
+      document.getElementById('login-screen').style.display = 'none';
+      init();
+    } catch(e) {
+      localStorage.removeItem('ft_client_auth');
+    }
+  }
+})();
+</script>
+</body>
+</html>

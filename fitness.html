@@ -778,6 +778,10 @@ function clientForm(c={}) {
       <div class="form-group"><label>מספר אימונים אישיים שנרכשו</label><input name="personalSessions" type="number" min="0" value="${esc(c.personalSessions||'')}"></div>
       <div class="form-group"></div>
     </div>
+    <div class="form-row">
+      <div class="form-group"><label>קוד כניסה לפורטל (PIN)</label><input name="pin" type="text" inputmode="numeric" pattern="[0-9]{4,6}" placeholder="4-6 ספרות"${c.pinHash?' value=""':''}><small style="color:var(--muted);font-size:.7rem">${c.pinHash?'השאר ריק כדי לא לשנות':'לגישת המתאמן לפורטל'}</small></div>
+      <div class="form-group"></div>
+    </div>
     <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(c.notes||'')}</textarea></div>
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
@@ -786,14 +790,18 @@ function clientForm(c={}) {
 }
 function openAddClient() {
   openModal('הוסף לקוח', clientForm(), async fd => {
-    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל', serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||''});
+    const pin = fd.get('pin');
+    const pinHash = pin ? await sha256(pin) : '';
+    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל', serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||'', pinHash});
     renderClients();
   });
 }
 function openEditClient(id) {
   const c = load('clients').find(x=>x.id===id);
   openModal('עריכת לקוח', clientForm(c), async fd => {
-    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status'), serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||''});
+    const pin = fd.get('pin');
+    const pinHash = pin ? await sha256(pin) : c.pinHash || '';
+    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status'), serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||'', pinHash});
     await saveItem('clients', c);
     renderClients();
   });
@@ -1282,32 +1290,20 @@ function renderLiveWorkout() {
   const s = _liveWorkout.session;
   const total = _liveWorkout.log.length;
   const clientN = s.clientId ? clientName(s.clientId) : '';
-  document.getElementById('cal-title').textContent = '';
-  document.querySelector('#tab-schedule .cal-nav')?.style && (document.querySelector('#tab-schedule .cal-nav').style.display='none');
+  const calTitle = document.getElementById('cal-title');
+  if (calTitle) calTitle.textContent = '';
+  const calNav = document.querySelector('#tab-schedule .cal-nav');
+  if (calNav) calNav.style.display = 'none';
   document.getElementById('sessions-table-container')?.remove();
 
   const mainEl = document.querySelector('#tab-schedule');
-  // Remove calendar grid if present
-  const existingBuilder = mainEl.querySelector('.live-workout');
-  if (!existingBuilder) {
-    mainEl.innerHTML = `<div class="live-workout">
-      <div class="live-header">
-        <div><span class="live-progress">תרגיל ${_liveWorkout.currentIdx+1} מתוך ${total}</span>${clientN?` · <span style="color:var(--muted);font-size:.82rem">${esc(clientN)}</span>`:''}</div>
-        <button class="btn btn-sm" onclick="closeLiveWorkout()">סיים אימון ✓</button>
-      </div>
-      <div id="live-card-container">${renderLiveCard()}</div>
-      ${_liveWorkout.showSwapBrowser?renderLiveSwapOverlay():''}
-    </div>`;
-  } else {
-    mainEl.innerHTML = `<div class="live-workout">
-      <div class="live-header">
-        <div><span class="live-progress">תרגיל ${_liveWorkout.currentIdx+1} מתוך ${total}</span>${clientN?` · <span style="color:var(--muted);font-size:.82rem">${esc(clientN)}</span>`:''}</div>
-        <button class="btn btn-sm" onclick="closeLiveWorkout()">סיים אימון ✓</button>
-      </div>
-      <div id="live-card-container">${renderLiveCard()}</div>
-      ${_liveWorkout.showSwapBrowser?renderLiveSwapOverlay():''}
-    </div>`;
-  }
+  mainEl.innerHTML = `<div class="live-workout">
+    <div class="live-header">
+      <div><span class="live-progress">תרגיל ${_liveWorkout.currentIdx+1} מתוך ${total}</span>${clientN?` · <span style="color:var(--muted);font-size:.82rem">${esc(clientN)}</span>`:''}</div>
+      <button class="btn btn-sm" onclick="closeLiveWorkout()">סיים אימון ✓</button>
+    </div>
+    <div id="live-card-container">${renderLiveCard()}</div>
+  </div>`;
 }
 
 function renderLiveCard() {
@@ -1365,8 +1361,19 @@ function liveRemoveSet(idx, si) {
   if(!_liveWorkout.log[idx].sets.length) _liveWorkout.log[idx].sets.push({targetReps:'',reps:'',weight:'',notes:''});
   updateLiveCard(); liveAutoSave();
 }
-function liveShowSwap() { _liveWorkout.showSwapBrowser=true; _liveWorkout.swapExpandedCat=''; renderLiveWorkout(); }
-function liveHideSwap() { _liveWorkout.showSwapBrowser=false; renderLiveWorkout(); }
+function liveShowSwap() {
+  _liveWorkout.showSwapBrowser=true; _liveWorkout.swapExpandedCat='';
+  // Remove old overlay if exists
+  document.querySelector('.live-swap-overlay')?.remove();
+  // Append overlay to body so it's always visible
+  const div = document.createElement('div');
+  div.innerHTML = renderLiveSwapOverlay();
+  document.body.appendChild(div.firstElementChild);
+}
+function liveHideSwap() {
+  _liveWorkout.showSwapBrowser=false;
+  document.querySelector('.live-swap-overlay')?.remove();
+}
 function renderLiveSwapOverlay() {
   const allExercises = load('exercises');
   const cats = EX_CATS.filter(cat=>allExercises.some(e=>e.category===cat));
@@ -1381,7 +1388,7 @@ function renderLiveSwapOverlay() {
   const catsHtml = cats.map(cat=>{
     const count = allExercises.filter(e=>e.category===cat).length;
     const isOpen = _liveWorkout.swapExpandedCat===cat;
-    return `<button class="pb-group-btn${isOpen?' active':''}" onclick="_liveWorkout.swapExpandedCat=_liveWorkout.swapExpandedCat==='${cat}'?'':'${cat}';renderLiveWorkout()"><span>${esc(cat)}</span><span class="pb-count">${count}</span></button>${isOpen?listHtml:''}`;
+    return `<button class="pb-group-btn${isOpen?' active':''}" onclick="_liveWorkout.swapExpandedCat=_liveWorkout.swapExpandedCat==='${cat}'?'':'${cat}';refreshSwapOverlay()"><span>${esc(cat)}</span><span class="pb-count">${count}</span></button>${isOpen?listHtml:''}`;
   }).join('');
   return `<div class="live-swap-overlay" onclick="liveHideSwap()">
     <div class="live-swap-panel" onclick="event.stopPropagation()">
@@ -1389,6 +1396,12 @@ function renderLiveSwapOverlay() {
       ${catsHtml}
     </div>
   </div>`;
+}
+function refreshSwapOverlay() {
+  document.querySelector('.live-swap-overlay')?.remove();
+  const div = document.createElement('div');
+  div.innerHTML = renderLiveSwapOverlay();
+  document.body.appendChild(div.firstElementChild);
 }
 function liveConfirmSwap(exId) {
   const ex = load('exercises').find(e=>e.id===exId);
@@ -1404,8 +1417,9 @@ function liveConfirmSwap(exId) {
     if (entry) { _liveWorkout.previousData[ex.name] = { sets:entry.sets, date:s.date }; break; }
   }
   _liveWorkout.showSwapBrowser = false;
+  document.querySelector('.live-swap-overlay')?.remove();
   liveAutoSave();
-  renderLiveWorkout();
+  updateLiveCard();
   showToast(`הוחלף ל-${ex.name} ✓`);
 }
 
