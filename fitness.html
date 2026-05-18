@@ -614,6 +614,8 @@ function bankOptions() {
 function statusBadgeClass(status) { if (status==='בהשהיה') return 'badge-paused'; if (status==='הפסיק') return 'badge-stopped'; return 'badge-active'; }
 let payFilter = { active: false, month: null, fromDate: '', toDate: '', clientId: '' };
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// Filter out client-created sessions from trainer views
+function trainerSessions() { return load('sessions').filter(s => s.source !== 'client' && s.source !== 'client_trainer'); }
 function fmtDate(d) { if (!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
 function fmtDateLong(d) { if (!d) return ''; return new Date(d+'T00:00').toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); }
 function addDays(dateStr, days) {
@@ -873,7 +875,7 @@ function calNext() {
 }
 
 function renderCalendarMonth() {
-  const sessions = load('sessions');
+  const sessions = trainerSessions();
   const today = new Date().toISOString().slice(0,10);
   const monthNames = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
   document.getElementById('cal-title').textContent = `${monthNames[calMonth]} ${calYear}`;
@@ -896,7 +898,7 @@ function renderCalendarMonth() {
 }
 
 function renderCalendarWeek() {
-  const sessions = load('sessions');
+  const sessions = trainerSessions();
   const today = new Date().toISOString().slice(0,10);
   const dayNames = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
   const monthNames = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -937,7 +939,7 @@ function handleCalDayClick(dateStr) {
 }
 
 function renderSessionsTable() {
-  const allSessions = load('sessions');
+  const allSessions = trainerSessions();
   const filtered = allSessions.filter(s=>s.date===_calSelectedDate)
     .sort((a,b)=>(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1);
   const headingEl = document.querySelector('#tab-schedule .card:last-child .section-header h2');
@@ -2542,7 +2544,7 @@ async function deletePayment(id) {
 // ===== REMINDERS ========
 // ========================
 function renderReminders() {
-  const sessions = load('sessions'), clients = load('clients');
+  const sessions = trainerSessions(), clients = load('clients');
   const today = new Date(); today.setHours(0,0,0,0);
   const limit = new Date(today); limit.setDate(limit.getDate()+7);
   const upcoming = sessions

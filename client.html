@@ -683,6 +683,9 @@ function renderClientSessionsTable() {
     const editBtn = isSelf
       ? `<button class="btn btn-sm" onclick="event.stopPropagation();editClientSession('${s.id}')" title="ערוך">&#9998;</button>`
       : `<button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();toggleSession('${s.id}')" title="צפה">&#128065;</button>`;
+    const deleteBtn = isSelf
+      ? `<button class="btn btn-sm" style="background:#7b1d2e" onclick="event.stopPropagation();deleteClientSession('${s.id}')" title="מחק">&#128465;</button>`
+      : '';
     const liveBtn = `<button class="btn btn-sm" style="background:#5c4b9e" onclick="event.stopPropagation();openLiveFromCalendar('${s.id}')" title="אימון חי">&#128203;</button>`;
 
     return `<div class="day-session-item" style="cursor:pointer;flex-wrap:wrap" onclick="toggleSession('${s.id}')">
@@ -690,7 +693,7 @@ function renderClientSessionsTable() {
         <strong>${s.time||''}</strong> ${pName?esc(pName):''} ${wName?'· '+esc(wName):''} ${exCount?'· '+exCount:''}
       </div>
       <div class="day-session-actions">
-        ${sourceBadge} ${editBtn} ${liveBtn}
+        ${sourceBadge} ${editBtn} ${deleteBtn} ${liveBtn}
       </div>
       ${detailHtml}
     </div>`;
@@ -735,6 +738,16 @@ function setClientCalView(view) {
 function editClientSession(sessionId) {
   switchTab('newworkout');
   openLiveWorkout(sessionId);
+}
+
+async function deleteClientSession(sessionId) {
+  const s = load('sessions').find(x => x.id === sessionId);
+  if (!s || s.source !== 'client') return;
+  if (!confirm('למחוק את האימון?')) return;
+  cache.sessions = cache.sessions.filter(x => x.id !== sessionId);
+  await db.collection('sessions').doc(sessionId).delete();
+  showToast('האימון נמחק ✓');
+  renderMyWorkouts();
 }
 
 function openLiveFromCalendar(sessionId) {
