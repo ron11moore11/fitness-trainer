@@ -339,7 +339,7 @@
     .cp-log-sets { color: var(--muted); font-size: .78rem; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
 
     /* TRACKING */
-    .tr-date-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; justify-content: flex-end; }
+    .tr-date-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; }
     .tr-date-pills::-webkit-scrollbar { height: 4px; }
     .tr-date-pills::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
     .tr-date-pill { background: var(--bg); border: 2px solid var(--border); border-radius: 10px; padding: 8px 16px; cursor: pointer; white-space: nowrap; font-size: .82rem; transition: all .2s; flex-shrink: 0; text-align: center; }
@@ -510,11 +510,9 @@
 
   <section id="tab-tracking">
     <div class="card">
-      <div class="section-header">
-        <h2>מעקב מתאמן</h2>
-        <div class="form-group" style="margin:0;min-width:200px">
-          <select id="tracking-client-sel" onchange="renderTracking()"><option value="">— בחר מתאמן —</option></select>
-        </div>
+      <h2 style="font-size:1.2rem;color:var(--accent2);margin-bottom:12px">מעקב מתאמן</h2>
+      <div class="form-group" style="margin:0 0 16px;max-width:280px">
+        <select id="tracking-client-sel" onchange="renderTracking()"><option value="">— בחר מתאמן —</option></select>
       </div>
       <div id="tracking-content"></div>
     </div>
