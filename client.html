@@ -911,14 +911,16 @@ function renderNewWorkout() {
     // Sort sessions ascending for left-to-right reading (oldest → newest)
     const sortedSessions = [...sessions].sort((a,b) => a.date.localeCompare(b.date));
 
-    // Column headers: date + workout name
+    // Column headers: date + workout name + edit button for self sessions
     const colHeaders = sortedSessions.map(s => {
       const wName = s.planId ? getWorkoutName(s.planId, s.workoutIdx) : '';
       const isSelf = s.source === 'client';
+      const editBtn = isSelf ? `<div style="margin-top:4px"><button class="btn btn-sm" onclick="editClientSession('${s.id}')" title="ערוך אימון" style="font-size:.7rem;padding:2px 8px">&#9998; ערוך</button></div>` : '';
       return `<th style="padding:8px 6px;text-align:center;color:var(--text);border-bottom:2px solid var(--border);font-weight:600;font-size:.78rem;min-width:90px;vertical-align:bottom">
         <div>${fmtDate(s.date)}</div>
         ${wName?'<div style="color:var(--accent2);font-size:.7rem">'+esc(wName)+'</div>':''}
         <div style="margin-top:3px">${isSelf?'<span class="badge badge-self" style="font-size:.65rem">עצמאית</span>':'<span class="badge badge-trainer" style="font-size:.65rem">עם מאמן</span>'}</div>
+        ${editBtn}
       </th>`;
     }).join('');
 
