@@ -1522,23 +1522,81 @@ function openWorkoutLog(sessionId) {
   }
 
   const clientN = s.clientId ? clientName(s.clientId) : '';
-  const planN = s.planId ? planName(s.planId) : '';
+
+  // Build workout selector
+  const planOpts = s.clientId ? planOptionsForClient(s.clientId, s.planId||'') : '';
+  let workoutOpts = '';
+  if (s.planId) {
+    workoutOpts = workoutOptionsForPlan(s.planId, s.workoutIdx||0);
+  }
 
   let html = `<div class="log-header">
     <div class="log-header-info">
       ${clientN ? `<strong>לקוח:</strong> ${esc(clientN)}<br>` : ''}
-      <strong>תאריך:</strong> ${fmtDateLong(s.date)} · ${esc(s.time)}
-      ${planN ? `<br><strong>תוכנית:</strong> ${esc(planN)}` : ''}
+      <strong>תאריך:</strong> ${fmtDateLong(s.date)}${s.time?' · '+esc(s.time):''}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+      <div class="form-group" style="margin:0;flex:1;min-width:140px">
+        <label>תוכנית</label>
+        <select id="log-plan-sel" onchange="onLogPlanChange()">${planOpts}</select>
+      </div>
+      <div class="form-group" id="log-workout-group" style="margin:0;flex:1;min-width:120px${s.planId?'':';display:none'}">
+        <label>אימון</label>
+        <select id="log-workout-sel" onchange="onLogWorkoutChange()">${workoutOpts}</select>
+      </div>
     </div>
   </div>`;
   html += `<div id="log-exercises-container">${renderLogExercises()}</div>`;
   html += `<button type="button" class="log-add-exercise" onclick="addLogExercise()">+ הוסף תרגיל</button>`;
   html += `<div class="form-actions">
     <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
-    <button type="button" class="btn btn-log" onclick="saveWorkoutLog()">💾 שמור יומן</button>
+    <button type="button" class="btn btn-log" onclick="saveWorkoutLog()">💾 שמור</button>
   </div>`;
 
   openModal('📋 יומן אימון', html, null);
+}
+
+function onLogPlanChange() {
+  const planId = document.getElementById('log-plan-sel').value;
+  const group = document.getElementById('log-workout-group');
+  const sel = document.getElementById('log-workout-sel');
+  if (planId) {
+    group.style.display = '';
+    sel.innerHTML = workoutOptionsForPlan(planId, 0);
+  } else {
+    group.style.display = 'none';
+    sel.innerHTML = '';
+  }
+  onLogWorkoutChange();
+}
+
+function onLogWorkoutChange() {
+  const s = load('sessions').find(x => x.id === _logSessionId);
+  if (!s) return;
+  const planId = document.getElementById('log-plan-sel').value;
+  const workoutIdx = +(document.getElementById('log-workout-sel')?.value || 0);
+
+  // Only reload exercises if plan/workout actually changed
+  if (planId !== (s.planId||'') || workoutIdx !== (s.workoutIdx||0)) {
+    if (planId) {
+      const plan = load('plans').find(p => p.id === planId);
+      if (plan) {
+        const workouts = getPlanWorkouts(plan);
+        const workout = workouts[workoutIdx] || workouts[0];
+        if (workout && workout.exercises.length) {
+          _logData = workout.exercises.map(e => {
+            const ex = migrateExercise(e);
+            return { exerciseName: ex.name, category: ex.category||'', sets: ex.setsData.map(sd => ({
+              targetReps: +sd.targetReps||0, reps: '', weight: sd.weight||'', notes: sd.notes||''
+            }))};
+          });
+        } else { _logData = []; }
+      } else { _logData = []; }
+    } else {
+      _logData = [];
+    }
+    document.getElementById('log-exercises-container').innerHTML = renderLogExercises();
+  }
 }
 
 function renderLogExercises() {
@@ -1588,6 +1646,11 @@ function removeLogExercise(exIdx) {
 async function saveWorkoutLog() {
   const s = load('sessions').find(x => x.id === _logSessionId);
   if (!s) return;
+  // Update plan/workout if changed
+  const logPlanSel = document.getElementById('log-plan-sel');
+  const logWorkoutSel = document.getElementById('log-workout-sel');
+  if (logPlanSel) s.planId = logPlanSel.value || '';
+  if (logWorkoutSel) s.workoutIdx = +(logWorkoutSel.value || 0);
   const cleanLog = _logData
     .filter(ex => ex.exerciseName.trim())
     .map(ex => ({
