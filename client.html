@@ -799,6 +799,7 @@ let _trackingSessionIdx = 0;
 let _trackingChartExercise = '';
 let _trackingSubTab = 'sessions';
 let _trackingChartSelectedEx = '';
+let _trackingChartMode = 'weight';
 
 function selectTrackingSession(idx) {
   _trackingSessionIdx = idx;
@@ -946,12 +947,8 @@ function renderTrackingChartsTab(sessions) {
       if (ex.exerciseName && !allExNames.includes(ex.exerciseName)) allExNames.push(ex.exerciseName);
     });
   });
-
   if (!allExNames.length) return '<div class="empty">אין תרגילים מתועדים.</div>';
-
-  if (!_trackingChartSelectedEx || !allExNames.includes(_trackingChartSelectedEx)) {
-    _trackingChartSelectedEx = allExNames[0];
-  }
+  if (!_trackingChartSelectedEx || !allExNames.includes(_trackingChartSelectedEx)) _trackingChartSelectedEx = allExNames[0];
 
   const options = allExNames.map(name =>
     `<option value="${esc(name)}"${name===_trackingChartSelectedEx?' selected':''}>${esc(name)}</option>`
@@ -962,14 +959,18 @@ function renderTrackingChartsTab(sessions) {
     <select onchange="_trackingChartSelectedEx=this.value;renderTrackingContent()">${options}</select>
   </div>`;
 
+  const modeToggle = `<div style="display:flex;gap:0;border:2px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;width:fit-content">
+    <button style="background:${_trackingChartMode==='weight'?'var(--accent)':'none'};border:none;color:${_trackingChartMode==='weight'?'#fff':'var(--muted)'};padding:6px 16px;cursor:pointer;font-size:.82rem;font-family:inherit" onclick="_trackingChartMode='weight';renderTrackingContent()">לפי משקל</button>
+    <button style="background:${_trackingChartMode==='reps'?'var(--accent)':'none'};border:none;color:${_trackingChartMode==='reps'?'#fff':'var(--muted)'};padding:6px 16px;cursor:pointer;font-size:.82rem;font-family:inherit" onclick="_trackingChartMode='reps';renderTrackingContent()">לפי חזרות</button>
+  </div>`;
+
   const chartHtml = renderExerciseChart(_trackingChartSelectedEx, sessions);
 
   const data = [];
-  for (let i = sessions.length - 1; i >= 0; i--) {
-    const s = sessions[i];
+  sessions.forEach(s => {
     const ex = s.log.find(e => e.exerciseName === _trackingChartSelectedEx);
     if (ex) data.push({ date: s.date, sets: ex.sets });
-  }
+  });
 
   const tableRows = data.map(e => {
     const setsStr = e.sets.map((s,i) => `${s.reps||'---'}x${s.weight||'---'}`).join(' | ');
@@ -978,68 +979,93 @@ function renderTrackingChartsTab(sessions) {
     return `<tr><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${fmtDate(e.date)}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${e.sets.length}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${setsStr}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${maxWeight||'---'}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${totalReps}</td></tr>`;
   }).join('');
 
+  const thStyle = 'text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)';
   const table = data.length ? `<div class="tr-ex-row" style="margin-top:16px">
     <table style="width:100%;border-collapse:collapse;font-size:.82rem">
-      <thead><tr><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">תאריך</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">סטים</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">חזרות x משקל</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">משקל מקס׳</th><th style="text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">סה״כ חזרות</th></tr></thead>
+      <thead><tr><th style="${thStyle}">תאריך</th><th style="${thStyle}">סטים</th><th style="${thStyle}">חזרות x משקל</th><th style="${thStyle}">משקל מקס׳</th><th style="${thStyle}">סה״כ חזרות</th></tr></thead>
       <tbody>${tableRows}</tbody>
     </table>
   </div>` : '';
 
-  return `${dropdown}${chartHtml}${table}`;
+  return `${dropdown}${modeToggle}${chartHtml}${table}`;
 }
 
 function renderExerciseChart(exName, sessions) {
   const data = [];
-  for (let i = sessions.length - 1; i >= 0; i--) {
-    const s = sessions[i];
+  sessions.forEach(s => {
     const ex = s.log.find(e => e.exerciseName === exName);
-    if (ex) {
-      data.push({
-        date: s.date,
-        weight: Math.max(...ex.sets.map(st => +st.weight || 0)),
-        reps: ex.sets.reduce((sum,st) => sum + (+st.reps||0), 0)
-      });
-    }
+    if (ex) data.push({ date: s.date, sets: ex.sets || [] });
+  });
+  if (data.length < 1) return '<div style="color:var(--muted);font-size:.78rem;text-align:center;padding:8px">אין אימונים מתועדים לתרגיל זה</div>';
+
+  const mode = _trackingChartMode;
+  const yLabel = mode === 'weight' ? 'משקל (kg)' : 'חזרות';
+  const barColor = mode === 'weight' ? 'var(--accent)' : 'var(--accent2)';
+
+  const maxSets = Math.max(...data.map(d => d.sets.length));
+  const w = Math.max(600, data.length * (maxSets * 32 + 40));
+  const h = 220, padTop = 20, padBottom = 50, padLeft = 50, padRight = 20;
+  const chartW = w - padLeft - padRight;
+  const chartH = h - padTop - padBottom;
+
+  let maxY = 0;
+  data.forEach(d => d.sets.forEach(s => {
+    const val = mode === 'weight' ? (+s.weight || 0) : (+s.reps || 0);
+    if (val > maxY) maxY = val;
+  }));
+  if (maxY === 0) maxY = 1;
+  maxY = Math.ceil(maxY * 1.15);
+
+  const groupW = chartW / data.length;
+  const barGap = 3;
+  const barW = Math.min(28, Math.max(14, (groupW - 20) / maxSets - barGap));
+
+  let bars = '', labels = '', gridLines = '';
+
+  for (let i = 0; i <= 4; i++) {
+    const val = Math.round(maxY * i / 4);
+    const y = padTop + chartH - (val / maxY) * chartH;
+    gridLines += `<line x1="${padLeft}" y1="${y}" x2="${w-padRight}" y2="${y}" stroke="var(--border)" stroke-width="0.5"/>`;
+    gridLines += `<text x="${padLeft-8}" y="${y+4}" text-anchor="end" fill="var(--muted)" font-size="9">${val}</text>`;
   }
-  if (data.length < 2) return '<div style="color:var(--muted);font-size:.78rem;text-align:center;padding:8px">נדרשים לפחות 2 אימונים להצגת גרף</div>';
 
-  const chartSvg = renderTrackingChart(data);
-  return `<div class="tr-chart-card">
-    <div class="tr-chart-title">התקדמות: ${esc(exName)}</div>
-    <div class="tr-chart">${chartSvg}</div>
-    <div class="tr-legend"><span style="color:var(--accent)">&#9679; משקל מקסימלי</span> <span style="color:var(--accent2)">&#9679; סה״כ חזרות</span></div>
-  </div>`;
-}
+  data.forEach((d, gi) => {
+    const groupX = padLeft + gi * groupW;
+    const groupCenter = groupX + groupW / 2;
+    const totalBarsW = d.sets.length * barW + (d.sets.length - 1) * barGap;
+    const startX = groupCenter - totalBarsW / 2;
 
-function renderTrackingChart(data) {
-  const w = 600, h = 110, pad = 30;
-  const maxW = Math.max(...data.map(d=>d.weight)) || 1;
-  const maxR = Math.max(...data.map(d=>d.reps)) || 1;
-  const xStep = (w - pad*2) / (data.length - 1);
+    d.sets.forEach((s, si) => {
+      const yVal = mode === 'weight' ? (+s.weight || 0) : (+s.reps || 0);
+      const insideVal = mode === 'weight' ? (s.reps || '') : (s.weight ? s.weight + '' : '');
+      const barH = (yVal / maxY) * chartH;
+      const x = startX + si * (barW + barGap);
+      const y = padTop + chartH - barH;
 
-  let weightPath = '', repsPath = '';
-  const weightDots = [], repsDots = [];
-  data.forEach((d,i) => {
-    const x = pad + i * xStep;
-    const yW = h - pad - (d.weight/maxW) * (h - pad*2);
-    const yR = h - pad - (d.reps/maxR) * (h - pad*2);
-    weightPath += (i===0?'M':'L') + `${x},${yW}`;
-    repsPath += (i===0?'M':'L') + `${x},${yR}`;
-    weightDots.push(`<circle cx="${x}" cy="${yW}" r="3" fill="var(--accent)"/>`);
-    repsDots.push(`<circle cx="${x}" cy="${yR}" r="3" fill="var(--accent2)"/>`);
+      bars += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${barColor}" opacity="0.85"/>`;
+      if (insideVal && barH > 16) {
+        bars += `<text x="${x + barW/2}" y="${y + barH/2 + 4}" text-anchor="middle" fill="#fff" font-size="8" font-weight="600">${insideVal}</text>`;
+      }
+    });
+
+    labels += `<text x="${groupCenter}" y="${h - 8}" text-anchor="middle" fill="var(--text)" font-size="9">${fmtDate(d.date)}</text>`;
   });
 
-  const labels = data.map((d,i) => {
-    const x = pad + i * xStep;
-    const short = d.date.slice(5).replace('-','/');
-    return `<text x="${x}" y="${h-5}" text-anchor="middle" fill="var(--muted)" font-size="9">${short}</text>`;
-  }).join('');
+  const yAxisLabel = `<text x="12" y="${padTop + chartH/2}" text-anchor="middle" fill="var(--muted)" font-size="9" transform="rotate(-90,12,${padTop + chartH/2})">${yLabel}</text>`;
+  const legendText = mode === 'weight' ? 'מספר בתוך העמודה = חזרות' : 'מספר בתוך העמודה = משקל (kg)';
 
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-    <path d="${weightPath}" fill="none" stroke="var(--accent)" stroke-width="2"/>
-    <path d="${repsPath}" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-dasharray="4,3"/>
-    ${weightDots.join('')}${repsDots.join('')}${labels}
+  const svg = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;min-height:200px">
+    ${gridLines}
+    <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${padTop+chartH}" stroke="var(--border)" stroke-width="1"/>
+    <line x1="${padLeft}" y1="${padTop+chartH}" x2="${w-padRight}" y2="${padTop+chartH}" stroke="var(--border)" stroke-width="1"/>
+    ${bars}${labels}${yAxisLabel}
   </svg>`;
+
+  return `<div class="tr-chart-card">
+    <div class="tr-chart-title">התקדמות: ${esc(exName)}</div>
+    <div style="overflow-x:auto">${svg}</div>
+    <div style="text-align:center;font-size:.72rem;color:var(--muted);margin-top:6px">${legendText}</div>
+  </div>`;
 }
 
 // ===========================
