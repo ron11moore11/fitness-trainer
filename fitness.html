@@ -422,11 +422,10 @@
 <div id="login-screen">
   <div class="login-box">
     <h1>💪 מאמן כושר</h1>
-    <p id="login-subtitle">הזן מספר טלפון וסיסמה</p>
+    <p id="login-subtitle">הזן סיסמה כדי להיכנס</p>
     <!-- Login form -->
     <form id="login-form" onsubmit="handleLogin(event)">
-      <input type="tel" id="login-phone" placeholder="מספר טלפון" autocomplete="tel" autofocus dir="ltr">
-      <input type="password" id="login-pin" placeholder="סיסמה (4 ספרות אחרונות)" maxlength="4" inputmode="numeric" autocomplete="current-password" dir="ltr">
+      <input type="password" id="login-pin" placeholder="4 ספרות" maxlength="4" inputmode="numeric" autocomplete="current-password" dir="ltr" autofocus>
       <div class="login-error" id="login-error"></div>
       <button type="submit" class="btn" style="width:100%">כניסה</button>
     </form>
@@ -2798,26 +2797,20 @@ async function handleSetup(e) {
 
 async function handleLogin(e) {
   e.preventDefault();
-  const phone = document.getElementById('login-phone').value.trim();
   const pin = document.getElementById('login-pin').value.trim();
-  if (!phone || !pin) {
-    document.getElementById('login-error').textContent = 'הזן מספר טלפון וסיסמה';
+  if (!pin) {
+    document.getElementById('login-error').textContent = 'הזן סיסמה';
     return;
   }
   try {
-    const snap = await db.collection('trainers').where('phone', '==', phone).get();
-    if (snap.empty) {
-      document.getElementById('login-error').textContent = 'מספר טלפון לא מזוהה';
-      return;
-    }
-    const expectedPin = phone.slice(-4);
-    if (pin !== expectedPin) {
+    const snap = await db.collection('trainers').get();
+    const trainer = snap.docs.find(d => d.data().phone.slice(-4) === pin);
+    if (!trainer) {
       document.getElementById('login-error').textContent = 'סיסמה שגויה';
       document.getElementById('login-pin').value = '';
       document.getElementById('login-pin').focus();
       return;
     }
-    const trainer = snap.docs[0];
     currentTrainerId = trainer.id;
     currentTrainerName = trainer.data().name;
     localStorage.setItem('ft_auth', 'yes');
