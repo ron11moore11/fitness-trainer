@@ -169,6 +169,11 @@
     .plan-name { font-size: 1rem; font-weight: bold; color: var(--accent2); }
     .plan-client { font-size: .82rem; color: var(--muted); margin-top: 2px; }
     .plan-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; justify-content: flex-end; }
+    .plan-list { display: flex; flex-direction: column; gap: 2px; }
+    .plan-list-item { padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: background .15s; display: flex; align-items: center; justify-content: space-between; }
+    .plan-list-item:hover { background: rgba(233,69,96,.08); }
+    .plan-list-name { font-size: .95rem; color: var(--text); font-weight: 500; }
+    .plan-list-sub { font-size: .78rem; color: var(--muted); }
     .ex-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
     .ex-table th, .ex-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: right; }
     .ex-table th { color: var(--muted); }
@@ -1800,16 +1805,66 @@ function getPlanWorkouts(plan) {
   return [{ name:'אימון A', exercises:(plan.exercises||[]).map(migrateExercise) }];
 }
 
+let _workoutsView = { mode:'list', selectedPlanId:'', search:'', tab:'clients' };
+
 function renderWorkouts() {
   if (_planBuilder.active) { renderPlanBuilder(); return; }
+  if (_workoutsView.mode === 'detail') { renderPlanDetail(); return; }
+
   const plans = load('plans');
   const templates = plans.filter(p=>p.isTemplate);
   const assigned  = plans.filter(p=>!p.isTemplate);
-  let html = '';
-  if (templates.length) { html+='<div class="sub-header">תבניות גנריות</div><div class="plans-grid">'+templates.map(planCardHTML).join('')+'</div>'; }
-  if (assigned.length)  { html+='<div class="sub-header">תוכניות ללקוחות</div><div class="plans-grid">'+assigned.map(planCardHTML).join('')+'</div>'; }
-  if (!plans.length)    { html='<div class="empty">אין תוכניות אימון עדיין.</div>'; }
+  const isT = _workoutsView.tab === 'templates';
+
+  let html = `<div style="display:flex;justify-content:center;margin-bottom:16px">
+    <div class="cal-view-toggle">
+      <button class="cal-view-btn${!isT?' active':''}" onclick="_workoutsView.tab='clients';_workoutsView.search='';renderWorkouts()">תוכניות אישיות</button>
+      <button class="cal-view-btn${isT?' active':''}" onclick="_workoutsView.tab='templates';_workoutsView.search='';renderWorkouts()">תבניות גנריות</button>
+    </div>
+  </div>`;
+
+  if (isT) {
+    if (!templates.length) { html+='<div class="empty">אין תבניות גנריות.</div>'; }
+    else {
+      html+='<div class="plan-list">';
+      templates.forEach(p => {
+        html+=`<div class="plan-list-item" onclick="_workoutsView.mode='detail';_workoutsView.selectedPlanId='${p.id}';renderWorkouts()">
+          <span class="plan-list-name">${esc(p.name)}</span>
+        </div>`;
+      });
+      html+='</div>';
+    }
+  } else {
+    html+=`<input class="pb-search" placeholder="חפש מתאמן..." value="${esc(_workoutsView.search)}" oninput="_workoutsView.search=this.value;renderWorkouts()" style="margin-bottom:16px;max-width:300px">`;
+    if (!assigned.length) { html+='<div class="empty">אין תוכניות אישיות.</div>'; }
+    else {
+      const byClient = {};
+      assigned.forEach(p => { const cId=p.clientId; if(!byClient[cId])byClient[cId]=[]; byClient[cId].push(p); });
+      const search = _workoutsView.search.toLowerCase();
+      html+='<div class="plan-list">';
+      Object.entries(byClient).forEach(([cId, cPlans]) => {
+        const name = clientName(cId);
+        if (search && !name.toLowerCase().includes(search)) return;
+        cPlans.forEach((p, idx) => {
+          const displayName = cPlans.length > 1 ? `${name} ${idx+1}` : name;
+          const planSub = p.name || '';
+          html+=`<div class="plan-list-item" onclick="_workoutsView.mode='detail';_workoutsView.selectedPlanId='${p.id}';renderWorkouts()">
+            <span class="plan-list-name">${esc(displayName)}</span>
+            <span class="plan-list-sub">${esc(planSub)}</span>
+          </div>`;
+        });
+      });
+      html+='</div>';
+    }
+  }
   document.getElementById('workouts-content').innerHTML = html;
+}
+
+function renderPlanDetail() {
+  const plan = load('plans').find(p=>p.id===_workoutsView.selectedPlanId);
+  if (!plan) { _workoutsView.mode='list'; renderWorkouts(); return; }
+  const back = `<button class="btn btn-ghost" onclick="_workoutsView.mode='list';renderWorkouts()" style="margin-bottom:16px">← חזרה לרשימה</button>`;
+  document.getElementById('workouts-content').innerHTML = back + '<div class="plans-grid">' + planCardHTML(plan) + '</div>';
 }
 
 function planCardHTML(p) {
@@ -1860,6 +1915,7 @@ function openPlanBuilder(isTemplate=false, existingId='') {
 }
 function closePlanBuilder() {
   _planBuilder.active = false;
+  _workoutsView.mode = 'list';
   renderWorkouts();
 }
 
