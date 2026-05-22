@@ -174,6 +174,9 @@
     .plan-list-item:hover { background: rgba(233,69,96,.08); }
     .plan-list-name { font-size: .95rem; color: var(--text); font-weight: 500; }
     .plan-list-sub { font-size: .78rem; color: var(--muted); }
+    .pb-client-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 2px solid var(--border); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
+    .pb-client-option { padding: 8px 12px; cursor: pointer; font-size: .9rem; }
+    .pb-client-option:hover { background: rgba(233,69,96,.08); }
     .ex-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
     .ex-table th, .ex-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: right; }
     .ex-table th { color: var(--muted); }
@@ -1909,7 +1912,7 @@ function openPlanBuilder(isTemplate=false, existingId='') {
       workouts:JSON.parse(JSON.stringify(getPlanWorkouts(p))), activeWorkoutIdx:0, expandedCategory:'', searchTerm:'' };
   } else {
     _planBuilder = { active:true, editingId:'', isTemplate, clientId:'', planName:'',
-      workouts:[{name:'אימון A', exercises:[]}], activeWorkoutIdx:0, expandedCategory:'', searchTerm:'' };
+      workouts:[], activeWorkoutIdx:0, expandedCategory:'', searchTerm:'' };
   }
   renderWorkouts();
 }
@@ -1928,8 +1931,10 @@ function renderPlanBuilder() {
     <div class="plan-builder-right">
       <div class="pb-meta">
         <div class="form-group"><label>שם התוכנית *</label><input id="pb-plan-name" value="${esc(_planBuilder.planName)}" oninput="_planBuilder.planName=this.value" required></div>
-        <div class="form-group" id="pb-client-group" ${_planBuilder.isTemplate?'style="display:none"':''}>
-          <label>לקוח</label><select id="pb-client-sel" onchange="_planBuilder.clientId=this.value"><option value="">— בחר לקוח —</option>${clientOptions(_planBuilder.clientId)}</select>
+        <div class="form-group" id="pb-client-group" style="position:relative${_planBuilder.isTemplate?';display:none':''}">
+          <label>לקוח</label>
+          <input id="pb-client-search" placeholder="חפש לקוח..." value="${_planBuilder.clientId?esc(clientName(_planBuilder.clientId)):''}" oninput="pbFilterClients(this.value)" onfocus="pbShowClientDropdown()" onblur="setTimeout(()=>{const d=document.getElementById('pb-client-dropdown');if(d)d.style.display='none'},200)" autocomplete="off">
+          <div id="pb-client-dropdown" class="pb-client-dropdown"></div>
         </div>
         <div class="form-group" style="min-width:auto;display:flex;align-items:center;gap:6px;padding-top:22px">
           <input type="checkbox" id="pb-tmpl-cb" ${_planBuilder.isTemplate?'checked':''} onchange="_planBuilder.isTemplate=this.checked;document.getElementById('pb-client-group').style.display=this.checked?'none':''">
@@ -1977,6 +1982,34 @@ function pbExItemHTML(e) {
   </div>`;
 }
 
+function pbFilterClients(term) {
+  _planBuilder.clientId = '';
+  pbShowClientDropdown();
+}
+function pbShowClientDropdown() {
+  const input = document.getElementById('pb-client-search');
+  const dropdown = document.getElementById('pb-client-dropdown');
+  if (!dropdown || !input) return;
+  const search = (input.value||'').toLowerCase();
+  const clients = load('clients').filter(c => !search || (c.name||'').toLowerCase().includes(search));
+  if (!clients.length) {
+    dropdown.innerHTML = '<div class="pb-client-option" style="color:var(--muted)">לא נמצאו לקוחות</div>';
+  } else {
+    dropdown.innerHTML = clients.map(c =>
+      `<div class="pb-client-option" onmousedown="pbSelectClient('${c.id}')">${esc(c.name)}</div>`
+    ).join('');
+  }
+  dropdown.style.display = 'block';
+}
+function pbSelectClient(id) {
+  _planBuilder.clientId = id;
+  const c = load('clients').find(x=>x.id===id);
+  const input = document.getElementById('pb-client-search');
+  if (input) input.value = c ? c.name : '';
+  const dropdown = document.getElementById('pb-client-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
+}
+
 function pbToggleCategory(cat) {
   _planBuilder.expandedCategory = _planBuilder.expandedCategory === cat ? '' : cat;
   document.getElementById('pb-browser').innerHTML = renderExerciseBrowser();
@@ -1987,15 +2020,18 @@ function pbSearchExercises(term) {
 }
 
 function renderWorkoutTabs() {
+  if (!_planBuilder.workouts.length) {
+    return `<div class="pb-workout-tabs"><button class="pb-workout-tab pb-workout-tab-add" onclick="pbAddWorkout()">+ הוסף אימון</button></div>`;
+  }
   const tabs = _planBuilder.workouts.map((w, i) =>
-    `<button class="pb-workout-tab${i===_planBuilder.activeWorkoutIdx?' active':''}" onclick="pbSwitchWorkout(${i})">${esc(w.name)}${_planBuilder.workouts.length>1?` <span style="font-size:.7rem;cursor:pointer;margin-right:4px" onclick="event.stopPropagation();pbRemoveWorkout(${i})">✕</span>`:''}</button>`
+    `<button class="pb-workout-tab${i===_planBuilder.activeWorkoutIdx?' active':''}" onclick="pbSwitchWorkout(${i})" ondblclick="event.stopPropagation();pbRenameWorkout(${i})">${esc(w.name||'ללא שם')}${_planBuilder.workouts.length>1?` <span style="font-size:.7rem;cursor:pointer;margin-right:4px" onclick="event.stopPropagation();pbRemoveWorkout(${i})">✕</span>`:''}</button>`
   ).join('');
   return `<div class="pb-workout-tabs">${tabs}<button class="pb-workout-tab pb-workout-tab-add" onclick="pbAddWorkout()">+ הוסף אימון</button></div>`;
 }
 
 function renderWorkoutExercises() {
   const w = _planBuilder.workouts[_planBuilder.activeWorkoutIdx];
-  if (!w) return '<div class="pb-empty">בחר אימון</div>';
+  if (!w) return '<div class="pb-empty">לחץ על "+ הוסף אימון" כדי להתחיל</div>';
   if (!w.exercises.length) return '<div class="pb-empty">לחץ על תרגיל מהמאגר כדי להוסיף</div>';
   return w.exercises.map((e, ei) => {
     const ex = migrateExercise(e);
@@ -2064,11 +2100,18 @@ function pbSwitchWorkout(idx) {
   document.getElementById('pb-workout-content').innerHTML = renderWorkoutExercises();
 }
 function pbAddWorkout() {
-  const letters = 'ABCDEFGHIJ';
-  const nextName = 'אימון ' + (letters[_planBuilder.workouts.length] || (_planBuilder.workouts.length+1));
-  _planBuilder.workouts.push({name:nextName, exercises:[]});
+  const name = prompt('שם האימון:');
+  if (!name || !name.trim()) return;
+  _planBuilder.workouts.push({name:name.trim(), exercises:[]});
   _planBuilder.activeWorkoutIdx = _planBuilder.workouts.length - 1;
   renderPlanBuilder();
+}
+function pbRenameWorkout(idx) {
+  const name = prompt('שם האימון:', _planBuilder.workouts[idx].name);
+  if (name !== null && name.trim()) {
+    _planBuilder.workouts[idx].name = name.trim();
+    renderPlanBuilder();
+  }
 }
 function pbRemoveWorkout(idx) {
   if (_planBuilder.workouts.length <= 1) { showToast('צריך לפחות אימון אחד'); return; }
