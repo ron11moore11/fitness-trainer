@@ -485,7 +485,7 @@
   <section id="tab-clients">
     <div class="dashboard" id="dashboard"></div>
     <div class="card">
-      <div class="section-header"><h2>לקוחות</h2><div style="display:flex;gap:8px;align-items:center"><input id="client-search" placeholder="חפש לקוח..." oninput="renderClients()" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;font-size:.85rem;font-family:inherit;width:160px"><select class="status-filter" id="client-status-filter" onchange="renderClients()"><option value="all">הכל</option><option value="פעיל">פעיל</option><option value="בהשהיה">בהשהיה</option><option value="הפסיק">הפסיק</option></select><button class="btn" onclick="openAddClient()">+ הוסף לקוח</button></div></div>
+      <div class="section-header"><h2>לקוחות</h2><div id="clients-controls" style="display:flex;gap:8px;align-items:center"><input id="client-search" placeholder="חפש לקוח..." oninput="renderClients()" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;font-size:.85rem;font-family:inherit;width:160px"><select class="status-filter" id="client-status-filter" onchange="renderClients()"><option value="all">הכל</option><option value="פעיל">פעיל</option><option value="בהשהיה">בהשהיה</option><option value="הפסיק">הפסיק</option></select><button class="btn" onclick="openAddClient()">+ הוסף לקוח</button></div></div>
       <div class="table-wrap" id="clients-table"></div>
     </div>
   </section>
@@ -769,6 +769,8 @@ function renderClientProfile() {
   else if (tab === 'payments') content = renderCpPayments(c);
 
   document.getElementById('dashboard').innerHTML = '';
+  const ctrl = document.getElementById('clients-controls');
+  if (ctrl) ctrl.style.display = 'none';
   document.getElementById('clients-table').innerHTML = `
     <button class="cp-back" onclick="closeClientProfile()">→ חזרה לרשימה</button>
     <div style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:16px">${esc(c.name)} <span class="badge ${statusBadgeClass(c.status||'פעיל')}" style="font-size:.75rem">${esc(c.status||'פעיל')}</span></div>
@@ -790,7 +792,7 @@ function renderCpDetails(c) {
   const serviceLabel = isPersonal ? 'תוכנית + אימונים אישיים' : 'תוכנית בלבד';
   return `<div class="cp-header">
     <div class="cp-info" style="margin-bottom:12px">
-      ${c.phone?`<span>📱 ${esc(c.phone)}</span>`:''}
+      ${c.phone?`<span>📱 <a href="https://wa.me/${c.phone.replace(/\\D/g,'').replace(/^0/,'972')}" target="_blank" style="color:var(--accent2);text-decoration:none">${esc(c.phone)}</a></span>`:''}
       ${c.email?`<span>📧 ${esc(c.email)}</span>`:''}
       ${c.age?`<span>גיל: ${esc(c.age)}</span>`:''}
       ${c.goals?`<span>🎯 ${esc(c.goals)}</span>`:''}
@@ -842,6 +844,8 @@ function renderCpPayments(c) {
 
 function renderClients() {
   if (_clientProfile.active) { renderClientProfile(); return; }
+  const ctrl = document.getElementById('clients-controls');
+  if (ctrl) ctrl.style.display = 'flex';
   const clients  = load('clients');
   const sessions = load('sessions');
   const payments = load('payments');
