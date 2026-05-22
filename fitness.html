@@ -796,8 +796,8 @@ function renderClientProfile() {
 
 function renderCpDetails(c) {
   const sessions = load('sessions').filter(s=>s.clientId===c.id && s.type==='training' && s.status!=='cancelled' && s.source!=='client');
-  const isPersonal = c.serviceType === 'plan_and_training';
-  const serviceLabel = isPersonal ? 'תוכנית + אימונים אישיים' : 'תוכנית בלבד';
+  const isPersonal = c.serviceType === 'plan_and_training' || c.serviceType === 'training_only';
+  const serviceLabel = c.serviceType === 'plan_and_training' ? 'תוכנית + אימונים אישיים' : c.serviceType === 'training_only' ? 'אימונים בלבד' : 'תוכנית בלבד';
   return `<div class="cp-header">
     <div class="cp-info" style="margin-bottom:12px">
       ${c.phone?`<span>📱 <a href="https://wa.me/${c.phone.replace(/\\D/g,'').replace(/^0/,'972')}" target="_blank" style="color:var(--accent2);text-decoration:none">${esc(c.phone)}</a></span>`:''}
@@ -946,12 +946,13 @@ function clientForm(c={}) {
     </div>
     <div class="form-row">
       <div class="form-group"><label>סטטוס</label><select name="status"><option value="פעיל"${(c.status||'פעיל')==='פעיל'?' selected':''}>פעיל</option><option value="בהשהיה"${c.status==='בהשהיה'?' selected':''}>בהשהיה</option><option value="הפסיק"${c.status==='הפסיק'?' selected':''}>הפסיק</option></select></div>
-      <div class="form-group"><label>סוג שירות</label><select name="serviceType" onchange="document.getElementById('personal-sessions-group').style.display=this.value==='plan_and_training'?'':'none'">
+      <div class="form-group"><label>סוג שירות</label><select name="serviceType" onchange="document.getElementById('personal-sessions-group').style.display=(this.value==='plan_and_training'||this.value==='training_only')?'':'none'">
         <option value="plan_only"${(c.serviceType||'plan_only')==='plan_only'?' selected':''}>תוכנית בלבד</option>
+        <option value="training_only"${c.serviceType==='training_only'?' selected':''}>אימונים בלבד</option>
         <option value="plan_and_training"${c.serviceType==='plan_and_training'?' selected':''}>תוכנית + אימונים אישיים</option>
       </select></div>
     </div>
-    <div class="form-row" id="personal-sessions-group" style="${c.serviceType==='plan_and_training'?'':'display:none'}">
+    <div class="form-row" id="personal-sessions-group" style="${(c.serviceType==='plan_and_training'||c.serviceType==='training_only')?'':'display:none'}">
       <div class="form-group"><label>מספר אימונים אישיים שנרכשו</label><input name="personalSessions" type="number" min="0" value="${esc(c.personalSessions||'')}"></div>
       <div class="form-group"></div>
     </div>
