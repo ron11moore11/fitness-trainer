@@ -2296,6 +2296,14 @@ function selectTrackingSession(idx) {
   renderTrackingContent();
 }
 
+async function deleteTrackingSession(id) {
+  if (!confirm('למחוק את האימון? זה ימחק גם מהיומן.')) return;
+  await deleteItem('sessions', id);
+  _trackingSessionIdx = -1;
+  renderTrackingContent();
+  showToast('האימון נמחק ✓');
+}
+
 function toggleTrackingChart(exName) {
   _trackingChartExercise = _trackingChartExercise === exName ? '' : exName;
   renderTrackingContent();
@@ -2425,6 +2433,7 @@ function renderTrackingContent() {
       <div style="display:flex;gap:8px;align-items:center">
         ${source}
         <button class="btn btn-sm btn-log" onclick="openWorkoutLog('${current.id}')">✏️ ערוך</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteTrackingSession('${current.id}')">🗑 מחק</button>
       </div>
     </div>
     ${exRows}`;
