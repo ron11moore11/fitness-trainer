@@ -983,7 +983,7 @@ function renderSessionsTable() {
       const cancelledBadge = isCancelled ? ' <span class="badge badge-cancelled">בוטל</span>' : '';
       const recurring = s.recurringGroupId ? ' <span class="badge badge-recurring">🔁</span>' : '';
       const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
-      const clientCol = isShift ? '—' : esc(clientName(s.clientId));
+      const clientCol = isShift ? '—' : `<a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${s.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(s.clientId))}</a>`;
       const planCol = s.planId ? esc(planName(s.planId)) : '—';
       let timeCol, detailsCol;
       if (isShift) {
