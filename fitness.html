@@ -423,20 +423,19 @@
   <div class="login-box">
     <h1>💪 מאמן כושר</h1>
     <p id="login-subtitle">הזן מספר טלפון וסיסמה</p>
+    <!-- Login form -->
     <form id="login-form" onsubmit="handleLogin(event)">
       <input type="tel" id="login-phone" placeholder="מספר טלפון" autocomplete="tel" autofocus dir="ltr">
       <input type="password" id="login-pin" placeholder="סיסמה (4 ספרות אחרונות)" maxlength="4" inputmode="numeric" autocomplete="current-password" dir="ltr">
       <div class="login-error" id="login-error"></div>
       <button type="submit" class="btn" style="width:100%">כניסה</button>
     </form>
-    <div style="margin-top:16px">
-      <a href="#" onclick="toggleRegister(event)" style="color:var(--accent2);font-size:.85rem" id="register-toggle">מאמן חדש? הרשמה</a>
-    </div>
-    <form id="register-form" style="display:none;margin-top:16px" onsubmit="handleRegister(event)">
-      <input type="text" id="reg-name" placeholder="שם מלא">
-      <input type="tel" id="reg-phone" placeholder="מספר טלפון" dir="ltr">
-      <div class="login-error" id="reg-error"></div>
-      <button type="submit" class="btn" style="width:100%;background:var(--accent2)">הרשמה</button>
+    <!-- First-time setup (shown only if no trainer exists) -->
+    <form id="setup-form" style="display:none;margin-top:16px" onsubmit="handleSetup(event)">
+      <input type="text" id="setup-name" placeholder="שם מלא">
+      <input type="tel" id="setup-phone" placeholder="מספר טלפון" dir="ltr">
+      <div class="login-error" id="setup-error"></div>
+      <button type="submit" class="btn" style="width:100%;background:var(--accent2)">צור חשבון</button>
     </form>
   </div>
 </div>
@@ -2757,8 +2756,46 @@ function toggleInvoiceFields(docType) {
 // ========================
 // ===== AUTH ==============
 // ========================
-// ===== AUTH ==============
-// ========================
+async function checkFirstTime() {
+  try {
+    const snap = await db.collection('trainers').get();
+    if (snap.empty) {
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('login-subtitle').textContent = 'הגדרה ראשונית — צור את החשבון שלך';
+      document.getElementById('setup-form').style.display = 'block';
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function handleSetup(e) {
+  e.preventDefault();
+  const name = document.getElementById('setup-name').value.trim();
+  const phone = document.getElementById('setup-phone').value.trim();
+  if (!name || !phone) {
+    document.getElementById('setup-error').textContent = 'מלא את כל השדות';
+    return;
+  }
+  if (phone.length < 9) {
+    document.getElementById('setup-error').textContent = 'מספר טלפון לא תקין';
+    return;
+  }
+  try {
+    const doc = await db.collection('trainers').add({ name, phone, createdAt: new Date().toISOString() });
+    document.getElementById('setup-error').style.color = 'var(--accent2)';
+    document.getElementById('setup-error').textContent = 'החשבון נוצר! הסיסמה שלך: ' + phone.slice(-4);
+    setTimeout(() => {
+      document.getElementById('setup-form').style.display = 'none';
+      document.getElementById('login-form').style.display = 'block';
+      document.getElementById('login-subtitle').textContent = 'הזן מספר טלפון וסיסמה';
+      document.getElementById('login-phone').value = phone;
+      document.getElementById('login-pin').focus();
+    }, 2000);
+  } catch(err) {
+    console.error(err);
+    document.getElementById('setup-error').textContent = 'שגיאה ביצירת חשבון';
+  }
+}
+
 async function handleLogin(e) {
   e.preventDefault();
   const phone = document.getElementById('login-phone').value.trim();
@@ -2792,47 +2829,6 @@ async function handleLogin(e) {
     console.error(err);
     document.getElementById('login-error').textContent = 'שגיאה בחיבור';
   }
-}
-
-async function handleRegister(e) {
-  e.preventDefault();
-  const name = document.getElementById('reg-name').value.trim();
-  const phone = document.getElementById('reg-phone').value.trim();
-  if (!name || !phone) {
-    document.getElementById('reg-error').textContent = 'מלא את כל השדות';
-    return;
-  }
-  if (phone.length < 9) {
-    document.getElementById('reg-error').textContent = 'מספר טלפון לא תקין';
-    return;
-  }
-  try {
-    const existing = await db.collection('trainers').where('phone', '==', phone).get();
-    if (!existing.empty) {
-      document.getElementById('reg-error').textContent = 'מספר טלפון כבר רשום';
-      return;
-    }
-    await db.collection('trainers').add({ name, phone, createdAt: new Date().toISOString() });
-    document.getElementById('reg-error').style.color = 'var(--accent2)';
-    document.getElementById('reg-error').textContent = 'נרשמת בהצלחה! הסיסמה שלך: ' + phone.slice(-4);
-    document.getElementById('register-form').reset();
-    setTimeout(() => {
-      document.getElementById('register-form').style.display = 'none';
-      document.getElementById('reg-error').style.color = '';
-      document.getElementById('reg-error').textContent = '';
-      document.getElementById('login-phone').value = phone;
-      document.getElementById('login-pin').focus();
-    }, 2500);
-  } catch(err) {
-    console.error(err);
-    document.getElementById('reg-error').textContent = 'שגיאה בהרשמה';
-  }
-}
-
-function toggleRegister(e) {
-  e.preventDefault();
-  const form = document.getElementById('register-form');
-  form.style.display = form.style.display === 'none' ? 'block' : 'none';
 }
 
 function handleLogout() {
@@ -2872,6 +2868,8 @@ if (localStorage.getItem('ft_auth') === 'yes' && localStorage.getItem('ft_traine
   currentTrainerName = localStorage.getItem('ft_trainerName') || '';
   document.getElementById('login-screen').style.display = 'none';
   init();
+} else {
+  checkFirstTime();
 }
 </script>
 </body>
