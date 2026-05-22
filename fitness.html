@@ -422,11 +422,21 @@
 <div id="login-screen">
   <div class="login-box">
     <h1>💪 מאמן כושר</h1>
-    <p>הזן סיסמה כדי להיכנס</p>
+    <p id="login-subtitle">הזן מספר טלפון וסיסמה</p>
     <form id="login-form" onsubmit="handleLogin(event)">
-      <input type="password" id="login-password" placeholder="סיסמה" autocomplete="current-password" autofocus>
+      <input type="tel" id="login-phone" placeholder="מספר טלפון" autocomplete="tel" autofocus dir="ltr">
+      <input type="password" id="login-pin" placeholder="סיסמה (4 ספרות אחרונות)" maxlength="4" inputmode="numeric" autocomplete="current-password" dir="ltr">
       <div class="login-error" id="login-error"></div>
       <button type="submit" class="btn" style="width:100%">כניסה</button>
+    </form>
+    <div style="margin-top:16px">
+      <a href="#" onclick="toggleRegister(event)" style="color:var(--accent2);font-size:.85rem" id="register-toggle">מאמן חדש? הרשמה</a>
+    </div>
+    <form id="register-form" style="display:none;margin-top:16px" onsubmit="handleRegister(event)">
+      <input type="text" id="reg-name" placeholder="שם מלא">
+      <input type="tel" id="reg-phone" placeholder="מספר טלפון" dir="ltr">
+      <div class="login-error" id="reg-error"></div>
+      <button type="submit" class="btn" style="width:100%;background:var(--accent2)">הרשמה</button>
     </form>
   </div>
 </div>
@@ -441,7 +451,7 @@
 </div>
 
 <nav>
-  <div class="app-title">💪 מאמן כושר</div>
+  <div class="app-title">💪 <span id="nav-trainer-name">מאמן כושר</span></div>
   <button class="logout-btn" onclick="handleLogout()">התנתק</button>
   <div class="nav-tabs">
     <button class="nav-tab" data-tab="clients">לקוחות</button>
@@ -562,10 +572,15 @@ const db = firebase.firestore();
 
 // ===== IN-MEMORY CACHE =====
 const cache = { clients:[], sessions:[], plans:[], payments:[], exercises:[] };
+let currentTrainerId = null;
+let currentTrainerName = '';
 
 function load(col) { return cache[col] || []; }
 
 async function saveItem(col, item) {
+  if (col !== 'exercises' && currentTrainerId && !item.trainerId) {
+    item.trainerId = currentTrainerId;
+  }
   const idx = cache[col].findIndex(x => x.id === item.id);
   if (idx >= 0) cache[col][idx] = item;
   else cache[col].push(item);
@@ -581,8 +596,27 @@ async function initDB() {
   const cols = Object.keys(cache);
   await Promise.all(cols.map(async col => {
     const snap = await db.collection(col).get();
-    cache[col] = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+    let items = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+    if (col !== 'exercises' && currentTrainerId) {
+      items = items.filter(item => !item.trainerId || item.trainerId === currentTrainerId);
+    }
+    cache[col] = items;
   }));
+  // Claim orphaned data for current trainer
+  if (currentTrainerId) {
+    for (const col of ['clients','sessions','plans','payments']) {
+      const orphans = cache[col].filter(item => !item.trainerId);
+      for (const item of orphans) {
+        item.trainerId = currentTrainerId;
+        db.collection(col).doc(item.id).update({ trainerId: currentTrainerId });
+      }
+    }
+  }
+  // Show trainer name in nav
+  if (currentTrainerName) {
+    const el = document.getElementById('nav-trainer-name');
+    if (el) el.textContent = currentTrainerName;
+  }
 }
 
 // ===== HELPERS =====
@@ -2723,30 +2757,90 @@ function toggleInvoiceFields(docType) {
 // ========================
 // ===== AUTH ==============
 // ========================
-const PASS_HASH = '0792bc68c9eb63682cd44053750bd1c8f0d07e2ab32738803b291ee58b3293e3';
-
-async function sha256(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
+// ===== AUTH ==============
+// ========================
 async function handleLogin(e) {
   e.preventDefault();
-  const pw = document.getElementById('login-password').value;
-  const hash = await sha256(pw);
-  if (hash === PASS_HASH) {
+  const phone = document.getElementById('login-phone').value.trim();
+  const pin = document.getElementById('login-pin').value.trim();
+  if (!phone || !pin) {
+    document.getElementById('login-error').textContent = 'הזן מספר טלפון וסיסמה';
+    return;
+  }
+  try {
+    const snap = await db.collection('trainers').where('phone', '==', phone).get();
+    if (snap.empty) {
+      document.getElementById('login-error').textContent = 'מספר טלפון לא מזוהה';
+      return;
+    }
+    const expectedPin = phone.slice(-4);
+    if (pin !== expectedPin) {
+      document.getElementById('login-error').textContent = 'סיסמה שגויה';
+      document.getElementById('login-pin').value = '';
+      document.getElementById('login-pin').focus();
+      return;
+    }
+    const trainer = snap.docs[0];
+    currentTrainerId = trainer.id;
+    currentTrainerName = trainer.data().name;
     localStorage.setItem('ft_auth', 'yes');
+    localStorage.setItem('ft_trainerId', currentTrainerId);
+    localStorage.setItem('ft_trainerName', currentTrainerName);
     document.getElementById('login-screen').style.display = 'none';
     init();
-  } else {
-    document.getElementById('login-error').textContent = 'סיסמה שגויה';
-    document.getElementById('login-password').value = '';
-    document.getElementById('login-password').focus();
+  } catch(err) {
+    console.error(err);
+    document.getElementById('login-error').textContent = 'שגיאה בחיבור';
   }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-name').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
+  if (!name || !phone) {
+    document.getElementById('reg-error').textContent = 'מלא את כל השדות';
+    return;
+  }
+  if (phone.length < 9) {
+    document.getElementById('reg-error').textContent = 'מספר טלפון לא תקין';
+    return;
+  }
+  try {
+    const existing = await db.collection('trainers').where('phone', '==', phone).get();
+    if (!existing.empty) {
+      document.getElementById('reg-error').textContent = 'מספר טלפון כבר רשום';
+      return;
+    }
+    await db.collection('trainers').add({ name, phone, createdAt: new Date().toISOString() });
+    document.getElementById('reg-error').style.color = 'var(--accent2)';
+    document.getElementById('reg-error').textContent = 'נרשמת בהצלחה! הסיסמה שלך: ' + phone.slice(-4);
+    document.getElementById('register-form').reset();
+    setTimeout(() => {
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('reg-error').style.color = '';
+      document.getElementById('reg-error').textContent = '';
+      document.getElementById('login-phone').value = phone;
+      document.getElementById('login-pin').focus();
+    }, 2500);
+  } catch(err) {
+    console.error(err);
+    document.getElementById('reg-error').textContent = 'שגיאה בהרשמה';
+  }
+}
+
+function toggleRegister(e) {
+  e.preventDefault();
+  const form = document.getElementById('register-form');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
 }
 
 function handleLogout() {
   localStorage.removeItem('ft_auth');
+  localStorage.removeItem('ft_trainerId');
+  localStorage.removeItem('ft_trainerName');
+  currentTrainerId = null;
+  currentTrainerName = '';
   location.reload();
 }
 
@@ -2773,7 +2867,9 @@ async function init() {
   }
 }
 
-if (localStorage.getItem('ft_auth') === 'yes') {
+if (localStorage.getItem('ft_auth') === 'yes' && localStorage.getItem('ft_trainerId')) {
+  currentTrainerId = localStorage.getItem('ft_trainerId');
+  currentTrainerName = localStorage.getItem('ft_trainerName') || '';
   document.getElementById('login-screen').style.display = 'none';
   init();
 }
