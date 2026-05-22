@@ -2246,7 +2246,7 @@ function sendPlanToWhatsApp(planId) {
     if (client?.phone) {
       const intl = client.phone.replace(/\D/g,'').replace(/^0/,'972');
       const firstName = client.name.split(' ')[0];
-      const text = `היי ${firstName}, שולח לך את התוכנית שלך 💪\nבהצלחה!`;
+      const text = `היי ${firstName}, שולח לך את התוכנית שלך \u{1F4AA}\nבהצלחה!`;
       setTimeout(()=>window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank'), 500);
     }
   }
@@ -2261,7 +2261,7 @@ function sendPortalLink(planId) {
   const intl = client.phone.replace(/\D/g,'').replace(/^0/,'972');
   const pin = client.phone.replace(/\D/g,'').slice(-4);
   const portalUrl = 'https://ron11moore11.github.io/fitness-trainer/client.html';
-  const text = `שלום ${client.name}! 💪\nהתוכנית שלך מחכה לך באתר:\n${portalUrl}\n\nלהתחברות:\nמספר טלפון: ${client.phone}\nסיסמה: ${pin}`;
+  const text = `שלום ${client.name}! \u{1F4AA}\nהתוכנית שלך מחכה לך באתר:\n${portalUrl}\n\nלהתחברות:\nמספר טלפון: ${client.phone}\nסיסמה: ${pin}`;
   window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank');
   showToast('וואטסאפ נפתח עם הלינק 📲');
 }
