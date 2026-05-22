@@ -2533,9 +2533,9 @@ function renderExerciseChart(exName, sessions) {
 
   let bars = '', labels = '', gridLines = '';
 
-  // Y-axis grid lines (4 lines)
-  for (let i = 0; i <= 4; i++) {
-    const val = Math.round(maxY * i / 4);
+  // Y-axis grid lines (continuous)
+  const yStep = maxY <= 30 ? 1 : maxY <= 60 ? 2 : maxY <= 100 ? 5 : 10;
+  for (let val = 0; val <= maxY; val += yStep) {
     const y = padTop + chartH - (val / maxY) * chartH;
     gridLines += `<line x1="${padLeft}" y1="${y}" x2="${w-padRight}" y2="${y}" stroke="var(--border)" stroke-width="0.5"/>`;
     gridLines += `<text x="${padLeft-8}" y="${y+4}" text-anchor="end" fill="var(--muted)" font-size="9">${val}</text>`;
