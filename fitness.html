@@ -336,12 +336,19 @@
     /* CLIENT PROFILE */
     .cp-back { background: none; border: none; color: var(--accent2); cursor: pointer; font-size: .9rem; padding: 8px 0; margin-bottom: 12px; }
     .cp-back:hover { text-decoration: underline; }
+    .cp-layout { display: flex; gap: 24px; }
+    .cp-sidebar { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 10px; align-self: flex-start; position: sticky; top: 80px; }
+    .cp-sidebar-btn { text-align: right; padding: 10px 14px; background: none; border: none; border-radius: 8px; color: var(--muted); cursor: pointer; font-size: .88rem; font-family: inherit; transition: all .15s; }
+    .cp-sidebar-btn:hover { color: var(--text); background: rgba(233,69,96,.06); }
+    .cp-sidebar-btn.active { color: var(--accent); background: rgba(233,69,96,.1); font-weight: 600; }
+    .cp-content { flex: 1; min-width: 0; }
     .cp-header { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
     .cp-name { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
     .cp-info { display: flex; flex-wrap: wrap; gap: 16px; color: var(--muted); font-size: .88rem; }
     .cp-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
     .cp-section { margin-bottom: 20px; }
     .cp-section-title { color: var(--accent); font-size: .95rem; font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    @media (max-width: 640px) { .cp-layout { flex-direction: column; } .cp-sidebar { width: 100%; flex-direction: row; overflow-x: auto; position: static; } }
     .cp-plan-row { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; font-size: .88rem; }
     .cp-month { color: var(--accent2); font-size: .85rem; font-weight: 600; margin: 16px 0 8px; }
     .cp-session-row { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 6px; cursor: pointer; transition: background .2s; font-size: .86rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
@@ -737,60 +744,100 @@ document.querySelectorAll('.nav-tab').forEach(btn=>btn.addEventListener('click',
 // ========================
 // ===== CLIENTS ==========
 // ========================
-let _clientProfile = { active: false, clientId: '', expandedSession: '' };
-function openClientProfile(clientId) { _clientProfile = { active:true, clientId, expandedSession:'' }; renderClients(); }
-function closeClientProfile() { _clientProfile = { active:false, clientId:'', expandedSession:'' }; renderClients(); }
+let _clientProfile = { active: false, clientId: '', expandedSession: '', tab: 'details' };
+function openClientProfile(clientId) { _clientProfile = { active:true, clientId, expandedSession:'', tab:'details' }; renderClients(); }
+function closeClientProfile() { _clientProfile = { active:false, clientId:'', expandedSession:'', tab:'details' }; renderClients(); }
+function cpSwitchTab(tab) { _clientProfile.tab = tab; renderClientProfile(); }
 function cpToggleSession(sid) { _clientProfile.expandedSession = _clientProfile.expandedSession===sid?'':sid; renderClientProfile(); }
 
 function renderClientProfile() {
   const c = load('clients').find(x=>x.id===_clientProfile.clientId);
   if (!c) { closeClientProfile(); return; }
-  const plans = load('plans').filter(p=>p.clientId===c.id);
-  const sessions = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training');
-  const sessionsUsed = sessions.length;
-  const sessionsBought = +c.personalSessions || 0;
-  const isPersonal = c.serviceType === 'plan_and_training';
-  const serviceLabel = isPersonal ? 'תוכנית + אימונים אישיים' : 'תוכנית בלבד';
+  const tab = _clientProfile.tab;
 
-  let plansHtml = plans.length ? plans.map(p => {
-    const workouts = getPlanWorkouts(p);
-    const totalEx = workouts.reduce((s,w)=>s+w.exercises.length,0);
-    return `<div class="cp-plan-row"><strong>${esc(p.name)}</strong> — ${workouts.length} אימונים, ${totalEx} תרגילים</div>`;
-  }).join('') : '<div style="color:var(--muted);font-size:.85rem">אין תוכניות</div>';
+  const sidebar = `<div class="cp-sidebar">
+    <button class="cp-sidebar-btn${tab==='details'?' active':''}" onclick="cpSwitchTab('details')">פרטי לקוח</button>
+    <button class="cp-sidebar-btn${tab==='plans'?' active':''}" onclick="cpSwitchTab('plans')">תוכניות אימון</button>
+    <button class="cp-sidebar-btn${tab==='tracking'?' active':''}" onclick="cpSwitchTab('tracking')">מעקב אימונים</button>
+    <button class="cp-sidebar-btn${tab==='payments'?' active':''}" onclick="cpSwitchTab('payments')">תשלומים</button>
+  </div>`;
+
+  let content = '';
+  if (tab === 'details') content = renderCpDetails(c);
+  else if (tab === 'plans') content = renderCpPlans(c);
+  else if (tab === 'tracking') content = `<div id="tracking-content"></div>`;
+  else if (tab === 'payments') content = renderCpPayments(c);
 
   document.getElementById('dashboard').innerHTML = '';
   document.getElementById('clients-table').innerHTML = `
     <button class="cp-back" onclick="closeClientProfile()">→ חזרה לרשימה</button>
-    <div class="cp-header">
-      <div class="cp-name">${esc(c.name)} <span class="badge ${statusBadgeClass(c.status||'פעיל')}">${esc(c.status||'פעיל')}</span></div>
-      <div class="cp-info">
-        ${c.phone?`<span>📱 ${esc(c.phone)}</span>`:''}
-        ${c.email?`<span>📧 ${esc(c.email)}</span>`:''}
-        ${c.age?`<span>גיל: ${esc(c.age)}</span>`:''}
-        ${c.goals?`<span>🎯 ${esc(c.goals)}</span>`:''}
-      </div>
-      <div class="cp-info" style="margin-top:8px">
-        <span>📋 ${esc(serviceLabel)}</span>
-        ${isPersonal?`<span>🏋️ ${sessionsUsed}/${sessionsBought} אימונים נוצלו</span>`:''}
-      </div>
-    </div>
-    <div class="cp-actions">
-      <button class="btn btn-sm" onclick="closeClientProfile();openEditClient('${c.id}')">✏ עריכה</button>
-      <button class="btn btn-teal btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ תוכנית</button>
-    </div>
-    <div class="cp-section">
-      <div class="cp-section-title">תוכניות אימון</div>
-      ${plansHtml}
-    </div>
-    <div class="cp-section" style="margin-top:24px">
-      <div class="cp-section-title">📊 מעקב אימונים</div>
-      <div id="tracking-content"></div>
+    <div style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:16px">${esc(c.name)} <span class="badge ${statusBadgeClass(c.status||'פעיל')}" style="font-size:.75rem">${esc(c.status||'פעיל')}</span></div>
+    <div class="cp-layout">
+      ${sidebar}
+      <div class="cp-content">${content}</div>
     </div>`;
-  _trackingClientId = c.id;
-  _trackingSessionIdx = -1;
-  _trackingChartExercise = '';
-  _trackingSubTab = 'sessions';
-  setTimeout(()=>renderTrackingContent(), 0);
+
+  if (tab === 'tracking') {
+    _trackingClientId = c.id;
+    if (_trackingSessionIdx < 0) { _trackingSessionIdx = -1; _trackingChartExercise = ''; _trackingSubTab = 'sessions'; }
+    setTimeout(()=>renderTrackingContent(), 0);
+  }
+}
+
+function renderCpDetails(c) {
+  const sessions = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training');
+  const isPersonal = c.serviceType === 'plan_and_training';
+  const serviceLabel = isPersonal ? 'תוכנית + אימונים אישיים' : 'תוכנית בלבד';
+  return `<div class="cp-header">
+    <div class="cp-info" style="margin-bottom:12px">
+      ${c.phone?`<span>📱 ${esc(c.phone)}</span>`:''}
+      ${c.email?`<span>📧 ${esc(c.email)}</span>`:''}
+      ${c.age?`<span>גיל: ${esc(c.age)}</span>`:''}
+      ${c.goals?`<span>🎯 ${esc(c.goals)}</span>`:''}
+    </div>
+    <div class="cp-info">
+      <span>📋 ${esc(serviceLabel)}</span>
+      ${isPersonal?`<span>🏋️ ${sessions.length}/${+c.personalSessions||0} אימונים נוצלו</span>`:''}
+    </div>
+    ${c.notes?`<div style="margin-top:12px;color:var(--muted);font-size:.85rem">📝 ${esc(c.notes)}</div>`:''}
+  </div>
+  <div class="cp-actions">
+    <button class="btn btn-sm" onclick="closeClientProfile();openEditClient('${c.id}')">✏ עריכה</button>
+  </div>`;
+}
+
+function renderCpPlans(c) {
+  const plans = load('plans').filter(p=>p.clientId===c.id);
+  let plansHtml = plans.length ? plans.map(p => {
+    const workouts = getPlanWorkouts(p);
+    const totalEx = workouts.reduce((s,w)=>s+w.exercises.length,0);
+    return `<div class="cp-plan-row" style="cursor:pointer" onclick="_workoutsView.mode='detail';_workoutsView.selectedPlanId='${p.id}';switchTab('workouts');renderWorkouts()">
+      <strong>${esc(p.name)}</strong> — ${workouts.length} אימונים, ${totalEx} תרגילים
+    </div>`;
+  }).join('') : '<div style="color:var(--muted);font-size:.85rem">אין תוכניות</div>';
+  return `<div class="cp-actions">
+    <button class="btn btn-teal btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ תוכנית חדשה</button>
+  </div>
+  ${plansHtml}`;
+}
+
+function renderCpPayments(c) {
+  const payments = load('payments').filter(p=>p.clientId===c.id);
+  if (!payments.length) return '<div class="empty">אין תשלומים ללקוח זה.</div>';
+  const sorted = [...payments].sort((a,b)=>a.date<b.date?1:-1);
+  const total = sorted.filter(p=>p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+  const pending = sorted.filter(p=>p.status==='pending').reduce((s,p)=>s+(+p.amount||0),0);
+  const rows = sorted.map(p => `<tr>
+    <td>₪${(+p.amount||0).toLocaleString()}</td>
+    <td>${fmtDate(p.date)}</td>
+    <td>${esc(p.package||'—')}</td>
+    <td><span class="badge ${p.status==='paid'?'badge-paid':'badge-pending'}">${p.status==='paid'?'שולם':'ממתין'}</span></td>
+  </tr>`).join('');
+  return `<div style="display:flex;gap:16px;margin-bottom:16px">
+    <div class="card" style="flex:1;text-align:center"><div class="card-title">שולם</div><div style="color:#4caf50;font-size:1.1rem;font-weight:700">₪${total.toLocaleString()}</div></div>
+    <div class="card" style="flex:1;text-align:center"><div class="card-title">ממתין</div><div style="color:#ffa726;font-size:1.1rem;font-weight:700">₪${pending.toLocaleString()}</div></div>
+  </div>
+  <table><thead><tr><th>סכום</th><th>תאריך</th><th>חבילה</th><th>סטטוס</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function renderClients() {
