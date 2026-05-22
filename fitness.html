@@ -163,12 +163,12 @@
 
     /* PLAN CARDS */
     .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 16px; }
-    .plan-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; }
+    .plan-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 24px; max-width: 900px; margin: 0 auto; }
     .plan-card.tmpl-card { border-color: rgba(233,69,96,.4); }
-    .plan-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-    .plan-name { font-size: 1rem; font-weight: bold; color: var(--accent2); }
-    .plan-client { font-size: .82rem; color: var(--muted); margin-top: 2px; }
-    .plan-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; justify-content: flex-end; }
+    .plan-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .plan-name { font-size: 1.15rem; font-weight: bold; color: var(--accent2); }
+    .plan-client { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+    .plan-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); justify-content: center; }
     .plan-list { display: flex; flex-direction: column; gap: 2px; }
     .plan-list-item { padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: background .15s; display: flex; align-items: center; justify-content: space-between; }
     .plan-list-item:hover { background: rgba(233,69,96,.08); }
@@ -177,11 +177,11 @@
     .pb-client-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 2px solid var(--border); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
     .pb-client-option { padding: 8px 12px; cursor: pointer; font-size: .9rem; }
     .pb-client-option:hover { background: rgba(233,69,96,.08); }
-    .ex-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-    .ex-table th, .ex-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: right; }
-    .ex-table th { color: var(--muted); }
+    .ex-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .ex-table th, .ex-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: right; }
+    .ex-table th { color: var(--muted); font-size: .8rem; }
     .ex-table tr:last-child td { border-bottom: none; }
-    .ex-table a { color: var(--accent2); font-size: .78rem; }
+    .ex-table a { color: var(--accent2); }
 
     /* REMINDERS */
     .reminders-list { display: flex; flex-direction: column; gap: 12px; }
@@ -1868,7 +1868,7 @@ function renderPlanDetail() {
   const plan = load('plans').find(p=>p.id===_workoutsView.selectedPlanId);
   if (!plan) { _workoutsView.mode='list'; renderWorkouts(); return; }
   const back = `<button class="btn btn-ghost" onclick="_workoutsView.mode='list';renderWorkouts()" style="margin-bottom:16px">← חזרה לרשימה</button>`;
-  document.getElementById('workouts-content').innerHTML = back + '<div class="plans-grid">' + planCardHTML(plan) + '</div>';
+  document.getElementById('workouts-content').innerHTML = back + planCardHTML(plan);
 }
 
 function planCardHTML(p) {
@@ -1877,8 +1877,8 @@ function planCardHTML(p) {
     const exercises = w.exercises.map(migrateExercise);
     if (!exercises.length) return `<div style="color:var(--muted);font-size:.82rem;margin:4px 0">${esc(w.name)}: אין תרגילים</div>`;
     const exRows = exercises.map(e => {
-      const repsDisplay = e.setsData.map(s => s.targetReps).join('/');
-      const weightsDisplay = e.setsData.some(s => s.weight) ? e.setsData.map(s => s.weight || '—').join('/') : '—';
+      const repsDisplay = e.setsData.map(s => s.targetReps).join(', ');
+      const weightsDisplay = e.setsData.some(s => s.weight) ? e.setsData.map(s => s.weight || '—').join(', ') : '—';
       return `<tr><td>${esc(e.category||'—')}</td><td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank" style="color:var(--accent2)">${esc(e.name)}</a>`:esc(e.name)}</td><td>${e.setsData.length}</td><td>${repsDisplay}</td><td>${weightsDisplay}</td></tr>`;
     }).join('');
     return `${workouts.length>1?`<div style="color:var(--accent);font-size:.82rem;font-weight:600;margin:8px 0 4px">${esc(w.name)}</div>`:''}
