@@ -169,11 +169,12 @@
     .plan-name { font-size: 1.15rem; font-weight: bold; color: var(--accent2); }
     .plan-client { font-size: .85rem; color: var(--muted); margin-top: 4px; }
     .plan-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); justify-content: center; }
-    .plan-list { display: flex; flex-direction: column; gap: 2px; }
-    .plan-list-item { padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: background .15s; display: flex; align-items: center; justify-content: space-between; }
-    .plan-list-item:hover { background: rgba(233,69,96,.08); }
-    .plan-list-name { font-size: .95rem; color: var(--text); font-weight: 500; }
-    .plan-list-sub { font-size: .78rem; color: var(--muted); }
+    .plan-table { width: 100%; border-collapse: collapse; }
+    .plan-table th { text-align: right; padding: 10px 14px; color: var(--muted); font-size: .82rem; font-weight: 600; border-bottom: 2px solid var(--border); }
+    .plan-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: .9rem; cursor: pointer; transition: background .15s; }
+    .plan-table tr:hover td { background: rgba(233,69,96,.06); }
+    .plan-table .plan-client-name { color: var(--accent2); font-weight: 600; }
+    .plan-table .plan-date { color: var(--muted); font-size: .82rem; }
     .pb-client-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 2px solid var(--border); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
     .pb-client-option { padding: 8px 12px; cursor: pointer; font-size: .9rem; }
     .pb-client-option:hover { background: rgba(233,69,96,.08); }
@@ -1829,13 +1830,15 @@ function renderWorkouts() {
   if (isT) {
     if (!templates.length) { html+='<div class="empty">אין תבניות גנריות.</div>'; }
     else {
-      html+='<div class="plan-list">';
+      html+=`<table class="plan-table"><thead><tr><th>שם תבנית</th><th>תאריך יצירה</th></tr></thead><tbody>`;
       templates.forEach(p => {
-        html+=`<div class="plan-list-item" onclick="_workoutsView.mode='detail';_workoutsView.selectedPlanId='${p.id}';renderWorkouts()">
-          <span class="plan-list-name">${esc(p.name)}</span>
-        </div>`;
+        const date = p.createdAt ? fmtDate(p.createdAt.slice(0,10)) : '—';
+        html+=`<tr onclick="_workoutsView.mode='detail';_workoutsView.selectedPlanId='${p.id}';renderWorkouts()">
+          <td class="plan-client-name">${esc(p.name)}</td>
+          <td class="plan-date">${date}</td>
+        </tr>`;
       });
-      html+='</div>';
+      html+=`</tbody></table>`;
     }
   } else {
     html+=`<input class="pb-search" placeholder="חפש מתאמן..." value="${esc(_workoutsView.search)}" oninput="_workoutsView.search=this.value;renderWorkouts()" style="margin-bottom:16px;max-width:300px">`;
@@ -1844,20 +1847,21 @@ function renderWorkouts() {
       const byClient = {};
       assigned.forEach(p => { const cId=p.clientId; if(!byClient[cId])byClient[cId]=[]; byClient[cId].push(p); });
       const search = _workoutsView.search.toLowerCase();
-      html+='<div class="plan-list">';
+      html+=`<table class="plan-table"><thead><tr><th>מתאמן</th><th>שם תוכנית</th><th>תאריך יצירה</th></tr></thead><tbody>`;
       Object.entries(byClient).forEach(([cId, cPlans]) => {
         const name = clientName(cId);
         if (search && !name.toLowerCase().includes(search)) return;
         cPlans.forEach((p, idx) => {
           const displayName = cPlans.length > 1 ? `${name} ${idx+1}` : name;
-          const planSub = p.name || '';
-          html+=`<div class="plan-list-item" onclick="_workoutsView.mode='detail';_workoutsView.selectedPlanId='${p.id}';renderWorkouts()">
-            <span class="plan-list-name">${esc(displayName)}</span>
-            <span class="plan-list-sub">${esc(planSub)}</span>
-          </div>`;
+          const date = p.createdAt ? fmtDate(p.createdAt.slice(0,10)) : '—';
+          html+=`<tr onclick="_workoutsView.mode='detail';_workoutsView.selectedPlanId='${p.id}';renderWorkouts()">
+            <td class="plan-client-name">${esc(displayName)}</td>
+            <td>${esc(p.name||'—')}</td>
+            <td class="plan-date">${date}</td>
+          </tr>`;
         });
       });
-      html+='</div>';
+      html+=`</tbody></table>`;
     }
   }
   document.getElementById('workouts-content').innerHTML = html;
@@ -2143,7 +2147,7 @@ async function savePlanFromBuilder() {
       delete plan.exercises; // remove legacy field
       await saveItem('plans', plan);
     } else {
-      await saveItem('plans', {id:uid(), ...data});
+      await saveItem('plans', {id:uid(), createdAt:new Date().toISOString(), ...data});
     }
     showToast('התוכנית נשמרה ✓');
     closePlanBuilder();
