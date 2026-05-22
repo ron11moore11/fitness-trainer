@@ -1886,7 +1886,8 @@ function planCardHTML(p) {
   const totalEx = workouts.reduce((s,w)=>s+w.exercises.length,0);
   const assignBtn = p.isTemplate
     ? `<button class="btn btn-teal btn-sm" onclick="openAssignTemplate('${p.id}')">הקצה ללקוח</button>`
-    : `<button class="btn wa-btn btn-sm" onclick="sendPlanToWhatsApp('${p.id}')">📲 שלח</button>`;
+    : `<button class="btn wa-btn btn-sm" onclick="sendPlanToWhatsApp('${p.id}')">📲 שלח PDF</button>
+       <button class="btn btn-teal btn-sm" onclick="sendPortalLink('${p.id}')">🔗 שלח לינק</button>`;
   return `<div class="plan-card${p.isTemplate?' tmpl-card':''}">
     <div class="plan-card-header">
       <div>
@@ -2251,6 +2252,19 @@ function sendPlanToWhatsApp(planId) {
     }
   }
   showToast('התוכנית נפתחה — שמור כ-PDF ושלח בוואטסאפ 📎');
+}
+
+function sendPortalLink(planId) {
+  const plan = load('plans').find(p=>p.id===planId);
+  if (!plan || !plan.clientId) { showToast('אין לקוח משויך לתוכנית'); return; }
+  const client = load('clients').find(c=>c.id===plan.clientId);
+  if (!client?.phone) { showToast('אין מספר טלפון ללקוח'); return; }
+  const intl = client.phone.replace(/\D/g,'').replace(/^0/,'972');
+  const pin = client.phone.replace(/\D/g,'').slice(-4);
+  const portalUrl = 'https://ron11moore11.github.io/fitness-trainer/client.html';
+  const text = `שלום ${client.name}! 💪\nהתוכנית שלך מחכה לך באתר:\n${portalUrl}\n\nלהתחברות:\nמספר טלפון: ${client.phone}\nסיסמה: ${pin}`;
+  window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank');
+  showToast('וואטסאפ נפתח עם הלינק 📲');
 }
 
 // ========================
