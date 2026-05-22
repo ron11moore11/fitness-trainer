@@ -140,6 +140,7 @@
     .cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
     .cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
     .cal-dot.shift-dot { background: var(--shift); }
+    .cal-dot.cancelled-dot { background: var(--muted); opacity: .5; }
     .cal-view-toggle { display: flex; gap: 0; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; }
     .cal-view-btn { background: none; border: none; color: var(--muted); padding: 5px 14px; cursor: pointer; font-size: .8rem; font-family: inherit; transition: all .2s; }
     .cal-view-btn.active { background: var(--accent); color: #fff; }
@@ -155,6 +156,9 @@
     .week-col.selected .week-col-num { color: var(--accent); }
     .week-session { font-size: .72rem; padding: 3px 4px; margin-bottom: 3px; border-radius: 4px; background: rgba(233,69,96,.1); color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .week-session.shift { background: rgba(255,167,38,.1); color: var(--shift); }
+    .week-session.cancelled { background: rgba(150,150,150,.1); color: var(--muted); text-decoration: line-through; }
+    tr.cancelled-row td { opacity: .5; }
+    .badge-cancelled { background: rgba(150,150,150,.2); color: var(--muted); }
     @media (max-width: 640px) { .week-grid { grid-template-columns: repeat(3,1fr); } .week-col { min-height: 80px; } }
 
     /* PLAN CARDS */
@@ -914,15 +918,15 @@ function renderCalendarMonth() {
   const firstDay = new Date(calYear,calMonth,1).getDay();
   const daysInMonth = new Date(calYear,calMonth+1,0).getDate();
   const sessionMap = {};
-  sessions.forEach(s => { if(!sessionMap[s.date])sessionMap[s.date]=[]; sessionMap[s.date].push(s.type||'training'); });
+  sessions.forEach(s => { if(!sessionMap[s.date])sessionMap[s.date]=[]; sessionMap[s.date].push(s); });
   const dayNames = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
   let html = '<div class="cal-grid">' + dayNames.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
   for (let i=0;i<firstDay;i++) html+='<div class="cal-day empty-day"></div>';
   for (let d=1;d<=daysInMonth;d++) {
     const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const types = sessionMap[ds]||[];
+    const daySessions = sessionMap[ds]||[];
     let dots = '';
-    if (types.length) { dots=`<div class="cal-dots">${types.slice(0,5).map(t=>`<div class="cal-dot${t==='shift'?' shift-dot':''}"></div>`).join('')}</div>`; }
+    if (daySessions.length) { dots=`<div class="cal-dots">${daySessions.slice(0,5).map(s=>{const cls=s.status==='cancelled'?' cancelled-dot':s.type==='shift'?' shift-dot':'';return `<div class="cal-dot${cls}"></div>`;}).join('')}</div>`; }
     html+=`<div class="cal-day${ds===today?' today':''}${ds===_calSelectedDate?' selected':''}" onclick="handleCalDayClick('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
   }
   html += '</div>';
@@ -953,8 +957,9 @@ function renderCalendarWeek() {
     const daySessions = sessionMap[ds]||[];
     const sessHtml = daySessions.sort((a,b)=>(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1).map(s => {
       const isShift = s.type==='shift';
+      const isCancelled = s.status==='cancelled';
       const label = isShift ? 'משמרת' : clientName(s.clientId);
-      return `<div class="week-session${isShift?' shift':''}">${esc(label)}</div>`;
+      return `<div class="week-session${isShift?' shift':''}${isCancelled?' cancelled':''}">${esc(label)}</div>`;
     }).join('');
     html += `<div class="week-col${ds===today?' today':''}${ds===_calSelectedDate?' selected':''}" onclick="handleCalDayClick('${ds}')">
       <div class="week-col-header"><div class="week-col-day">${dayNames[i]}</div><div class="week-col-num">${d.getDate()}</div></div>
@@ -981,7 +986,9 @@ function renderSessionsTable() {
     <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>פרטים</th><th>תוכנית</th><th>הערות</th><th>פעולות</th></tr></thead>
     <tbody>${filtered.map(s=>{
       const isShift = s.type === 'shift';
+      const isCancelled = s.status==='cancelled';
       const typeBadge = isShift ? '<span class="badge badge-shift">משמרת</span>' : '🏋️';
+      const cancelledBadge = isCancelled ? ' <span class="badge badge-cancelled">בוטל</span>' : '';
       const recurring = s.recurringGroupId ? ' <span class="badge badge-recurring">🔁</span>' : '';
       const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
       const clientCol = isShift ? '—' : esc(clientName(s.clientId));
@@ -996,15 +1003,19 @@ function renderSessionsTable() {
         timeCol = esc(s.time);
         detailsCol = `${esc(s.duration)} דק׳`;
       }
-      return `<tr>
-      <td>${typeBadge}${recurring}</td>
+      const cancelBtn = isCancelled
+        ? `<button class="btn btn-ghost btn-sm" onclick="toggleCancelSession('${s.id}')">שחזר</button>`
+        : `<button class="btn btn-ghost btn-sm" style="color:var(--muted)" onclick="toggleCancelSession('${s.id}')">בטל</button>`;
+      return `<tr class="${isCancelled?'cancelled-row':''}">
+      <td>${typeBadge}${cancelledBadge}${recurring}</td>
       <td>${clientCol}</td><td>${fmtDate(s.date)}</td>
       <td>${timeCol}</td><td>${detailsCol}</td>
       <td>${planCol}</td>
       <td>${esc(s.notes)}${logBadge}</td>
       <td class="actions">
-        ${!isShift ? `<button class="btn btn-log btn-sm" onclick="openLiveWorkout('${s.id}')">📋</button>` : ''}
+        ${!isShift && !isCancelled ? `<button class="btn btn-log btn-sm" onclick="openLiveWorkout('${s.id}')">📋</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="openEditSession('${s.id}')">עריכה</button>
+        ${cancelBtn}
         <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">מחק</button>
       </td></tr>`;
     }).join('')}</tbody></table>`;
@@ -1247,6 +1258,15 @@ function editFutureSessions(id) {
     showToast(`עודכנו ${futureSessions.length} פריטים ✓`);
     renderCalendar(); renderSessionsTable();
   });
+}
+
+async function toggleCancelSession(id) {
+  const s = load('sessions').find(x=>x.id===id);
+  if (!s) return;
+  s.status = s.status === 'cancelled' ? 'active' : 'cancelled';
+  await saveItem('sessions', s);
+  renderSchedule();
+  toast(s.status === 'cancelled' ? 'האימון בוטל' : 'האימון שוחזר');
 }
 
 async function deleteSession(id) {
