@@ -311,7 +311,7 @@
 </div>
 
 <nav>
-  <div class="app-title">💪 האימונים שלי</div>
+  <div class="app-title">💪 <span id="client-welcome">האימונים שלי</span></div>
   <button class="logout-btn" onclick="handleLogout()">התנתק</button>
   <div class="nav-tabs">
     <button class="nav-tab" data-tab="myworkouts">יומן אימונים</button>
@@ -677,7 +677,9 @@ function renderClientSessionsTable() {
     const deleteBtn = isSelf
       ? `<button class="btn btn-sm" style="background:#7b1d2e" onclick="event.stopPropagation();deleteClientSession('${s.id}')" title="מחק">&#128465;</button>`
       : '';
-    const liveBtn = `<button class="btn btn-sm" style="background:#5c4b9e" onclick="event.stopPropagation();openLiveFromCalendar('${s.id}')" title="אימון חי">&#128203;</button>`;
+    const liveBtn = isSelf
+      ? `<button class="btn btn-sm" style="background:#5c4b9e" onclick="event.stopPropagation();openLiveFromCalendar('${s.id}')" title="אימון חי">&#128203;</button>`
+      : '';
 
     return `<div class="day-session-item" style="cursor:pointer;flex-wrap:wrap" onclick="toggleSession('${s.id}')">
       <div class="day-session-info">
@@ -1375,6 +1377,8 @@ async function init() {
       return;
     }
     _currentClientName = client.name;
+    const welEl = document.getElementById('client-welcome');
+    if (welEl) welEl.textContent = 'ברוכים הבאים, ' + client.name;
     document.getElementById('loading-overlay').style.display = 'none';
     switchTab('myworkouts');
   } catch(err) {
