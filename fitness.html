@@ -1415,7 +1415,7 @@ function renderLiveCard() {
 
   let prevHtml = '';
   if (prev) {
-    const prevSets = prev.sets.map((st,i)=>`<span class="live-prev-set">סט${i+1}: ${st.reps||'—'}×${st.weight||'—'}</span>`).join('');
+    const prevSets = prev.sets.map((st,i)=>`<span class="live-prev-set">סט${i+1}: ${st.reps||'—'}x${st.weight?st.weight+'kg':'—'}</span>`).join('');
     prevHtml = `<div class="live-prev"><div class="live-prev-title">פעם קודמת (${fmtDate(prev.date)})</div><div class="live-prev-sets">${prevSets}</div></div>`;
   }
 
@@ -2246,7 +2246,7 @@ function renderTrackingContent() {
     if (!ex.exerciseName) return '';
     const currentMaxW = Math.max(...ex.sets.map(s => +s.weight || 0));
     const currentTotalR = ex.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
-    const setsHtml = ex.sets.map((s,i) => `<span class="tr-ex-set">סט${i+1}: ${s.reps||'—'}x${s.weight||'—'}</span>`).join('');
+    const setsHtml = ex.sets.map((s,i) => `<span class="tr-ex-set">סט${i+1}: ${s.reps||'—'}x${s.weight?s.weight+'kg':'—'}</span>`).join('');
 
     let prevHtml = '';
     if (prevSession) {
@@ -2254,7 +2254,7 @@ function renderTrackingContent() {
       if (prevEx) {
         const prevMaxW = Math.max(...prevEx.sets.map(s => +s.weight || 0));
         const prevTotalR = prevEx.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
-        const prevSets = prevEx.sets.map((s,i) => `${s.reps||'—'}x${s.weight||'—'}`).join(', ');
+        const prevSets = prevEx.sets.map((s,i) => `${s.reps||'—'}x${s.weight?s.weight+'kg':'—'}`).join(', ');
 
         let deltaHtml = '';
         if (currentMaxW > 0 && prevMaxW > 0) {
@@ -2347,7 +2347,7 @@ function renderTrackingChartsTab(sessions) {
   });
 
   const tableRows = data.map(e => {
-    const setsStr = e.sets.map((s,i) => `${s.reps||'—'}x${s.weight||'—'}`).join(' | ');
+    const setsStr = e.sets.map((s,i) => `${s.reps||'—'}x${s.weight?s.weight+'kg':'—'}`).join(' | ');
     const maxWeight = Math.max(...e.sets.map(s => +s.weight || 0));
     const totalReps = e.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
     return `<tr><td>${fmtDate(e.date)}</td><td>${e.sets.length}</td><td>${setsStr}</td><td>${maxWeight||'—'}</td><td>${totalReps}</td></tr>`;
@@ -2356,7 +2356,7 @@ function renderTrackingChartsTab(sessions) {
   const thStyle = 'text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)';
   const table = data.length ? `<div class="tr-ex-row" style="margin-top:16px">
     <table style="width:100%;border-collapse:collapse;font-size:.82rem">
-      <thead><tr><th style="${thStyle}">תאריך</th><th style="${thStyle}">סטים</th><th style="${thStyle}">חזרות×משקל</th><th style="${thStyle}">משקל מקס׳</th><th style="${thStyle}">סה״כ חזרות</th></tr></thead>
+      <thead><tr><th style="${thStyle}">תאריך</th><th style="${thStyle}">סטים</th><th style="${thStyle}">חזרות×משקל (kg)</th><th style="${thStyle}">משקל מקס׳</th><th style="${thStyle}">סה״כ חזרות</th></tr></thead>
       <tbody>${tableRows}</tbody>
     </table>
   </div>` : '';

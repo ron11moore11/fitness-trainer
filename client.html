@@ -661,7 +661,7 @@ function renderClientSessionsTable() {
     let detailHtml = '';
     if (isExpanded && s.log && s.log.length) {
       detailHtml = '<div class="workout-card-detail" style="width:100%">' + s.log.map(ex => {
-        const setsStr = ex.sets.map((st,i) => `<span class="wcd-set">סט${i+1}: ${st.reps||'—'}x${st.weight||'—'}</span>`).join('');
+        const setsStr = ex.sets.map((st,i) => `<span class="wcd-set">סט${i+1}: ${st.reps||'—'}x${st.weight?st.weight+'kg':'—'}</span>`).join('');
         return `<div class="wcd-exercise">
           <div class="wcd-ex-name">${ex.videoUrl?`<a href="${esc(ex.videoUrl)}" target="_blank">${esc(ex.exerciseName)}</a>`:esc(ex.exerciseName)}${ex.category?` <span class="badge badge-cat">${esc(ex.category)}</span>`:''}</div>
           <div class="wcd-sets">${setsStr}</div>
@@ -922,13 +922,11 @@ function renderNewWorkout() {
         const ex = s.log.find(e => e.exerciseName === exName);
         if (!ex) return '<td style="padding:6px;text-align:center;color:var(--border);border-bottom:1px solid rgba(15,52,96,.3)">—</td>';
 
-        // Format sets: each set as "reps חזרות · weight kg"
         const setsHtml = ex.sets.map((st,si) => {
           const r = st.reps || '—';
-          const w = st.weight || '—';
+          const w = st.weight ? st.weight+'kg' : '—';
           return `<div style="font-size:.76rem;padding:2px 0;${si>0?'border-top:1px solid rgba(15,52,96,.2)':''}">
-            <span style="color:var(--accent)">${r}</span><span style="color:var(--muted);font-size:.65rem"> חזרות </span>
-            <span style="color:var(--accent2)">${w}</span><span style="color:var(--muted);font-size:.65rem"> kg</span>
+            <span style="color:var(--accent)">${r}</span><span style="color:var(--muted)">x</span><span style="color:var(--accent2)">${w}</span>
           </div>`;
         }).join('');
 
@@ -1072,7 +1070,7 @@ function renderLiveCard() {
 
   let prevHtml = '';
   if (prev) {
-    const prevSets = prev.sets.map((st,i)=>`<span class="live-prev-set">סט${i+1}: ${st.reps||'—'}x${st.weight||'—'}</span>`).join('');
+    const prevSets = prev.sets.map((st,i)=>`<span class="live-prev-set">סט${i+1}: ${st.reps||'—'}x${st.weight?st.weight+'kg':'—'}</span>`).join('');
     prevHtml = `<div class="live-prev"><div class="live-prev-title">פעם קודמת (${fmtDate(prev.date)})</div><div class="live-prev-sets">${prevSets}</div></div>`;
   }
 
@@ -1268,7 +1266,7 @@ function renderTrackingChartsTab(sessions) {
   });
 
   const tableRows = data.map(e => {
-    const setsStr = e.sets.map((s,i) => `${s.reps||'---'}x${s.weight||'---'}`).join(' | ');
+    const setsStr = e.sets.map((s,i) => `${s.reps||'---'}x${s.weight?s.weight+'kg':'---'}`).join(' | ');
     const maxWeight = Math.max(...e.sets.map(s => +s.weight || 0));
     const totalReps = e.sets.reduce((sum,s) => sum + (+s.reps||0), 0);
     return `<tr><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${fmtDate(e.date)}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${e.sets.length}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${setsStr}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${maxWeight||'---'}</td><td style="text-align:center;padding:5px 8px;border-bottom:1px solid rgba(15,52,96,.3)">${totalReps}</td></tr>`;
@@ -1277,7 +1275,7 @@ function renderTrackingChartsTab(sessions) {
   const thStyle = 'text-align:center;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)';
   const table = data.length ? `<div class="tr-ex-row" style="margin-top:16px">
     <table style="width:100%;border-collapse:collapse;font-size:.82rem">
-      <thead><tr><th style="${thStyle}">תאריך</th><th style="${thStyle}">סטים</th><th style="${thStyle}">חזרות x משקל</th><th style="${thStyle}">משקל מקס׳</th><th style="${thStyle}">סה״כ חזרות</th></tr></thead>
+      <thead><tr><th style="${thStyle}">תאריך</th><th style="${thStyle}">סטים</th><th style="${thStyle}">חזרות x משקל (kg)</th><th style="${thStyle}">משקל מקס׳</th><th style="${thStyle}">סה״כ חזרות</th></tr></thead>
       <tbody>${tableRows}</tbody>
     </table>
   </div>` : '';
