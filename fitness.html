@@ -785,7 +785,7 @@ function renderClientProfile() {
 }
 
 function renderCpDetails(c) {
-  const sessions = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training');
+  const sessions = load('sessions').filter(s=>s.clientId===c.id && s.type==='training' && s.status!=='cancelled' && s.source!=='client');
   const isPersonal = c.serviceType === 'plan_and_training';
   const serviceLabel = isPersonal ? 'תוכנית + אימונים אישיים' : 'תוכנית בלבד';
   return `<div class="cp-header">
@@ -855,7 +855,7 @@ function renderClients() {
   });
   document.getElementById('dashboard').innerHTML = `
     <div class="card"><div class="card-title">סה"כ לקוחות</div><div class="card-value">${clients.length}</div></div>
-    <div class="card"><div class="card-title">אימונים היום</div><div class="card-value">${sessions.filter(s=>s.date===today).length}</div></div>
+    <div class="card"><div class="card-title">אימונים היום</div><div class="card-value">${sessions.filter(s=>s.date===today&&s.status!=='cancelled').length}</div></div>
     <div class="card"><div class="card-title">תשלומים ממתינים</div><div class="card-value" style="color:var(--accent)">${payments.filter(p=>p.status==='pending').length}</div></div>
   `;
   if (!filtered.length) { document.getElementById('clients-table').innerHTML=`<div class="empty">${clients.length?'אין לקוחות בסטטוס הנבחר.':'אין לקוחות עדיין. הוסף את הראשון!'}</div>`; return; }
