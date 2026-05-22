@@ -2538,7 +2538,7 @@ function renderExerciseChart(exName, sessions) {
   for (let val = 0; val <= maxY; val += yStep) {
     const y = padTop + chartH - (val / maxY) * chartH;
     gridLines += `<line x1="${padLeft}" y1="${y}" x2="${w-padRight}" y2="${y}" stroke="var(--border)" stroke-width="0.5"/>`;
-    gridLines += `<text x="${padLeft-8}" y="${y+4}" text-anchor="end" fill="var(--muted)" font-size="9">${val}</text>`;
+    gridLines += `<text x="${padLeft-14}" y="${y+4}" text-anchor="end" fill="var(--muted)" font-size="9">${val}</text>`;
   }
 
   data.forEach((d, gi) => {
