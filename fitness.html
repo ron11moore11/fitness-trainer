@@ -2703,41 +2703,52 @@ function renderExerciseChart(exName, sessions) {
 // ===== PAYMENTS =========
 // ========================
 function renderPayments() {
+  const clients = load('clients');
   const payments = load('payments');
   const month = new Date().toISOString().slice(0,7);
-  const paid    = payments.filter(p=>p.date.startsWith(month)&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
-  const pending = payments.filter(p=>p.status==='pending').reduce((s,p)=>s+(+p.amount||0),0);
+  const paidThisMonth = payments.filter(p=>p.date.startsWith(month)&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+
+  // Calculate all balances
+  const balances = clients.map(c => ({ ...clientBalance(c.id), name: c.name, id: c.id }));
+  const totalDebt = balances.reduce((s,b) => s + (b.balance < 0 ? Math.abs(b.balance) : 0), 0);
+  const totalCredit = balances.reduce((s,b) => s + (b.balance > 0 ? b.balance : 0), 0);
+  const totalPaidAll = balances.reduce((s,b) => s + b.totalPaid, 0);
+
   document.getElementById('pay-summary').innerHTML=`
-    <div class="card"><div class="card-title">שולם החודש</div><div class="card-value" style="color:#4caf50">₪${paid.toLocaleString()}</div></div>
-    <div class="card"><div class="card-title">ממתין לתשלום</div><div class="card-value" style="color:#ffa726">₪${pending.toLocaleString()}</div></div>`;
-  renderPayFilters();
-  let filtered;
+    <div class="card"><div class="card-title">שולם החודש</div><div class="card-value" style="color:#4caf50">₪${paidThisMonth.toLocaleString()}</div></div>
+    <div class="card"><div class="card-title">סה״כ חובות</div><div class="card-value" style="color:var(--accent)">₪${totalDebt.toLocaleString()}</div></div>
+    <div class="card"><div class="card-title">סה״כ זיכויים</div><div class="card-value" style="color:#4caf50">₪${totalCredit.toLocaleString()}</div></div>
+    <div class="card"><div class="card-title">סה״כ התקבל</div><div class="card-value">₪${totalPaidAll.toLocaleString()}</div></div>`;
+
+  document.getElementById('pay-filters-container').innerHTML = '';
+
+  // Build client balance table
+  const clientsWithPrice = balances.filter(b => b.price > 0);
+  const sorted = [...clientsWithPrice].sort((a,b) => a.balance - b.balance); // debts first
+
   const heading = document.getElementById('payments-heading');
-  if (payFilter.active) {
-    filtered = payments.filter(p => {
-      if (payFilter.month && !p.date.startsWith(payFilter.month)) return false;
-      if (payFilter.fromDate && p.date < payFilter.fromDate) return false;
-      if (payFilter.toDate && p.date > payFilter.toDate) return false;
-      if (payFilter.clientId && p.clientId !== payFilter.clientId) return false;
-      return true;
-    });
-    heading.textContent = 'תשלומים — תוצאות סינון';
-  } else {
-    filtered = payments.filter(p => p.status === 'pending');
-    heading.textContent = 'תשלומים — ממתינים';
+  heading.textContent = 'מעקב תשלומים לפי מתאמן';
+
+  if (!sorted.length) {
+    document.getElementById('payments-table').innerHTML='<div class="empty">אין מתאמנים עם תעריף מוגדר.</div>';
+    return;
   }
-  if (!filtered.length) { document.getElementById('payments-table').innerHTML='<div class="empty">אין תשלומים להצגה.</div>'; return; }
+
   document.getElementById('payments-table').innerHTML=`<table>
-    <thead><tr><th>לקוח</th><th>סכום</th><th>תאריך</th><th>חבילה</th><th>סטטוס</th><th>פעולות</th></tr></thead>
-    <tbody>${[...filtered].sort((a,b)=>a.date<b.date?1:-1).map(p=>`<tr>
-      <td>${esc(clientName(p.clientId))}</td><td>₪${(+p.amount||0).toLocaleString()}</td>
-      <td>${fmtDate(p.date)}</td><td>${esc(p.package)}</td>
-      <td><button class="badge ${p.status==='paid'?'badge-paid':'badge-pending'}" onclick="togglePayment('${p.id}')" style="cursor:pointer;border:none">${p.status==='paid'?'שולם':'ממתין'}</button></td>
-      <td class="actions">
-        <button class="btn btn-teal btn-sm" onclick="openIssueDocument('${p.id}')">🧾 הנפק</button>
-        <button class="btn btn-ghost btn-sm" onclick="openEditPayment('${p.id}')">עריכה</button>
-        <button class="btn btn-danger btn-sm" onclick="deletePayment('${p.id}')">מחק</button>
-      </td></tr>`).join('')}</tbody></table>`;
+    <thead><tr><th>מתאמן</th><th>תעריף</th><th>אימונים</th><th>סה״כ חוב</th><th>סה״כ שולם</th><th>יתרה</th><th>פעולות</th></tr></thead>
+    <tbody>${sorted.map(b=>{
+      const balColor = b.balance >= 0 ? '#4caf50' : 'var(--accent)';
+      const balText = b.balance > 0 ? `₪${b.balance.toLocaleString()} זיכוי` : b.balance < 0 ? `₪${Math.abs(b.balance).toLocaleString()} חוב` : '₪0';
+      return `<tr>
+        <td><a href="#" onclick="event.preventDefault();_clientProfile.tab='payments';switchTab('clients');openClientProfile('${b.id}')" style="color:var(--accent2);text-decoration:none;font-weight:600">${esc(b.name)}</a></td>
+        <td>₪${b.price.toLocaleString()}</td>
+        <td>${b.sessions}</td>
+        <td>₪${b.totalDebt.toLocaleString()}</td>
+        <td style="color:#4caf50">₪${b.totalPaid.toLocaleString()}</td>
+        <td style="color:${balColor};font-weight:700">${balText}</td>
+        <td class="actions"><button class="btn btn-sm" onclick="openAddClientPayment('${b.id}')">+ תשלום</button></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
 }
 function renderPayFilters() {
   const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
