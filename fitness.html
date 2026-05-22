@@ -485,7 +485,7 @@
   <section id="tab-clients">
     <div class="dashboard" id="dashboard"></div>
     <div class="card">
-      <div class="section-header"><h2>לקוחות</h2><div style="display:flex;gap:8px;align-items:center"><select class="status-filter" id="client-status-filter" onchange="renderClients()"><option value="all">הכל</option><option value="פעיל">פעיל</option><option value="בהשהיה">בהשהיה</option><option value="הפסיק">הפסיק</option></select><button class="btn" onclick="openAddClient()">+ הוסף לקוח</button></div></div>
+      <div class="section-header"><h2>לקוחות</h2><div style="display:flex;gap:8px;align-items:center"><input id="client-search" placeholder="חפש לקוח..." oninput="renderClients()" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;font-size:.85rem;font-family:inherit;width:160px"><select class="status-filter" id="client-status-filter" onchange="renderClients()"><option value="all">הכל</option><option value="פעיל">פעיל</option><option value="בהשהיה">בהשהיה</option><option value="הפסיק">הפסיק</option></select><button class="btn" onclick="openAddClient()">+ הוסף לקוח</button></div></div>
       <div class="table-wrap" id="clients-table"></div>
     </div>
   </section>
@@ -847,7 +847,12 @@ function renderClients() {
   const payments = load('payments');
   const today    = new Date().toISOString().slice(0,10);
   const statusFilter = document.getElementById('client-status-filter')?.value || 'all';
-  const filtered = statusFilter === 'all' ? clients : clients.filter(c => (c.status || 'פעיל') === statusFilter);
+  const searchTerm = (document.getElementById('client-search')?.value || '').toLowerCase();
+  const filtered = clients.filter(c => {
+    if (statusFilter !== 'all' && (c.status || 'פעיל') !== statusFilter) return false;
+    if (searchTerm && !(c.name||'').toLowerCase().includes(searchTerm) && !(c.phone||'').includes(searchTerm)) return false;
+    return true;
+  });
   document.getElementById('dashboard').innerHTML = `
     <div class="card"><div class="card-title">סה"כ לקוחות</div><div class="card-value">${clients.length}</div></div>
     <div class="card"><div class="card-title">אימונים היום</div><div class="card-value">${sessions.filter(s=>s.date===today).length}</div></div>
