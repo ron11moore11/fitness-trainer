@@ -1879,7 +1879,7 @@ function planCardHTML(p) {
     const exRows = exercises.map(e => {
       const repsDisplay = e.setsData.map(s => s.targetReps).join(', ');
       const weightsDisplay = e.setsData.some(s => s.weight) ? e.setsData.map(s => s.weight || '—').join(', ') : '—';
-      return `<tr><td>${esc(e.category||'—')}</td><td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank" style="color:var(--accent2)">${esc(e.name)}</a>`:esc(e.name)}</td><td>${e.setsData.length}</td><td>${repsDisplay}</td><td>${weightsDisplay}</td></tr>`;
+      return `<tr><td>${esc(e.category||'—')}</td><td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank" style="color:var(--accent2)">${esc(e.name)}</a>`:esc(e.name)}</td><td>${e.setsData.length}</td><td dir="ltr">${repsDisplay}</td><td dir="ltr">${weightsDisplay}</td></tr>`;
     }).join('');
     return `${workouts.length>1?`<div style="color:var(--accent);font-size:.82rem;font-weight:600;margin:8px 0 4px">${esc(w.name)}</div>`:''}
       <table class="ex-table"><thead><tr><th>קטגוריה</th><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>משקל</th></tr></thead><tbody>${exRows}</tbody></table>`;
