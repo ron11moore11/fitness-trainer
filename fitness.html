@@ -2187,7 +2187,8 @@ function exportPlanPDF(plan) {
         const isFirst = si === 0;
         const rowspan = isFirst ? ` rowspan="${e.setsData.length}"` : '';
         const catCell = isFirst ? `<td${rowspan} style="text-align:center;vertical-align:middle">${esc(e.category||'—')}</td>` : '';
-        const nameCell = isFirst ? `<td${rowspan} style="vertical-align:middle"><strong>${esc(e.name)}</strong></td>` : '';
+        const nameLink = e.videoUrl ? `<a href="${esc(e.videoUrl)}" target="_blank" style="color:#c0392b;text-decoration:underline">${esc(e.name)}</a>` : esc(e.name);
+        const nameCell = isFirst ? `<td${rowspan} style="vertical-align:middle"><strong>${nameLink}</strong></td>` : '';
         return `<tr style="${rowNum%2===0?'background:#fdf2f2':''}">
           ${catCell}${nameCell}
           <td style="text-align:center">סט ${si+1}</td>
