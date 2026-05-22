@@ -835,10 +835,6 @@ function clientForm(c={}) {
       <div class="form-group"><label>מספר אימונים אישיים שנרכשו</label><input name="personalSessions" type="number" min="0" value="${esc(c.personalSessions||'')}"></div>
       <div class="form-group"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>קוד כניסה לפורטל (PIN)</label><input name="pin" type="text" inputmode="numeric" pattern="[0-9]{4,6}" placeholder="4-6 ספרות"${c.pinHash?' value=""':''}><small style="color:var(--muted);font-size:.7rem">${c.pinHash?'השאר ריק כדי לא לשנות':'לגישת המתאמן לפורטל'}</small></div>
-      <div class="form-group"></div>
-    </div>
     <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(c.notes||'')}</textarea></div>
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
@@ -847,18 +843,14 @@ function clientForm(c={}) {
 }
 function openAddClient() {
   openModal('הוסף לקוח', clientForm(), async fd => {
-    const pin = fd.get('pin');
-    const pinHash = pin ? await sha256(pin) : '';
-    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל', serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||'', pinHash});
+    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל', serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||''});
     renderClients();
   });
 }
 function openEditClient(id) {
   const c = load('clients').find(x=>x.id===id);
   openModal('עריכת לקוח', clientForm(c), async fd => {
-    const pin = fd.get('pin');
-    const pinHash = pin ? await sha256(pin) : c.pinHash || '';
-    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status'), serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||'', pinHash});
+    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status'), serviceType:fd.get('serviceType')||'plan_only', personalSessions:fd.get('personalSessions')||''});
     await saveItem('clients', c);
     renderClients();
   });

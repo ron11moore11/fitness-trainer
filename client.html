@@ -294,7 +294,7 @@
     <p>הזן מספר טלפון וקוד כניסה</p>
     <form id="login-form" onsubmit="handleClientLogin(event)">
       <input type="tel" id="login-phone" placeholder="מספר טלפון" inputmode="numeric" pattern="[0-9]{9,15}" autocomplete="tel" autofocus>
-      <input type="password" id="login-pin" placeholder="קוד PIN" inputmode="numeric" autocomplete="current-password">
+      <input type="password" id="login-pin" placeholder="סיסמה (4 ספרות אחרונות)" maxlength="4" inputmode="numeric" autocomplete="current-password">
       <div class="login-error" id="login-error"></div>
       <button type="submit" class="btn" style="width:100%">כניסה</button>
     </form>
@@ -484,26 +484,19 @@ document.querySelectorAll('.nav-tab').forEach(btn=>btn.addEventListener('click',
 // ===========================
 // ===== AUTHENTICATION ======
 // ===========================
-async function sha256(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
 async function handleClientLogin(e) {
   e.preventDefault();
   const phone = document.getElementById('login-phone').value.trim();
-  const pin = document.getElementById('login-pin').value;
+  const pin = document.getElementById('login-pin').value.trim();
   const errEl = document.getElementById('login-error');
 
-  if (!phone || !pin) { errEl.textContent = 'הזן מספר טלפון וקוד'; return; }
+  if (!phone || !pin) { errEl.textContent = 'הזן מספר טלפון וסיסמה'; return; }
 
   errEl.textContent = 'מתחבר...';
   try {
-    // Load clients from Firestore
     const snap = await db.collection('clients').get();
     const clients = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
-    // Find client by phone (normalize: remove non-digits)
     const normalizedPhone = phone.replace(/\D/g,'');
     const client = clients.find(c => {
       const cPhone = (c.phone||'').replace(/\D/g,'');
@@ -511,12 +504,10 @@ async function handleClientLogin(e) {
     });
 
     if (!client) { errEl.textContent = 'מספר טלפון לא נמצא'; document.getElementById('login-phone').focus(); return; }
-    if (!client.pinHash) { errEl.textContent = 'לא הוגדר קוד כניסה — פנה למאמן'; return; }
 
-    const hash = await sha256(pin);
-    if (hash !== client.pinHash) { errEl.textContent = 'קוד שגוי'; document.getElementById('login-pin').value = ''; document.getElementById('login-pin').focus(); return; }
+    const expectedPin = normalizedPhone.slice(-4);
+    if (pin !== expectedPin) { errEl.textContent = 'סיסמה שגויה'; document.getElementById('login-pin').value = ''; document.getElementById('login-pin').focus(); return; }
 
-    // Success
     localStorage.setItem('ft_client_auth', JSON.stringify({ clientId: client.id, phone: normalizedPhone }));
     _currentClientId = client.id;
     _currentClientName = client.name;
