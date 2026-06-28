@@ -454,8 +454,18 @@
     <form id="setup-form" style="display:none;margin-top:16px" onsubmit="handleSetup(event)">
       <input type="text" id="setup-name" placeholder="שם מלא">
       <input type="tel" id="setup-phone" placeholder="מספר טלפון" dir="ltr">
+      <input type="password" id="setup-pin" placeholder="בחר סיסמה (4 ספרות)" maxlength="4" inputmode="numeric" dir="ltr">
+      <input type="password" id="setup-pin-confirm" placeholder="אימות סיסמה" maxlength="4" inputmode="numeric" dir="ltr">
       <div class="login-error" id="setup-error"></div>
       <button type="submit" class="btn" style="width:100%;background:var(--accent2)">צור חשבון</button>
+    </form>
+    <!-- First login - set password -->
+    <form id="set-pin-form" style="display:none;margin-top:16px" onsubmit="handleSetPin(event)">
+      <p style="font-size:.9rem;margin-bottom:12px;color:var(--text)">כניסה ראשונה — בחר סיסמה</p>
+      <input type="password" id="set-pin-new" placeholder="בחר סיסמה (4 ספרות)" maxlength="4" inputmode="numeric" dir="ltr">
+      <input type="password" id="set-pin-confirm2" placeholder="אימות סיסמה" maxlength="4" inputmode="numeric" dir="ltr">
+      <div class="login-error" id="set-pin-error"></div>
+      <button type="submit" class="btn" style="width:100%;background:var(--accent2)">שמור סיסמה והיכנס</button>
     </form>
   </div>
 </div>
@@ -3033,10 +3043,10 @@ async function renderAdmin() {
   let html = '<table><thead><tr><th>שם</th><th>טלפון</th><th>סיסמה</th><th>Admin</th><th>תאריך הצטרפות</th><th></th></tr></thead><tbody>';
   for (const t of trainers) {
     const created = t.createdAt ? new Date(t.createdAt).toLocaleDateString('he-IL') : '—';
-    const pin = t.phone ? t.phone.replace(/\D/g, '').slice(-4) : '—';
+    const pinStatus = t.pin ? '✓ הוגדרה' : 'ממתין לכניסה ראשונה';
     const isAdmin = t.isAdmin ? '✓' : '';
     const deleteBtn = t.id === currentTrainerId ? '' : `<button class="btn-sm" style="background:var(--accent)" onclick="deleteTrainer('${t.id}','${t.name}')">מחק</button>`;
-    html += `<tr><td>${t.name}</td><td dir="ltr">${t.phone || '—'}</td><td dir="ltr">${pin}</td><td>${isAdmin}</td><td>${created}</td><td>${deleteBtn}</td></tr>`;
+    html += `<tr><td>${t.name}</td><td dir="ltr">${t.phone || '—'}</td><td>${pinStatus}</td><td>${isAdmin}</td><td>${created}</td><td>${deleteBtn}</td></tr>`;
   }
   html += '</tbody></table>';
   document.getElementById('trainers-table').innerHTML = html;
@@ -3057,7 +3067,7 @@ function openAddTrainer() {
       <input type="text" id="new-trainer-name" required>
       <label>מספר טלפון</label>
       <input type="tel" id="new-trainer-phone" dir="ltr" required>
-      <p style="font-size:.8rem;color:var(--text);opacity:.7;margin-top:4px">הסיסמה תהיה 4 הספרות האחרונות של מספר הטלפון</p>
+      <p style="font-size:.8rem;color:var(--text);opacity:.7;margin-top:4px">המאמן יבחר סיסמה בכניסה הראשונה שלו</p>
       <div class="login-error" id="add-trainer-error"></div>
       <button type="submit" class="btn" style="width:100%;margin-top:12px">צור מאמן</button>
     </form>
@@ -3129,7 +3139,9 @@ async function handleSetup(e) {
   e.preventDefault();
   const name = document.getElementById('setup-name').value.trim();
   const phone = document.getElementById('setup-phone').value.trim();
-  if (!name || !phone) {
+  const pin = document.getElementById('setup-pin').value.trim();
+  const pinConfirm = document.getElementById('setup-pin-confirm').value.trim();
+  if (!name || !phone || !pin) {
     document.getElementById('setup-error').textContent = 'מלא את כל השדות';
     return;
   }
@@ -3137,56 +3149,113 @@ async function handleSetup(e) {
     document.getElementById('setup-error').textContent = 'מספר טלפון לא תקין';
     return;
   }
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+    document.getElementById('setup-error').textContent = 'הסיסמה חייבת להיות 4 ספרות';
+    return;
+  }
+  if (pin !== pinConfirm) {
+    document.getElementById('setup-error').textContent = 'הסיסמאות לא תואמות';
+    return;
+  }
   try {
-    const doc = await db.collection('trainers').add({ name, phone, isAdmin: true, createdAt: new Date().toISOString() });
+    await db.collection('trainers').add({ name, phone, pin, isAdmin: true, createdAt: new Date().toISOString() });
     document.getElementById('setup-error').style.color = 'var(--accent2)';
-    document.getElementById('setup-error').textContent = 'החשבון נוצר! הסיסמה שלך: ' + phone.slice(-4);
+    document.getElementById('setup-error').textContent = 'החשבון נוצר בהצלחה!';
     setTimeout(() => {
       document.getElementById('setup-form').style.display = 'none';
       document.getElementById('login-form').style.display = 'block';
       document.getElementById('login-subtitle').textContent = 'הזן מספר טלפון וסיסמה';
       document.getElementById('login-phone').value = phone;
       document.getElementById('login-pin').focus();
-    }, 2000);
+    }, 1500);
   } catch(err) {
     console.error(err);
     document.getElementById('setup-error').textContent = 'שגיאה ביצירת חשבון';
   }
 }
 
+let _pendingTrainerId = null; // for first-login pin setup
+
 async function handleLogin(e) {
   e.preventDefault();
   const phone = document.getElementById('login-phone').value.trim().replace(/\D/g, '');
   const pin = document.getElementById('login-pin').value.trim();
-  if (!phone || !pin) {
-    document.getElementById('login-error').textContent = 'הזן מספר טלפון וסיסמה';
+  if (!phone) {
+    document.getElementById('login-error').textContent = 'הזן מספר טלפון';
     return;
   }
   try {
     const snap = await db.collection('trainers').get();
-    const trainer = snap.docs.find(d => {
-      const tp = d.data().phone.replace(/\D/g, '');
-      return tp === phone && tp.slice(-4) === pin;
-    });
+    const trainer = snap.docs.find(d => d.data().phone.replace(/\D/g, '') === phone);
     if (!trainer) {
-      document.getElementById('login-error').textContent = 'מספר טלפון או סיסמה שגויים';
+      document.getElementById('login-error').textContent = 'מספר טלפון לא נמצא';
+      return;
+    }
+    const data = trainer.data();
+    // First login — no pin set yet
+    if (!data.pin) {
+      _pendingTrainerId = trainer.id;
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('login-subtitle').textContent = `שלום ${data.name}! בחר סיסמה`;
+      document.getElementById('set-pin-form').style.display = 'block';
+      document.getElementById('set-pin-new').focus();
+      return;
+    }
+    // Normal login — verify pin
+    if (!pin) {
+      document.getElementById('login-error').textContent = 'הזן סיסמה';
+      return;
+    }
+    if (pin !== data.pin) {
+      document.getElementById('login-error').textContent = 'סיסמה שגויה';
       document.getElementById('login-pin').value = '';
       document.getElementById('login-pin').focus();
       return;
     }
-    currentTrainerId = trainer.id;
-    currentTrainerName = trainer.data().name;
-    currentTrainerIsAdmin = trainer.data().isAdmin === true;
-    localStorage.setItem('ft_auth', 'yes');
-    localStorage.setItem('ft_trainerId', currentTrainerId);
-    localStorage.setItem('ft_trainerName', currentTrainerName);
-    localStorage.setItem('ft_trainerIsAdmin', currentTrainerIsAdmin ? 'yes' : 'no');
-    document.getElementById('login-screen').style.display = 'none';
-    init();
+    loginAsTrainer(trainer);
   } catch(err) {
     console.error(err);
     document.getElementById('login-error').textContent = 'שגיאה בחיבור';
   }
+}
+
+async function handleSetPin(e) {
+  e.preventDefault();
+  const pin = document.getElementById('set-pin-new').value.trim();
+  const pinConfirm = document.getElementById('set-pin-confirm2').value.trim();
+  if (!pin) {
+    document.getElementById('set-pin-error').textContent = 'הזן סיסמה';
+    return;
+  }
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+    document.getElementById('set-pin-error').textContent = 'הסיסמה חייבת להיות 4 ספרות';
+    return;
+  }
+  if (pin !== pinConfirm) {
+    document.getElementById('set-pin-error').textContent = 'הסיסמאות לא תואמות';
+    return;
+  }
+  try {
+    await db.collection('trainers').doc(_pendingTrainerId).update({ pin });
+    const snap = await db.collection('trainers').doc(_pendingTrainerId).get();
+    loginAsTrainer(snap);
+  } catch(err) {
+    console.error(err);
+    document.getElementById('set-pin-error').textContent = 'שגיאה בשמירה';
+  }
+}
+
+function loginAsTrainer(trainerDoc) {
+  const data = trainerDoc.data ? trainerDoc.data() : trainerDoc;
+  currentTrainerId = trainerDoc.id;
+  currentTrainerName = data.name;
+  currentTrainerIsAdmin = data.isAdmin === true;
+  localStorage.setItem('ft_auth', 'yes');
+  localStorage.setItem('ft_trainerId', currentTrainerId);
+  localStorage.setItem('ft_trainerName', currentTrainerName);
+  localStorage.setItem('ft_trainerIsAdmin', currentTrainerIsAdmin ? 'yes' : 'no');
+  document.getElementById('login-screen').style.display = 'none';
+  init();
 }
 
 function handleLogout() {
