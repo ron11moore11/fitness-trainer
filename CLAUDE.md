@@ -27,11 +27,12 @@
 ## Collections ב-Firestore
 | Collection | תוכן |
 |---|---|
-| `clients` | לקוחות — name, phone, email, age, goals, notes |
-| `sessions` | אימונים — clientId, date, time, duration, notes |
-| `plans` | תוכניות אימון — clientId, name, isTemplate, exercises[] |
-| `payments` | תשלומים — clientId, amount, date, status, package |
-| `exercises` | בנק תרגילים — name, category, videoUrl |
+| `trainers` | מאמנים — name, phone, isAdmin, createdAt |
+| `clients` | לקוחות — name, phone, email, age, goals, notes, trainerId |
+| `sessions` | אימונים — clientId, date, time, duration, notes, trainerId |
+| `plans` | תוכניות אימון — clientId, name, isTemplate, exercises[], trainerId |
+| `payments` | תשלומים — clientId, amount, date, status, package, trainerId |
+| `exercises` | בנק תרגילים — name, category, videoUrl (משותף לכל המאמנים) |
 
 ## תכונות קיימות
 - **לקוחות** — CRUD + דשבורד סיכום
@@ -40,7 +41,9 @@
 - **תוכניות אימון** — תבניות גנריות + תוכניות ללקוחות, ייצוא Word, שליחה לוואטסאפ
 - **תשלומים** — מעקב עם סטטוס paid/pending + הנפקת מסמכים דרך Morning
 - **Morning (חשבונית ירוקה)** — תשתית API להנפקת חשבונית מס וקבלה (צריך להכניס מפתחות)
-- **התחברות** — מסך סיסמה (SHA-256 hash, localStorage)
+- **התחברות** — מסך login עם טלפון + סיסמה (4 ספרות אחרונות של הטלפון)
+- **מרובה מאמנים** — כל מאמן רואה רק את הנתונים שלו (trainerId על כל מסמך). תרגילים משותפים.
+- **ניהול מאמנים (admin)** — טאב admin למאמן ראשי: הוספה/מחיקה של מאמנים, מיגרציה של נתונים יתומים
 - **תזכורות** — אימונים 7 ימים קדימה + תזכורת WhatsApp
 
 ## עיצוב (CSS tokens)
@@ -51,6 +54,7 @@
 
 ## דברים שעדיין לא נעשו (המשך אפשרי)
 - [x] מסך התחברות / login
+- [x] מרובה מאמנים + ניהול admin
 - [x] Morning API — תשתית מוכנה, ממתין למפתחות
 - [ ] גיבוי ידני — כפתור "ייצא נתונים ל-JSON"
 - [ ] שליחת תוכניות מ-WhatsApp עם קובץ מצורף אוטומטית (דורש שרת)

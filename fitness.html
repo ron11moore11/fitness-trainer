@@ -442,10 +442,11 @@
 <div id="login-screen">
   <div class="login-box">
     <h1>💪 מאמן כושר</h1>
-    <p id="login-subtitle">הזן סיסמה כדי להיכנס</p>
+    <p id="login-subtitle">הזן מספר טלפון וסיסמה</p>
     <!-- Login form -->
     <form id="login-form" onsubmit="handleLogin(event)">
-      <input type="password" id="login-pin" placeholder="4 ספרות" maxlength="4" inputmode="numeric" autocomplete="current-password" dir="ltr" autofocus>
+      <input type="tel" id="login-phone" placeholder="מספר טלפון" dir="ltr" autocomplete="tel">
+      <input type="password" id="login-pin" placeholder="סיסמה (4 ספרות)" maxlength="4" inputmode="numeric" autocomplete="current-password" dir="ltr">
       <div class="login-error" id="login-error"></div>
       <button type="submit" class="btn" style="width:100%">כניסה</button>
     </form>
@@ -478,6 +479,7 @@
     <button class="nav-tab" data-tab="workouts">תוכניות אימון</button>
     <button class="nav-tab" data-tab="payments">תשלומים</button>
     <button class="nav-tab" data-tab="reminders">תזכורות</button>
+    <button class="nav-tab" data-tab="admin" id="nav-admin-tab" style="display:none">ניהול</button>
   </div>
 </nav>
 
@@ -549,6 +551,17 @@
     <div class="section-header"><h2>תזכורות — 7 ימים קרובים</h2></div>
     <div class="reminders-list" id="reminders-list"></div>
   </section>
+
+  <section id="tab-admin">
+    <div class="section-header"><h2>ניהול מאמנים</h2><button class="btn" onclick="openAddTrainer()">+ הוסף מאמן</button></div>
+    <div class="card" id="admin-migrate-card" style="display:none;margin-bottom:16px;padding:16px">
+      <p style="margin-bottom:8px;font-size:.9rem">נמצאו נתונים ללא שיוך למאמן. לחץ כדי לשייך אותם אליך:</p>
+      <button class="btn" style="background:var(--accent2)" onclick="migrateOrphanData()">שייך נתונים אליי</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap" id="trainers-table"></div>
+    </div>
+  </section>
 </main>
 
 <div id="modal-overlay">
@@ -582,6 +595,7 @@ const db = firebase.firestore();
 const cache = { clients:[], sessions:[], plans:[], payments:[], exercises:[] };
 let currentTrainerId = null;
 let currentTrainerName = '';
+let currentTrainerIsAdmin = false;
 
 function load(col) { return cache[col] || []; }
 
@@ -610,16 +624,6 @@ async function initDB() {
     }
     cache[col] = items;
   }));
-  // Claim orphaned data for current trainer
-  if (currentTrainerId) {
-    for (const col of ['clients','sessions','plans','payments']) {
-      const orphans = cache[col].filter(item => !item.trainerId);
-      for (const item of orphans) {
-        item.trainerId = currentTrainerId;
-        db.collection(col).doc(item.id).update({ trainerId: currentTrainerId });
-      }
-    }
-  }
   // Show trainer name in nav
   if (currentTrainerName) {
     const el = document.getElementById('nav-trainer-name');
@@ -736,7 +740,7 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
 });
 
 // ===== TAB NAVIGATION =====
-const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, reminders:renderReminders };
+const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, reminders:renderReminders, admin:renderAdmin };
 async function switchTab(name) {
   if (_planBuilder.active && !confirm('יש תוכנית בעריכה — לצאת בלי לשמור?')) return;
   if (_planBuilder.active) _planBuilder.active = false;
@@ -3017,6 +3021,93 @@ function toggleInvoiceFields(docType) {
 }
 
 // ========================
+// ===== ADMIN =============
+// ========================
+async function renderAdmin() {
+  const snap = await db.collection('trainers').get();
+  const trainers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  let html = '<table><thead><tr><th>שם</th><th>טלפון</th><th>סיסמה</th><th>Admin</th><th>תאריך הצטרפות</th><th></th></tr></thead><tbody>';
+  for (const t of trainers) {
+    const created = t.createdAt ? new Date(t.createdAt).toLocaleDateString('he-IL') : '—';
+    const pin = t.phone ? t.phone.replace(/\D/g, '').slice(-4) : '—';
+    const isAdmin = t.isAdmin ? '✓' : '';
+    const deleteBtn = t.id === currentTrainerId ? '' : `<button class="btn-sm" style="background:var(--accent)" onclick="deleteTrainer('${t.id}','${t.name}')">מחק</button>`;
+    html += `<tr><td>${t.name}</td><td dir="ltr">${t.phone || '—'}</td><td dir="ltr">${pin}</td><td>${isAdmin}</td><td>${created}</td><td>${deleteBtn}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('trainers-table').innerHTML = html;
+
+  // Check for orphan data
+  let orphanCount = 0;
+  for (const col of ['clients','sessions','plans','payments']) {
+    const colSnap = await db.collection(col).get();
+    orphanCount += colSnap.docs.filter(d => !d.data().trainerId).length;
+  }
+  document.getElementById('admin-migrate-card').style.display = orphanCount > 0 ? '' : 'none';
+}
+
+function openAddTrainer() {
+  openModal('הוסף מאמן', `
+    <form onsubmit="handleAddTrainer(event)">
+      <label>שם מלא</label>
+      <input type="text" id="new-trainer-name" required>
+      <label>מספר טלפון</label>
+      <input type="tel" id="new-trainer-phone" dir="ltr" required>
+      <p style="font-size:.8rem;color:var(--text);opacity:.7;margin-top:4px">הסיסמה תהיה 4 הספרות האחרונות של מספר הטלפון</p>
+      <div class="login-error" id="add-trainer-error"></div>
+      <button type="submit" class="btn" style="width:100%;margin-top:12px">צור מאמן</button>
+    </form>
+  `);
+}
+
+async function handleAddTrainer(e) {
+  e.preventDefault();
+  const name = document.getElementById('new-trainer-name').value.trim();
+  const phone = document.getElementById('new-trainer-phone').value.trim();
+  if (!name || !phone) {
+    document.getElementById('add-trainer-error').textContent = 'מלא את כל השדות';
+    return;
+  }
+  if (phone.replace(/\D/g, '').length < 9) {
+    document.getElementById('add-trainer-error').textContent = 'מספר טלפון לא תקין';
+    return;
+  }
+  // Check if phone already exists
+  const snap = await db.collection('trainers').get();
+  const normalizedPhone = phone.replace(/\D/g, '');
+  const exists = snap.docs.some(d => d.data().phone.replace(/\D/g, '') === normalizedPhone);
+  if (exists) {
+    document.getElementById('add-trainer-error').textContent = 'מספר טלפון כבר רשום במערכת';
+    return;
+  }
+  await db.collection('trainers').add({ name, phone, isAdmin: false, createdAt: new Date().toISOString() });
+  closeModal();
+  renderAdmin();
+}
+
+async function deleteTrainer(id, name) {
+  if (!confirm(`למחוק את המאמן "${name}"?\nהנתונים של הלקוחות שלו לא יימחקו.`)) return;
+  await db.collection('trainers').doc(id).delete();
+  renderAdmin();
+}
+
+async function migrateOrphanData() {
+  if (!confirm('לשייך את כל הנתונים ללא בעלות אליך?')) return;
+  let count = 0;
+  for (const col of ['clients','sessions','plans','payments']) {
+    const snap = await db.collection(col).get();
+    const orphans = snap.docs.filter(d => !d.data().trainerId);
+    for (const d of orphans) {
+      await db.collection(col).doc(d.id).update({ trainerId: currentTrainerId });
+      const cached = cache[col].find(x => x.id === d.id);
+      if (cached) cached.trainerId = currentTrainerId;
+      count++;
+    }
+  }
+  alert(`שויכו ${count} רשומות בהצלחה`);
+  renderAdmin();
+}
+
 // ===== AUTH ==============
 // ========================
 async function checkFirstTime() {
@@ -3043,7 +3134,7 @@ async function handleSetup(e) {
     return;
   }
   try {
-    const doc = await db.collection('trainers').add({ name, phone, createdAt: new Date().toISOString() });
+    const doc = await db.collection('trainers').add({ name, phone, isAdmin: true, createdAt: new Date().toISOString() });
     document.getElementById('setup-error').style.color = 'var(--accent2)';
     document.getElementById('setup-error').textContent = 'החשבון נוצר! הסיסמה שלך: ' + phone.slice(-4);
     setTimeout(() => {
@@ -3061,25 +3152,31 @@ async function handleSetup(e) {
 
 async function handleLogin(e) {
   e.preventDefault();
+  const phone = document.getElementById('login-phone').value.trim().replace(/\D/g, '');
   const pin = document.getElementById('login-pin').value.trim();
-  if (!pin) {
-    document.getElementById('login-error').textContent = 'הזן סיסמה';
+  if (!phone || !pin) {
+    document.getElementById('login-error').textContent = 'הזן מספר טלפון וסיסמה';
     return;
   }
   try {
     const snap = await db.collection('trainers').get();
-    const trainer = snap.docs.find(d => d.data().phone.slice(-4) === pin);
+    const trainer = snap.docs.find(d => {
+      const tp = d.data().phone.replace(/\D/g, '');
+      return tp === phone && tp.slice(-4) === pin;
+    });
     if (!trainer) {
-      document.getElementById('login-error').textContent = 'סיסמה שגויה';
+      document.getElementById('login-error').textContent = 'מספר טלפון או סיסמה שגויים';
       document.getElementById('login-pin').value = '';
       document.getElementById('login-pin').focus();
       return;
     }
     currentTrainerId = trainer.id;
     currentTrainerName = trainer.data().name;
+    currentTrainerIsAdmin = trainer.data().isAdmin === true;
     localStorage.setItem('ft_auth', 'yes');
     localStorage.setItem('ft_trainerId', currentTrainerId);
     localStorage.setItem('ft_trainerName', currentTrainerName);
+    localStorage.setItem('ft_trainerIsAdmin', currentTrainerIsAdmin ? 'yes' : 'no');
     document.getElementById('login-screen').style.display = 'none';
     init();
   } catch(err) {
@@ -3092,8 +3189,10 @@ function handleLogout() {
   localStorage.removeItem('ft_auth');
   localStorage.removeItem('ft_trainerId');
   localStorage.removeItem('ft_trainerName');
+  localStorage.removeItem('ft_trainerIsAdmin');
   currentTrainerId = null;
   currentTrainerName = '';
+  currentTrainerIsAdmin = false;
   location.reload();
 }
 
@@ -3105,6 +3204,10 @@ async function init() {
   try {
     await initDB();
     document.getElementById('loading-overlay').style.display = 'none';
+    if (currentTrainerIsAdmin) {
+      const adminTab = document.getElementById('nav-admin-tab');
+      if (adminTab) adminTab.style.display = '';
+    }
     switchTab('clients');
   } catch(err) {
     console.error(err);
@@ -3123,6 +3226,7 @@ async function init() {
 if (localStorage.getItem('ft_auth') === 'yes' && localStorage.getItem('ft_trainerId')) {
   currentTrainerId = localStorage.getItem('ft_trainerId');
   currentTrainerName = localStorage.getItem('ft_trainerName') || '';
+  currentTrainerIsAdmin = localStorage.getItem('ft_trainerIsAdmin') === 'yes';
   document.getElementById('login-screen').style.display = 'none';
   init();
 } else {

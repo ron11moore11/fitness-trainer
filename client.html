@@ -390,6 +390,9 @@ const cache = { clients:[], sessions:[], plans:[], exercises:[] };
 function load(col) { return cache[col] || []; }
 
 async function saveItem(col, item) {
+  if (col !== 'exercises' && _currentTrainerId && !item.trainerId) {
+    item.trainerId = _currentTrainerId;
+  }
   const idx = cache[col].findIndex(x => x.id === item.id);
   if (idx >= 0) cache[col][idx] = item;
   else cache[col].push(item);
@@ -400,13 +403,18 @@ async function initDB() {
   const cols = Object.keys(cache);
   await Promise.all(cols.map(async col => {
     const snap = await db.collection(col).get();
-    cache[col] = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+    let items = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+    if (col !== 'exercises' && _currentTrainerId) {
+      items = items.filter(item => !item.trainerId || item.trainerId === _currentTrainerId);
+    }
+    cache[col] = items;
   }));
 }
 
 // ===== CLIENT AUTH STATE =====
 let _currentClientId = '';
 let _currentClientName = '';
+let _currentTrainerId = '';
 
 // ===== HELPERS =====
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
@@ -508,7 +516,8 @@ async function handleClientLogin(e) {
     const expectedPin = normalizedPhone.slice(-4);
     if (pin !== expectedPin) { errEl.textContent = 'סיסמה שגויה'; document.getElementById('login-pin').value = ''; document.getElementById('login-pin').focus(); return; }
 
-    localStorage.setItem('ft_client_auth', JSON.stringify({ clientId: client.id, phone: normalizedPhone }));
+    _currentTrainerId = client.trainerId || '';
+    localStorage.setItem('ft_client_auth', JSON.stringify({ clientId: client.id, phone: normalizedPhone, trainerId: _currentTrainerId }));
     _currentClientId = client.id;
     _currentClientName = client.name;
     document.getElementById('login-screen').style.display = 'none';
@@ -1392,8 +1401,9 @@ async function init() {
   const stored = localStorage.getItem('ft_client_auth');
   if (stored) {
     try {
-      const { clientId, phone } = JSON.parse(stored);
+      const { clientId, phone, trainerId } = JSON.parse(stored);
       _currentClientId = clientId;
+      _currentTrainerId = trainerId || '';
       document.getElementById('login-screen').style.display = 'none';
       init();
     } catch(e) {
