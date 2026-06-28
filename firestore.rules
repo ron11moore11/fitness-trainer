@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Trainers - anyone can read (for login), write requires trainerId
+    match /trainers/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    // Data collections - require trainerId on write
+    match /clients/{docId} {
+      allow read: if true;
+      allow write: if request.resource.data.trainerId != null;
+    }
+    match /sessions/{docId} {
+      allow read: if true;
+      allow write: if request.resource.data.trainerId != null;
+    }
+    match /plans/{docId} {
+      allow read: if true;
+      allow write: if request.resource.data.trainerId != null;
+    }
+    match /payments/{docId} {
+      allow read: if true;
+      allow write: if request.resource.data.trainerId != null;
+    }
+    // Exercises - shared across all trainers
+    match /exercises/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

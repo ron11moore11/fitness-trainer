@@ -610,6 +610,10 @@ async function saveItem(col, item) {
 }
 
 async function deleteItem(col, id) {
+  if (col !== 'exercises' && currentTrainerId) {
+    const doc = await db.collection(col).doc(id).get();
+    if (doc.exists && doc.data().trainerId && doc.data().trainerId !== currentTrainerId) return;
+  }
   cache[col] = cache[col].filter(x => x.id !== id);
   await db.collection(col).doc(id).delete();
 }
@@ -2388,7 +2392,7 @@ function sendPortalLink(planId) {
   const intl = client.phone.replace(/\D/g,'').replace(/^0/,'972');
   const pin = client.phone.replace(/\D/g,'').slice(-4);
   const portalUrl = 'https://ron11moore11.github.io/fitness-trainer/client.html';
-  const text = `שלום ${client.name}! \u{1F4AA}\nהתוכנית שלך מחכה לך באתר:\n${portalUrl}\n\nלהתחברות:\nמספר טלפון: ${client.phone}\nסיסמה: ${pin}`;
+  const text = `שלום ${client.name}! \u{1F4AA}\nהתוכנית שלך מחכה לך באתר:\n${portalUrl}\n\nלהתחברות:\nמספר טלפון: ${client.phone}\nסיסמה: 4 הספרות האחרונות של מספר הטלפון שלך`;
   window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank');
   showToast('וואטסאפ נפתח עם הלינק 📲');
 }
