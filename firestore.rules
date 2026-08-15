@@ -8,20 +8,24 @@ service cloud.firestore {
     }
     // Data collections - require trainerId on write
     match /clients/{docId} {
-      allow read: if true;
-      allow write: if request.resource.data.trainerId != null;
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.trainerId != null;
     }
     match /sessions/{docId} {
-      allow read: if true;
-      allow write: if request.resource.data.trainerId != null;
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.trainerId != null;
     }
     match /plans/{docId} {
-      allow read: if true;
-      allow write: if request.resource.data.trainerId != null;
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.trainerId != null;
     }
     match /payments/{docId} {
-      allow read: if true;
-      allow write: if request.resource.data.trainerId != null;
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.trainerId != null;
+    }
+    match /punchCards/{docId} {
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.trainerId != null;
     }
     // Exercises - shared across all trainers
     match /exercises/{docId} {
