@@ -1317,7 +1317,7 @@ function openAddSession(date, type) {
     } else {
       await saveItem('sessions', baseSession);
     }
-    renderCalendar(); renderSessionsTable();
+    renderSchedule();
   });
 }
 
@@ -1364,7 +1364,7 @@ function editSingleSession(id) {
       notes: fd.get('notes')
     });
     await saveItem('sessions', s);
-    renderCalendar(); renderSessionsTable();
+    renderSchedule();
   });
 }
 
@@ -1393,7 +1393,7 @@ function editFutureSessions(id) {
       return saveItem('sessions', fs);
     }));
     showToast(`עודכנו ${futureSessions.length} פריטים ✓`);
-    renderCalendar(); renderSessionsTable();
+    renderSchedule();
   });
 }
 
@@ -1421,12 +1421,12 @@ async function deleteSession(id) {
   }
   if (!confirm('למחוק?')) return;
   await deleteItem('sessions', id);
-  renderCalendar(); renderSessionsTable();
+  renderSchedule();
 }
 
 async function deleteSingleSession(id) {
   await deleteItem('sessions', id);
-  renderCalendar(); renderSessionsTable();
+  renderSchedule();
   showToast('נמחק ✓');
 }
 
@@ -1438,7 +1438,7 @@ async function deleteFutureSessions(id) {
   );
   await Promise.all(toDelete.map(x => deleteItem('sessions', x.id)));
   showToast(`נמחקו ${toDelete.length} פריטים ✓`);
-  renderCalendar(); renderSessionsTable();
+  renderSchedule();
 }
 
 // ========================
