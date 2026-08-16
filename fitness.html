@@ -979,12 +979,13 @@ function renderCpDetails(c) {
       <td>${pc.totalSessions} אימונים</td>
       <td>${pc.price?`₪${(+pc.price).toLocaleString()}`:'—'}</td>
       <td style="color:${remColor};font-weight:600">${rem} נשאר</td>
+      <td class="actions"><button class="btn btn-danger btn-sm" onclick="deletePunchCardFromProfile('${pc.id}','${c.id}')">מחק</button></td>
     </tr>`;
-  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">אין כרטיסיות</td></tr>';
+  }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">אין כרטיסיות</td></tr>';
   const pcTable = `<div class="cp-section" style="margin-top:16px">
     <div class="cp-section-title">היסטוריית כרטיסיות</div>
     <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="openAddPunchCardForClient('${c.id}')">+ הוסף כרטיסייה</button></div>
-    <div class="table-wrap"><table><thead><tr><th>שם</th><th>תאריך</th><th>אימונים</th><th>מחיר</th><th>נשאר</th></tr></thead><tbody>${pcRows}</tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>שם</th><th>תאריך</th><th>אימונים</th><th>מחיר</th><th>נשאר</th><th></th></tr></thead><tbody>${pcRows}</tbody></table></div>
   </div>`;
 
   // --- Plans history ---
@@ -3046,6 +3047,11 @@ async function deletePunchCard(id) {
   if (!confirm('למחוק כרטיסייה זו?')) return;
   await deleteItem('punchCards', id);
   renderPayments();
+}
+async function deletePunchCardFromProfile(id, clientId) {
+  if (!confirm('למחוק כרטיסייה זו?')) return;
+  await deleteItem('punchCards', id);
+  renderClientProfile();
 }
 
 function openAddPlanSale() {
