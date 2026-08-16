@@ -48,6 +48,15 @@
     .nav-tab:hover { color: var(--text); border-color: var(--border); }
     .nav-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(233,69,96,.1); }
 
+    /* PAY SUB-TABS */
+    .sub-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
+    .sub-tab-btn {
+      background: none; border: 2px solid var(--border); color: var(--muted);
+      padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: .9rem; transition: all .2s;
+    }
+    .sub-tab-btn:hover { color: var(--text); border-color: var(--accent2); }
+    .sub-tab-btn.active { color: var(--accent2); border-color: var(--accent2); background: rgba(168,218,220,.1); }
+
     /* MAIN */
     main { padding: 24px; max-width: 1100px; margin: 0 auto; }
     section[id^="tab-"] { display: none; }
@@ -549,13 +558,8 @@
 
 
   <section id="tab-payments">
-    <div class="pay-summary" id="pay-summary"></div>
-    <div id="pay-filters-container"></div>
-    <div id="punch-cards-container"></div>
-    <div class="card">
-      <div class="section-header"><h2 id="payments-heading">מעקב תשלומים</h2><button class="btn" onclick="openAddPayment()">+ הוסף תשלום</button></div>
-      <div class="table-wrap" id="payments-table"></div>
-    </div>
+    <div id="pay-tabs-nav"></div>
+    <div id="pay-tab-content"></div>
   </section>
 
   <section id="tab-reminders">
@@ -661,12 +665,18 @@ function clientBalance(clientId) {
     return { totalPaid, totalDebt: 0, balance: totalPaid, sessions: 0, price: 0 };
   }
   const price = +(client.pricePerSession) || 0;
-  const sessions = load('sessions').filter(s=>s.clientId===clientId && s.type==='training' && s.status!=='cancelled' && s.source!=='client');
+  const sessions = load('sessions').filter(s=>s.clientId===clientId && s.type==='training' && s.status!=='cancelled' && s.source!=='client' && s.date<=localDateStr());
   const totalDebt = sessions.length * price;
   return { totalPaid, totalDebt, balance: totalPaid - totalDebt, sessions: sessions.length, price };
 }
 function punchCardSessions(cardId) {
   return load('sessions').filter(s => s.punchCardId === cardId && s.type === 'training' && s.status !== 'cancelled');
+}
+function punchCardSessionsUsed(cardId) {
+  return load('sessions').filter(s => s.punchCardId === cardId && s.type === 'training' && s.status !== 'cancelled' && s.date <= localDateStr());
+}
+function punchCardSessionsBooked(cardId) {
+  return load('sessions').filter(s => s.punchCardId === cardId && s.type === 'training' && s.status !== 'cancelled' && s.date > localDateStr());
 }
 function planName(id) { const p = load('plans').find(x=>x.id===id); return p ? p.name : ''; }
 function clientOptions(sel='') {
@@ -693,6 +703,14 @@ function bankOptions() {
 }
 function statusBadgeClass(status) { if (status==='בהשהיה') return 'badge-paused'; if (status==='הפסיק') return 'badge-stopped'; return 'badge-active'; }
 let payFilter = { active: false, month: null, fromDate: '', toDate: '', clientId: '' };
+let _payTab = 'summary';
+let _payDetail = { active: false, type: '', id: '' };
+let _payTrainingFilter = { clientId: '', period: 'month', monthOffset: 0 };
+let _payPunchFilter = { clientId: '', activeOnly: false };
+let _paySummaryMonthOffset = 0;
+function openPayDetail(type, id) { _payDetail = { active:true, type, id }; renderPayments(); }
+function closePayDetail() { _payDetail = { active:false, type:'', id:'' }; renderPayments(); }
+function switchPayTab(tab) { _payTab = tab; _payDetail = { active:false, type:'', id:'' }; renderPayments(); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Filter out client-created sessions from trainer views
 function trainerSessions() { return load('sessions').filter(s => s.source !== 'client' && s.source !== 'client_trainer'); }
@@ -936,14 +954,14 @@ function openAddClientPayment(clientId) {
     <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
   </form>`, async fd => {
     await saveItem('payments', {id:uid(), clientId, amount:fd.get('amount'), date:fd.get('date'), status:'paid', package:'פר אימון', notes:fd.get('notes')||''});
-    renderClientProfile();
+    if (_payDetail.active) renderPayments(); else renderClientProfile();
   });
 }
 
 async function deleteCpPayment(payId, clientId) {
   if (!confirm('למחוק תשלום זה?')) return;
   await deleteItem('payments', payId);
-  renderClientProfile();
+  if (_payDetail.active) renderPayments(); else renderClientProfile();
 }
 
 function renderClients() {
@@ -1008,6 +1026,10 @@ function clientForm(c={}) {
       <div class="form-group"><label>תעריף לאימון (₪)</label><input name="pricePerSession" type="number" min="0" step="1" value="${esc(c.pricePerSession||'')}" placeholder="למשל 150"></div>
       <div class="form-group"></div>
     </div>
+    <div class="form-row" id="client-plan-price-group" style="${pt==='plan'?'':'display:none'}">
+      <div class="form-group"><label>מחיר תוכנית (₪)</label><input name="planPrice" type="number" min="0" step="1" value="${esc(c.planPrice||'')}" placeholder="למשל 800"></div>
+      <div class="form-group"></div>
+    </div>
     <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(c.notes||'')}</textarea></div>
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
@@ -1017,18 +1039,20 @@ function clientForm(c={}) {
 function toggleClientProductType() {
   const val = document.getElementById('client-product-type')?.value;
   const g = document.getElementById('client-price-group');
+  const pg = document.getElementById('client-plan-price-group');
   if (g) g.style.display = val === 'training' ? '' : 'none';
+  if (pg) pg.style.display = val === 'plan' ? '' : 'none';
 }
 function openAddClient() {
   openModal('הוסף לקוח', clientForm(), async fd => {
-    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל', productType:fd.get('productType')||'none', pricePerSession:fd.get('pricePerSession')||''});
+    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל', productType:fd.get('productType')||'none', pricePerSession:fd.get('pricePerSession')||'', planPrice:fd.get('planPrice')||''});
     renderClients();
   });
 }
 function openEditClient(id) {
   const c = load('clients').find(x=>x.id===id);
   openModal('עריכת לקוח', clientForm(c), async fd => {
-    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status'), productType:fd.get('productType')||'none', pricePerSession:fd.get('pricePerSession')||''});
+    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status'), productType:fd.get('productType')||'none', pricePerSession:fd.get('pricePerSession')||'', planPrice:fd.get('planPrice')||''});
     await saveItem('clients', c);
     renderClients();
   });
@@ -2842,123 +2866,298 @@ async function deletePunchCard(id) {
 // ===== PAYMENTS =========
 // ========================
 function renderPayments() {
-  const clients = load('clients');
-  const punchCards = load('punchCards');
-  const payments = load('payments');
-  const month = localDateStr().slice(0,7);
-  const paidThisMonth = payments.filter(p=>p.date&&p.date.startsWith(month)&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
-
-  const trainingClients = clients.filter(c => {
-    if (c.productType !== 'training' || !c.pricePerSession) return false;
-    const b = clientBalance(c.id);
-    return b.sessions > 0 || b.totalPaid > 0;
-  });
-  const totalDebt = trainingClients.reduce((sum,c) => {
-    const b = clientBalance(c.id);
-    return sum + (b.balance < 0 ? Math.abs(b.balance) : 0);
-  }, 0);
-  const activeCards = punchCards.filter(pc => punchCardSessions(pc.id).length < pc.totalSessions).length;
-
-  document.getElementById('pay-summary').innerHTML = `
-    <div class="card"><div class="card-title">שולם החודש</div><div class="card-value" style="color:#4caf50">₪${paidThisMonth.toLocaleString()}</div></div>
-    <div class="card"><div class="card-title">חובות פעילים</div><div class="card-value" style="color:var(--accent)">₪${totalDebt.toLocaleString()}</div></div>
-    <div class="card"><div class="card-title">כרטיסיות פעילות</div><div class="card-value">${activeCards}</div></div>`;
-
-  document.getElementById('pay-filters-container').innerHTML = '';
-
-  // Punch cards section
-  let pcHtml = `<div class="card" style="margin-bottom:16px">
-    <div class="section-header"><h2>כרטיסיות</h2><button class="btn" onclick="openAddPunchCard()">+ כרטיסייה</button></div>`;
-  if (!punchCards.length) {
-    pcHtml += '<div class="empty">אין כרטיסיות. לחץ + כדי להוסיף.</div>';
-  } else {
-    pcHtml += `<div class="table-wrap"><table>
-      <thead><tr><th>בעלים</th><th>לקוחות משתמשים</th><th>נוצל</th><th>נשאר</th><th>מחיר</th><th>תאריך</th><th>פעולות</th></tr></thead>
-      <tbody>${punchCards.map(pc => {
-        const used = punchCardSessions(pc.id).length;
-        const rem = pc.totalSessions - used;
-        const remColor = rem === 0 ? 'var(--accent)' : rem <= 2 ? 'var(--shift)' : '#4caf50';
-        const linkedNames = (pc.linkedClientIds||[]).map(id=>clientName(id)).filter(n=>n!=='—').join(', ');
-        return `<tr>
-          <td><strong>${esc(clientName(pc.ownerClientId))}</strong></td>
-          <td style="font-size:.85rem;color:var(--muted)">${esc(linkedNames)||'—'}</td>
-          <td>${used}/${pc.totalSessions}</td>
-          <td style="color:${remColor};font-weight:700">${rem}</td>
-          <td>₪${(+pc.price||0).toLocaleString()}</td>
-          <td>${fmtDate(pc.date)}</td>
-          <td class="actions">
-            <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
-            <button class="btn btn-danger btn-sm" onclick="deletePunchCard('${pc.id}')">מחק</button>
-          </td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div>`;
-  }
-  pcHtml += '</div>';
-  document.getElementById('punch-cards-container').innerHTML = pcHtml;
-
-  // Per-session clients table
-  document.getElementById('payments-heading').textContent = 'מעקב תשלומים — אימונים פר אימון';
-  if (!trainingClients.length) {
-    document.getElementById('payments-table').innerHTML = '<div class="empty">אין מתאמנים עם חיוב פר אימון. הגדר \'סוג מוצר: אימונים\' בפרופיל הלקוח.</div>';
-    return;
-  }
-  const balances = trainingClients.map(c => ({ ...clientBalance(c.id), name: c.name, id: c.id }));
-  const sorted = [...balances].sort((a,b) => a.balance - b.balance);
-  document.getElementById('payments-table').innerHTML = `<table>
-    <thead><tr><th>מתאמן</th><th>תעריף</th><th>אימונים</th><th>סה״כ חוב</th><th>סה״כ שולם</th><th>יתרה</th><th>פעולות</th></tr></thead>
-    <tbody>${sorted.map(b => {
-      const balColor = b.balance >= 0 ? '#4caf50' : 'var(--accent)';
-      const balText = b.balance > 0 ? `₪${b.balance.toLocaleString()} זיכוי` : b.balance < 0 ? `₪${Math.abs(b.balance).toLocaleString()} חוב` : '₪0';
-      return `<tr>
-        <td><a href="#" onclick="event.preventDefault();_clientProfile.tab='payments';switchTab('clients');openClientProfile('${b.id}')" style="color:var(--accent2);text-decoration:none;font-weight:600">${esc(b.name)}</a></td>
-        <td>₪${b.price.toLocaleString()}</td><td>${b.sessions}</td>
-        <td>₪${b.totalDebt.toLocaleString()}</td>
-        <td style="color:#4caf50">₪${b.totalPaid.toLocaleString()}</td>
-        <td style="color:${balColor};font-weight:700">${balText}</td>
-        <td class="actions"><button class="btn btn-sm" onclick="openAddClientPayment('${b.id}')">+ תשלום</button></td>
-      </tr>`;
-    }).join('')}</tbody></table>`;
+  const tabs = [
+    { id:'summary', label:'סיכום' }, { id:'training', label:'אימונים' },
+    { id:'punch_card', label:'כרטיסיות' }, { id:'plan', label:'תוכניות' }
+  ];
+  document.getElementById('pay-tabs-nav').innerHTML =
+    `<div class="sub-tabs">${tabs.map(t=>`<button class="sub-tab-btn${_payTab===t.id?' active':''}" onclick="switchPayTab('${t.id}')">${t.label}</button>`).join('')}</div>`;
+  let content = '';
+  if (_payDetail.active) content = renderPayDetailView();
+  else if (_payTab === 'summary') content = renderPayTabSummary();
+  else if (_payTab === 'training') content = renderPayTabTraining();
+  else if (_payTab === 'punch_card') content = renderPayTabPunchCards();
+  else if (_payTab === 'plan') content = renderPayTabPlans();
+  document.getElementById('pay-tab-content').innerHTML = content;
 }
-function renderPayFilters() {
-  const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
-  const year = new Date().getFullYear();
-  document.getElementById('pay-filters-container').innerHTML = `
-    <div class="pay-filters">
-      <div class="pay-filters-title">חיפוש וסינון תשלומים</div>
-      <div class="month-btns">
-        ${months.map((m, i) => {
-          const val = year + '-' + String(i+1).padStart(2,'0');
-          return `<button class="month-btn${payFilter.month===val?' active':''}" onclick="applyPayMonthFilter('${val}')">${m}</button>`;
-        }).join('')}
+
+function renderPayTabSummary() {
+  const now = new Date();
+  now.setMonth(now.getMonth() + _paySummaryMonthOffset);
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthLabel = now.toLocaleDateString('he-IL', { month:'long', year:'numeric' });
+  const payments = load('payments'), clients = load('clients'), punchCards = load('punchCards');
+  const monthIncome = payments.filter(p=>p.date&&p.date.startsWith(monthStr)&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+  const trainingDebts = clients.filter(c=>c.productType==='training'&&c.pricePerSession).map(c=>{
+    const b=clientBalance(c.id); return b.balance<0?{name:c.name,debt:Math.abs(b.balance)}:null;
+  }).filter(Boolean).sort((a,b)=>b.debt-a.debt);
+  const pcDebts = punchCards.map(pc=>{
+    const paid=payments.filter(p=>p.punchCardId===pc.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+    const debt=(+pc.price||0)-paid; return debt>0?{name:clientName(pc.ownerClientId),debt}:null;
+  }).filter(Boolean).sort((a,b)=>b.debt-a.debt);
+  const planDebts = clients.filter(c=>c.productType==='plan'&&c.planPrice).map(c=>{
+    const paid=payments.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+    const debt=(+c.planPrice||0)-paid; return debt>0?{name:c.name,debt}:null;
+  }).filter(Boolean).sort((a,b)=>b.debt-a.debt);
+  const totalDebt=[...trainingDebts,...pcDebts,...planDebts].reduce((s,x)=>s+x.debt,0);
+  const noDebts=!trainingDebts.length&&!pcDebts.length&&!planDebts.length;
+  return `
+    <div class="pay-summary" style="margin-bottom:20px">
+      <div class="card">
+        <div class="card-title">הכנסות</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <button class="btn btn-ghost btn-sm" onclick="_paySummaryMonthOffset--;renderPayments()">&#8249;</button>
+          <span style="font-size:.85rem;color:var(--muted);min-width:100px;text-align:center">${monthLabel}</span>
+          <button class="btn btn-ghost btn-sm" onclick="_paySummaryMonthOffset++;renderPayments()"${_paySummaryMonthOffset>=0?' disabled':''}>&#8250;</button>
+        </div>
+        <div class="card-value" style="color:#4caf50">₪${monthIncome.toLocaleString()}</div>
       </div>
-      <div class="pay-filter-row">
-        <div class="form-group"><label>מתאריך</label><input type="date" id="pay-from" value="${payFilter.fromDate}" onchange="applyPayDateFilter()"></div>
-        <div class="form-group"><label>עד תאריך</label><input type="date" id="pay-to" value="${payFilter.toDate}" onchange="applyPayDateFilter()"></div>
-        <div class="form-group"><label>לקוח</label><select id="pay-client-filter" onchange="applyPayClientFilter()"><option value="">כל הלקוחות</option>${clientOptions(payFilter.clientId)}</select></div>
-        <button class="btn btn-ghost btn-sm" onclick="clearPayFilters()" style="margin-bottom:0;align-self:flex-end;padding:9px 16px">נקה סינון</button>
+      <div class="card">
+        <div class="card-title">חובות כל הזמנים</div>
+        <div class="card-value" style="color:var(--accent)">₪${totalDebt.toLocaleString()}</div>
       </div>
+    </div>
+    ${trainingDebts.length?`<div class="card" style="margin-bottom:16px"><div class="card-title" style="margin-bottom:10px">חובות אימונים</div><div class="table-wrap"><table><thead><tr><th>לקוח</th><th>חוב</th></tr></thead><tbody>${trainingDebts.map(x=>`<tr><td>${esc(x.name)}</td><td style="color:var(--accent);font-weight:600">₪${x.debt.toLocaleString()}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+    ${pcDebts.length?`<div class="card" style="margin-bottom:16px"><div class="card-title" style="margin-bottom:10px">חובות כרטיסיות</div><div class="table-wrap"><table><thead><tr><th>בעלים</th><th>חוב</th></tr></thead><tbody>${pcDebts.map(x=>`<tr><td>${esc(x.name)}</td><td style="color:var(--accent);font-weight:600">₪${x.debt.toLocaleString()}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+    ${planDebts.length?`<div class="card" style="margin-bottom:16px"><div class="card-title" style="margin-bottom:10px">חובות תוכניות</div><div class="table-wrap"><table><thead><tr><th>לקוח</th><th>חוב</th></tr></thead><tbody>${planDebts.map(x=>`<tr><td>${esc(x.name)}</td><td style="color:var(--accent);font-weight:600">₪${x.debt.toLocaleString()}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+    ${noDebts?'<div class="empty">אין חובות פתוחים 🎉</div>':''}`;
+}
+
+function renderPayTabTraining() {
+  const today = localDateStr();
+  const clients = load('clients'), sessions = load('sessions'), payments = load('payments');
+  const { clientId, period, monthOffset } = _payTrainingFilter;
+  const now = new Date();
+  let rangeStart, rangeEnd, periodLabel;
+  if (period === 'month') {
+    const tmp = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const y = tmp.getFullYear(), m = tmp.getMonth();
+    rangeStart = `${y}-${String(m+1).padStart(2,'0')}-01`;
+    rangeEnd = `${y}-${String(m+1).padStart(2,'0')}-${String(new Date(y,m+1,0).getDate()).padStart(2,'0')}`;
+    periodLabel = tmp.toLocaleDateString('he-IL',{month:'long',year:'numeric'});
+  } else {
+    const d = new Date(); d.setDate(d.getDate()-d.getDay()+monthOffset*7);
+    rangeStart = localDateStr(d); d.setDate(d.getDate()+6); rangeEnd = localDateStr(d);
+    periodLabel = `${fmtDate(rangeStart)} – ${fmtDate(rangeEnd)}`;
+  }
+  const trainingClients = clients.filter(c=>c.productType==='training'&&c.pricePerSession);
+  const filtered = clientId ? trainingClients.filter(c=>c.id===clientId) : trainingClients;
+  const rows = filtered.map(c=>{
+    const sessInRange=sessions.filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&s.source!=='client'&&s.date>=rangeStart&&s.date<=rangeEnd).length;
+    const paidInRange=payments.filter(p=>p.clientId===c.id&&p.status==='paid'&&p.date>=rangeStart&&p.date<=rangeEnd).reduce((s,p)=>s+(+p.amount||0),0);
+    const b=clientBalance(c.id);
+    return {name:c.name,id:c.id,sessInRange,paidInRange,debt:b.balance<0?Math.abs(b.balance):0};
+  }).filter(r=>r.sessInRange>0||r.paidInRange>0||(clientId&&r.id===clientId));
+  const clientOpts=`<option value="">כל הלקוחות</option>`+trainingClients.map(c=>`<option value="${c.id}"${c.id===clientId?' selected':''}>${esc(c.name)}</option>`).join('');
+  return `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+      <div class="form-group" style="margin:0;min-width:160px">
+        <label style="font-size:.8rem;color:var(--muted)">לקוח</label>
+        <select onchange="_payTrainingFilter.clientId=this.value;_payTrainingFilter.monthOffset=0;renderPayments()">${clientOpts}</select>
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="sub-tab-btn${period==='month'?' active':''}" onclick="_payTrainingFilter.period='month';_payTrainingFilter.monthOffset=0;renderPayments()">חודשי</button>
+        <button class="sub-tab-btn${period==='week'?' active':''}" onclick="_payTrainingFilter.period='week';_payTrainingFilter.monthOffset=0;renderPayments()">שבועי</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="_payTrainingFilter.monthOffset--;renderPayments()">&#8249;</button>
+        <span style="font-size:.9rem;min-width:120px;text-align:center">${periodLabel}</span>
+        <button class="btn btn-ghost btn-sm" onclick="_payTrainingFilter.monthOffset++;renderPayments()"${monthOffset>=0?' disabled':''}>&#8250;</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-header" style="margin-bottom:12px"><h2>אימונים פר אימון</h2></div>
+      ${rows.length?`<div class="table-wrap"><table>
+        <thead><tr><th>לקוח</th><th>אימונים בתקופה</th><th>שולם בתקופה</th><th>חוב כולל</th><th></th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+          <td><strong>${esc(r.name)}</strong></td><td>${r.sessInRange}</td>
+          <td style="color:#4caf50">₪${r.paidInRange.toLocaleString()}</td>
+          <td style="color:${r.debt>0?'var(--accent)':'#4caf50'};font-weight:600">${r.debt>0?`₪${r.debt.toLocaleString()} חוב`:'✓'}</td>
+          <td class="actions"><button class="btn btn-ghost btn-sm" onclick="openPayDetail('training','${r.id}')">פרטים</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`:'<div class="empty">אין אימונים בתקופה זו.</div>'}
     </div>`;
 }
-function applyPayMonthFilter(monthVal) {
-  if (payFilter.month === monthVal) { payFilter.month = null; } else { payFilter.month = monthVal; payFilter.fromDate = ''; payFilter.toDate = ''; }
-  payFilter.active = !!(payFilter.month || payFilter.fromDate || payFilter.toDate || payFilter.clientId);
-  renderPayments();
+
+function renderPayTabPunchCards() {
+  const punchCards = load('punchCards'), payments = load('payments');
+  const { clientId, activeOnly } = _payPunchFilter;
+  let cards = punchCards.map(pc=>{
+    const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
+    const rem=pc.totalSessions-used-booked;
+    const paid=payments.filter(p=>p.punchCardId===pc.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+    return {...pc,used,booked,rem,paid,debt:(+pc.price||0)-paid};
+  });
+  if (clientId) cards=cards.filter(pc=>pc.ownerClientId===clientId||(pc.linkedClientIds||[]).includes(clientId));
+  if (activeOnly) cards=cards.filter(pc=>pc.rem>0||pc.booked>0);
+  const ownerIds=[...new Set(punchCards.map(pc=>pc.ownerClientId))];
+  const clientOpts=`<option value="">כל הלקוחות</option>`+ownerIds.map(id=>`<option value="${id}"${id===clientId?' selected':''}>${esc(clientName(id))}</option>`).join('');
+  return `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+      <div class="form-group" style="margin:0;min-width:160px">
+        <label style="font-size:.8rem;color:var(--muted)">לקוח</label>
+        <select onchange="_payPunchFilter.clientId=this.value;renderPayments()">${clientOpts}</select>
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="sub-tab-btn${!activeOnly?' active':''}" onclick="_payPunchFilter.activeOnly=false;renderPayments()">הכל</button>
+        <button class="sub-tab-btn${activeOnly?' active':''}" onclick="_payPunchFilter.activeOnly=true;renderPayments()">יש יתרה</button>
+      </div>
+      <button class="btn" onclick="openAddPunchCard()" style="margin-right:auto">+ כרטיסייה</button>
+    </div>
+    <div class="card">
+      ${cards.length?`<div class="table-wrap"><table>
+        <thead><tr><th>בעלים</th><th>נוצל</th><th>מוזמן</th><th>נשאר</th><th>מחיר</th><th>שולם</th><th>יתרה כספית</th><th></th></tr></thead>
+        <tbody>${cards.map(pc=>{
+          const remColor=pc.rem===0&&pc.booked===0?'var(--muted)':pc.rem<=2?'var(--shift)':'#4caf50';
+          return `<tr>
+            <td><strong>${esc(clientName(pc.ownerClientId))}</strong></td>
+            <td>${pc.used}</td><td style="color:var(--accent2)">${pc.booked}</td>
+            <td style="color:${remColor};font-weight:700">${pc.rem}</td>
+            <td>₪${(+pc.price||0).toLocaleString()}</td>
+            <td style="color:#4caf50">₪${pc.paid.toLocaleString()}</td>
+            <td style="color:${pc.debt>0?'var(--accent)':'#4caf50'};font-weight:600">${pc.debt>0?`₪${pc.debt.toLocaleString()} חוב`:'✓'}</td>
+            <td class="actions">
+              <button class="btn btn-ghost btn-sm" onclick="openPayDetail('punch_card','${pc.id}')">פרטים</button>
+              <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
+              <button class="btn btn-danger btn-sm" onclick="deletePunchCard('${pc.id}')">מחק</button>
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`:'<div class="empty">אין כרטיסיות.</div>'}
+    </div>`;
 }
-function applyPayDateFilter() {
-  payFilter.fromDate = document.getElementById('pay-from').value;
-  payFilter.toDate = document.getElementById('pay-to').value;
-  if (payFilter.fromDate || payFilter.toDate) payFilter.month = null;
-  payFilter.active = !!(payFilter.month || payFilter.fromDate || payFilter.toDate || payFilter.clientId);
-  renderPayments();
+
+function renderPayTabPlans() {
+  const clients = load('clients').filter(c=>c.productType==='plan'), payments = load('payments');
+  if (!clients.length) return '<div class="empty">אין לקוחות עם תוכנית אימונים. הגדר \'תוכנית אימונים\' בפרופיל הלקוח.</div>';
+  const rows = clients.map(c=>{
+    const price=+(c.planPrice)||0;
+    const paid=payments.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+    return {name:c.name,id:c.id,price,paid,debt:price>0?Math.max(0,price-paid):0};
+  });
+  return `<div class="card">
+    <div class="section-header" style="margin-bottom:12px"><h2>תוכניות אימון</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>לקוח</th><th>מחיר תוכנית</th><th>שולם</th><th>חוב</th><th></th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td><strong>${esc(r.name)}</strong></td>
+        <td>${r.price?`₪${r.price.toLocaleString()}`:'—'}</td>
+        <td style="color:#4caf50">₪${r.paid.toLocaleString()}</td>
+        <td style="color:${r.debt>0?'var(--accent)':'#4caf50'};font-weight:600">${r.debt>0?`₪${r.debt.toLocaleString()} חוב`:'✓'}</td>
+        <td class="actions"><button class="btn btn-ghost btn-sm" onclick="openPayDetail('plan','${r.id}')">פרטים</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
 }
-function applyPayClientFilter() {
-  payFilter.clientId = document.getElementById('pay-client-filter').value;
-  payFilter.active = !!(payFilter.month || payFilter.fromDate || payFilter.toDate || payFilter.clientId);
-  renderPayments();
+
+function renderPayDetailView() {
+  const { type, id } = _payDetail;
+  let content = '';
+  if (type==='training') content = renderPayDetailTraining(id);
+  else if (type==='punch_card') content = renderPayDetailPunchCard(id);
+  else if (type==='plan') content = renderPayDetailPlan(id);
+  return `<div style="margin-bottom:12px"><button class="btn btn-ghost btn-sm" onclick="closePayDetail()">&#8592; חזרה</button></div>${content}`;
 }
-function clearPayFilters() {
-  payFilter = { active: false, month: null, fromDate: '', toDate: '', clientId: '' };
+
+function renderPayDetailTraining(clientId) {
+  const client = load('clients').find(c=>c.id===clientId);
+  if (!client) return '<div class="empty">לקוח לא נמצא</div>';
+  const price = +(client.pricePerSession)||0, today = localDateStr();
+  const allSess = load('sessions').filter(s=>s.clientId===clientId&&s.type==='training'&&s.source!=='client');
+  const pays = load('payments').filter(p=>p.clientId===clientId&&p.status==='paid');
+  const entries = [];
+  allSess.forEach(s=>entries.push({date:s.date,type:'session',desc:`אימון${s.notes?` — ${s.notes}`:''}`,amount:s.date<=today&&s.status!=='cancelled'?-price:0,cancelled:s.status==='cancelled',future:s.date>today}));
+  pays.forEach(p=>entries.push({date:p.date,type:'payment',desc:`תשלום${p.notes?` — ${p.notes}`:''}`,amount:+p.amount||0,cancelled:false,future:false}));
+  entries.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  let bal=0;
+  const tableRows = entries.map(e=>{
+    if (!e.cancelled&&!e.future) bal+=e.amount;
+    const balColor=bal>=0?'#4caf50':'var(--accent)';
+    const amtColor=e.type==='payment'?'#4caf50':'var(--accent)';
+    if (e.cancelled) return `<tr style="opacity:.45;text-decoration:line-through"><td>${fmtDate(e.date)}</td><td>${esc(e.desc)}</td><td style="color:var(--muted)">—</td><td style="color:var(--muted)">—</td></tr>`;
+    if (e.future) return `<tr style="opacity:.6;font-style:italic"><td>${fmtDate(e.date)}</td><td>${esc(e.desc)} <span style="font-size:.75rem;color:var(--accent2)">(עתידי)</span></td><td style="color:var(--muted)">—</td><td style="color:var(--muted)">—</td></tr>`;
+    const amtStr=e.type==='payment'?`+₪${e.amount.toLocaleString()}`:`-₪${Math.abs(e.amount).toLocaleString()}`;
+    const balStr=`₪${Math.abs(bal).toLocaleString()}${bal>0?' זיכוי':bal<0?' חוב':''}`;
+    return `<tr><td>${fmtDate(e.date)}</td><td>${esc(e.desc)}</td><td style="color:${amtColor};font-weight:600">${amtStr}</td><td style="color:${balColor};font-weight:700">${balStr}</td></tr>`;
+  });
+  const pastCount=allSess.filter(s=>s.date<=today&&s.status!=='cancelled').length;
+  const finalColor=bal>=0?'#4caf50':'var(--accent)';
+  const finalText=bal>0?`₪${bal.toLocaleString()} זיכוי`:bal<0?`₪${Math.abs(bal).toLocaleString()} חוב`:'₪0';
+  return `<div class="card">
+    <div class="section-header"><h2>${esc(client.name)}</h2><button class="btn btn-sm" onclick="openAddClientPayment('${clientId}')">+ הוסף תשלום</button></div>
+    <div class="pay-summary" style="margin:12px 0">
+      <div class="card"><div class="card-title">תעריף</div><div style="font-size:1.3rem;font-weight:700">₪${price.toLocaleString()}</div></div>
+      <div class="card"><div class="card-title">יתרה</div><div style="font-size:1.3rem;font-weight:700;color:${finalColor}">${finalText}</div></div>
+    </div>
+    ${tableRows.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>תיאור</th><th>סכום</th><th>יתרה</th></tr></thead><tbody>${tableRows.join('')}</tbody></table></div>`:'<div class="empty">אין רשומות.</div>'}
+  </div>`;
+}
+
+function renderPayDetailPunchCard(cardId) {
+  const pc = load('punchCards').find(x=>x.id===cardId);
+  if (!pc) return '<div class="empty">כרטיסייה לא נמצאה</div>';
+  const today = localDateStr();
+  const used=punchCardSessionsUsed(cardId), booked=punchCardSessionsBooked(cardId);
+  const rem=pc.totalSessions-used.length-booked.length;
+  const pays=load('payments').filter(p=>p.punchCardId===cardId&&p.status==='paid');
+  const totalPaid=pays.reduce((s,p)=>s+(+p.amount||0),0);
+  const debt=(+pc.price||0)-totalPaid;
+  const allSess=[...used,...booked].sort((a,b)=>a.date<b.date?-1:1);
+  let entryNum=0;
+  return `<div class="card">
+    <div class="section-header"><h2>כרטיסייה — ${esc(clientName(pc.ownerClientId))}</h2><button class="btn btn-sm" onclick="openAddPunchCardPayment('${cardId}')">+ הוסף תשלום</button></div>
+    <div class="pay-summary" style="margin:12px 0">
+      <div class="card"><div class="card-title">נוצל</div><div style="font-size:1.3rem;font-weight:700">${used.length}</div></div>
+      <div class="card"><div class="card-title">מוזמן</div><div style="font-size:1.3rem;font-weight:700;color:var(--accent2)">${booked.length}</div></div>
+      <div class="card"><div class="card-title">נשאר</div><div style="font-size:1.3rem;font-weight:700;color:${rem<=2&&rem>0?'var(--shift)':rem===0?'var(--muted)':'#4caf50'}">${rem}</div></div>
+      <div class="card"><div class="card-title">יתרה כספית</div><div style="font-size:1.3rem;font-weight:700;color:${debt>0?'var(--accent)':'#4caf50'}">${debt>0?`₪${debt.toLocaleString()} חוב`:'✓'}</div></div>
+    </div>
+    <h3 style="color:var(--accent2);margin:16px 0 8px">שימושים</h3>
+    ${allSess.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>לקוח</th><th>כניסה</th><th>הערות</th></tr></thead><tbody>${allSess.map(s=>{
+      const isPast=s.date<=today; if(isPast)entryNum++;
+      return `<tr${!isPast?' style="font-style:italic;opacity:.7"':''}><td>${fmtDate(s.date)}</td><td>${esc(clientName(s.clientId))}</td><td>${isPast?`${entryNum}/${pc.totalSessions}`:'<span style="color:var(--accent2)">מוזמן</span>'}</td><td style="font-size:.85rem;color:var(--muted)">${esc(s.notes||'')}</td></tr>`;
+    }).join('')}</tbody></table></div>`:'<div class="empty">אין שימושים עדיין.</div>'}
+    <h3 style="color:var(--accent2);margin:16px 0 8px">תשלומים</h3>
+    ${pays.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>סכום</th><th>הערה</th><th></th></tr></thead><tbody>${pays.sort((a,b)=>a.date<b.date?-1:1).map(p=>`<tr><td>${fmtDate(p.date)}</td><td style="color:#4caf50;font-weight:600">₪${(+p.amount||0).toLocaleString()}</td><td style="font-size:.85rem">${esc(p.notes||'')}</td><td class="actions"><button class="btn btn-danger btn-sm" onclick="deletePunchCardPayment('${p.id}','${cardId}')">מחק</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">אין תשלומים עדיין.</div>'}
+  </div>`;
+}
+
+function renderPayDetailPlan(clientId) {
+  const client=load('clients').find(c=>c.id===clientId);
+  if (!client) return '<div class="empty">לקוח לא נמצא</div>';
+  const price=+(client.planPrice)||0;
+  const pays=load('payments').filter(p=>p.clientId===clientId&&p.status==='paid');
+  const totalPaid=pays.reduce((s,p)=>s+(+p.amount||0),0);
+  const remaining=Math.max(0,price-totalPaid);
+  return `<div class="card">
+    <div class="section-header"><h2>${esc(client.name)}</h2><button class="btn btn-sm" onclick="openAddClientPayment('${clientId}')">+ הוסף תשלום</button></div>
+    <div class="pay-summary" style="margin:12px 0">
+      <div class="card"><div class="card-title">מחיר תוכנית</div><div style="font-size:1.3rem;font-weight:700">${price?`₪${price.toLocaleString()}`:'—'}</div></div>
+      <div class="card"><div class="card-title">שולם</div><div style="font-size:1.3rem;font-weight:700;color:#4caf50">₪${totalPaid.toLocaleString()}</div></div>
+      <div class="card"><div class="card-title">נותר לתשלום</div><div style="font-size:1.3rem;font-weight:700;color:${remaining>0?'var(--accent)':'#4caf50'}">${remaining>0?`₪${remaining.toLocaleString()}`:'שולם ✓'}</div></div>
+    </div>
+    ${pays.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>סכום</th><th>הערה</th><th></th></tr></thead><tbody>${pays.sort((a,b)=>a.date<b.date?-1:1).map(p=>`<tr><td>${fmtDate(p.date)}</td><td style="color:#4caf50;font-weight:600">₪${(+p.amount||0).toLocaleString()}</td><td style="font-size:.85rem">${esc(p.notes||'')}</td><td class="actions"><button class="btn btn-danger btn-sm" onclick="deleteCpPayment('${p.id}','${clientId}')">מחק</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">אין תשלומים עדיין.</div>'}
+  </div>`;
+}
+
+function openAddPunchCardPayment(cardId) {
+  const pc = load('punchCards').find(x=>x.id===cardId);
+  if (!pc) return;
+  openModal('הוסף תשלום לכרטיסייה', `<form id="modal-form">
+    <div class="form-row">
+      <div class="form-group"><label>סכום (₪) *</label><input name="amount" type="number" min="0" step="1" value="${esc(pc.price||'')}" required></div>
+      <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${localDateStr()}" required></div>
+    </div>
+    <div class="form-group"><label>הערה</label><input name="notes" placeholder="מזומן, ביט, העברה..."></div>
+    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
+  </form>`, async fd => {
+    await saveItem('payments', {id:uid(), clientId:pc.ownerClientId, punchCardId:cardId, amount:fd.get('amount'), date:fd.get('date'), status:'paid', package:'כרטיסייה', notes:fd.get('notes')||''});
+    renderPayments();
+  });
+}
+async function deletePunchCardPayment(payId, cardId) {
+  if (!confirm('למחוק תשלום זה?')) return;
+  await deleteItem('payments', payId);
   renderPayments();
 }
 function paymentForm(p={}) {
