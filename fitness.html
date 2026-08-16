@@ -908,7 +908,7 @@ function renderCpDetails(c) {
 
   // --- Sessions history ---
   const allSess = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&s.source!=='client').sort((a,b)=>a.date<b.date?1:-1);
-  const availCards = load('punchCards').filter(pc=>pc.ownerClientId===c.id||(pc.linkedClientIds||[]).includes(c.id));
+  const availCards = load('punchCards').filter(pc=>{ const u=punchCardSessionsUsed(pc.id).length,b2=punchCardSessionsBooked(pc.id).length; return pc.totalSessions-u-b2>0; });
   const editSessId = _cpEditSessionId;
   const sessRows = allSess.length ? allSess.map(s=>{
     const isFuture = s.date > today;
@@ -1370,13 +1370,15 @@ function updatePlanDropdown() {
 function updateSessionPunchCard(clientId, selectedId='') {
   const sel = document.getElementById('session-punchcard-sel');
   if (!sel) return;
-  if (!clientId) { sel.innerHTML = '<option value="">— ללא כרטיסייה —</option>'; return; }
-  const cards = load('punchCards').filter(pc => pc.ownerClientId===clientId || (pc.linkedClientIds||[]).includes(clientId));
+  // Show all punch cards with remaining sessions (not just linked to this client)
+  const cards = load('punchCards').filter(pc => {
+    const used = punchCardSessionsUsed(pc.id).length, booked = punchCardSessionsBooked(pc.id).length;
+    return pc.totalSessions - used - booked > 0;
+  });
   sel.innerHTML = '<option value="">— ללא כרטיסייה —</option>' + cards.map(pc => {
     const used = punchCardSessionsUsed(pc.id).length, booked = punchCardSessionsBooked(pc.id).length;
     const rem = pc.totalSessions - used - booked;
-    const ownerLabel = pc.ownerClientId===clientId ? '' : ` (של ${clientName(pc.ownerClientId)})`;
-    return `<option value="${pc.id}"${pc.id===selectedId?' selected':''}>${esc(pc.name||clientName(pc.ownerClientId))}${ownerLabel} — ${rem}/${pc.totalSessions} נשאר</option>`;
+    return `<option value="${pc.id}"${pc.id===selectedId?' selected':''}>${esc(pc.name||clientName(pc.ownerClientId))} — ${esc(clientName(pc.ownerClientId))} — ${rem}/${pc.totalSessions} נשאר</option>`;
   }).join('');
   if (selectedId) sel.value = selectedId;
 }
