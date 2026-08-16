@@ -2848,7 +2848,11 @@ function renderPayments() {
   const month = localDateStr().slice(0,7);
   const paidThisMonth = payments.filter(p=>p.date&&p.date.startsWith(month)&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
 
-  const trainingClients = clients.filter(c => c.productType === 'training' && c.pricePerSession);
+  const trainingClients = clients.filter(c => {
+    if (c.productType !== 'training' || !c.pricePerSession) return false;
+    const b = clientBalance(c.id);
+    return b.sessions > 0 || b.totalPaid > 0;
+  });
   const totalDebt = trainingClients.reduce((sum,c) => {
     const b = clientBalance(c.id);
     return sum + (b.balance < 0 ? Math.abs(b.balance) : 0);
