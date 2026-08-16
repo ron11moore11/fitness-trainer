@@ -1176,7 +1176,7 @@ function renderSessionsTable() {
   if (headingEl) headingEl.textContent = fmtDateLong(_calSelectedDate);
   if (!filtered.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים ביום הזה.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
-    <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>פרטים</th><th>תוכנית</th><th>יתרה</th><th>הערות</th><th>פעולות</th></tr></thead>
+    <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>פרטים</th><th>עלות / כרטיסייה</th><th>הערות</th><th>פעולות</th></tr></thead>
     <tbody>${filtered.map(s=>{
       const isShift = s.type === 'shift';
       const isCancelled = s.status==='cancelled';
@@ -1185,7 +1185,6 @@ function renderSessionsTable() {
       const recurring = s.recurringGroupId ? ' <span class="badge badge-recurring">🔁</span>' : '';
       const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
       const clientCol = isShift ? '—' : `<a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${s.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(s.clientId))}</a>`;
-      const planCol = s.planId ? esc(planName(s.planId)) : '—';
       let timeCol, detailsCol;
       if (isShift) {
         timeCol = `${esc(s.startTime||'')}–${esc(s.endTime||'')}`;
@@ -1196,6 +1195,15 @@ function renderSessionsTable() {
         timeCol = esc(s.time);
         detailsCol = `${esc(s.duration)} דק׳`;
       }
+      let costCol = '—';
+      if (!isShift) {
+        if (s.punchCardId) {
+          const pc = load('punchCards').find(x=>x.id===s.punchCardId);
+          costCol = `<span style="color:var(--accent2);font-size:.85rem">🎟 ${esc(pc?.name||clientName(pc?.ownerClientId)||'כרטיסייה')}</span>`;
+        } else if (s.price) {
+          costCol = `<span style="color:#4caf50;font-weight:600">₪${(+s.price).toLocaleString()}</span>`;
+        }
+      }
       const cancelBtn = isCancelled
         ? `<button class="btn btn-ghost btn-sm" onclick="toggleCancelSession('${s.id}')">שחזר</button>`
         : `<button class="btn btn-ghost btn-sm" style="color:var(--muted)" onclick="toggleCancelSession('${s.id}')">בטל</button>`;
@@ -1203,8 +1211,7 @@ function renderSessionsTable() {
       <td>${typeBadge}${cancelledBadge}${recurring}</td>
       <td>${clientCol}</td><td>${fmtDate(s.date)}</td>
       <td>${timeCol}</td><td>${detailsCol}</td>
-      <td>${planCol}</td>
-      <td>${!isShift && s.clientId ? (()=>{ const b=clientBalance(s.clientId); if(!b.totalDebt && !b.totalPaid) return '—'; const color=b.balance>=0?'#4caf50':'var(--accent)'; return `<a href="#" onclick="event.preventDefault();_clientProfile.tab='details';switchTab('clients');openClientProfile('${s.clientId}')" style="color:${color};text-decoration:none;font-weight:600">₪${b.balance.toLocaleString()}</a>`; })() : ''}</td>
+      <td>${costCol}</td>
       <td>${esc(s.notes)}${logBadge}</td>
       <td class="actions">
         ${!isShift && !isCancelled ? `<button class="btn btn-log btn-sm" onclick="openLiveWorkout('${s.id}')">📋</button>` : ''}
