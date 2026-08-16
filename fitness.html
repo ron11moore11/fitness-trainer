@@ -800,8 +800,9 @@ document.querySelectorAll('.nav-tab').forEach(btn=>btn.addEventListener('click',
 // ===== CLIENTS ==========
 // ========================
 let _clientProfile = { active: false, clientId: '', expandedSession: '', tab: 'details' };
-function openClientProfile(clientId) { _clientProfile = { active:true, clientId, expandedSession:'', tab:'details' }; renderClients(); }
-function closeClientProfile() { _clientProfile = { active:false, clientId:'', expandedSession:'', tab:'details' }; renderClients(); }
+let _cpEditSessionId = '';
+function openClientProfile(clientId) { _clientProfile = { active:true, clientId, expandedSession:'', tab:'details' }; _cpEditSessionId = ''; renderClients(); }
+function closeClientProfile() { _clientProfile = { active:false, clientId:'', expandedSession:'', tab:'details' }; _cpEditSessionId = ''; renderClients(); }
 function cpSwitchTab(tab) { _clientProfile.tab = tab; renderClientProfile(); }
 function cpToggleSession(sid) { _clientProfile.expandedSession = _clientProfile.expandedSession===sid?'':sid; renderClientProfile(); }
 
@@ -840,52 +841,55 @@ function renderClientProfile() {
 }
 
 function renderCpDetails(c) {
-  const b = clientBalance(c.id);
-  const balColor = b.balance >= 0 ? '#4caf50' : 'var(--accent)';
-  const balText = b.balance > 0 ? `₪${b.balance.toLocaleString()} זיכוי` : b.balance < 0 ? `₪${Math.abs(b.balance).toLocaleString()} חוב` : '₪0';
   const today = localDateStr();
+  // --- Full balance calc ---
+  const allPayments = load('payments').filter(p=>p.clientId===c.id&&p.status==='paid');
+  const totalPaid = allPayments.reduce((s,p)=>s+(+p.amount||0),0);
+  const sessions = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&!s.punchCardId&&s.source!=='client');
+  const sessDebt = sessions.reduce((s,sess)=>s+(+sess.price||0),0);
+  const plans = load('plans').filter(p=>p.clientId===c.id&&!p.isTemplate);
+  const planDebt = plans.reduce((s,p)=>s+(+p.price||0),0);
+  const ownedCards = load('punchCards').filter(pc=>pc.ownerClientId===c.id);
+  const pcDebt = ownedCards.reduce((s,pc)=>s+(+pc.price||0),0);
+  const totalDebt = sessDebt + planDebt + pcDebt;
+  const balance = totalPaid - totalDebt;
+  const balColor = balance >= 0 ? '#4caf50' : 'var(--accent)';
+  const balText = balance > 0 ? `₪${balance.toLocaleString()} זיכוי` : balance < 0 ? `₪${Math.abs(balance).toLocaleString()} חוב` : '₪0';
+  const balLabel = balance >= 0 ? 'יתרה' : 'חוב';
 
   // --- Info ---
-  const info = `<div class="cp-header" style="margin-bottom:16px">
-    <div class="cp-info" style="margin-bottom:8px">
+  const info = `<div style="margin-bottom:16px">
+    <div class="cp-info" style="margin-bottom:6px">
       ${c.phone?`<span>📱 <a href="https://wa.me/${c.phone.replace(/\\D/g,'').replace(/^0/,'972')}" target="_blank" style="color:var(--accent2);text-decoration:none">${esc(c.phone)}</a></span>`:''}
       ${c.email?`<span>📧 ${esc(c.email)}</span>`:''}
       ${c.age?`<span>גיל: ${esc(c.age)}</span>`:''}
       ${c.goals?`<span>🎯 ${esc(c.goals)}</span>`:''}
     </div>
-    ${c.notes?`<div style="color:var(--muted);font-size:.85rem">📝 ${esc(c.notes)}</div>`:''}
-    <div class="cp-actions" style="margin-top:8px">
-      <button class="btn btn-sm" onclick="closeClientProfile();openEditClient('${c.id}')">✏ עריכה</button>
-    </div>
+    ${c.notes?`<div style="color:var(--muted);font-size:.85rem;margin-bottom:6px">📝 ${esc(c.notes)}</div>`:''}
+    <button class="btn btn-sm" onclick="closeClientProfile();openEditClient('${c.id}')">✏ עריכה</button>
   </div>`;
 
-  // --- Summary cards ---
-  const summary = `<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-    <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="card-title">סה״כ חוב</div><div style="color:var(--accent);font-size:1.1rem;font-weight:700">₪${b.totalDebt.toLocaleString()}</div></div>
-    <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="card-title">סה״כ שולם</div><div style="color:#4caf50;font-size:1.1rem;font-weight:700">₪${b.totalPaid.toLocaleString()}</div></div>
-    <div class="card" style="flex:1;min-width:120px;text-align:center;border-color:${balColor}"><div class="card-title">יתרה</div><div style="color:${balColor};font-size:1.1rem;font-weight:700">${balText}</div></div>
+  // --- 3 summary boxes ---
+  const pcRemaining = ownedCards.reduce((s,pc)=>{ const u=punchCardSessionsUsed(pc.id).length,b2=punchCardSessionsBooked(pc.id).length; return s+(pc.totalSessions-u-b2); },0);
+  const pcTotal = ownedCards.reduce((s,pc)=>s+pc.totalSessions,0);
+  const hasPc = ownedCards.length > 0;
+  const pcBox = `<div class="card" style="flex:1;min-width:120px;text-align:center;${hasPc?'border-color:var(--accent2)':'opacity:.5'}">
+    <div class="card-title">כרטיסייה</div>
+    ${hasPc?`<div style="color:var(--accent2);font-size:1.1rem;font-weight:700">${pcRemaining}/${pcTotal} נשאר</div>`:`<div style="color:var(--muted);font-size:.9rem">אין כרטיסייה</div>`}
   </div>`;
+  const paidBox = `<div class="card" style="flex:1;min-width:120px;text-align:center">
+    <div class="card-title">תשלום מצטבר</div>
+    <div style="color:#4caf50;font-size:1.1rem;font-weight:700">₪${totalPaid.toLocaleString()}</div>
+  </div>`;
+  const balBox = `<div class="card" style="flex:1;min-width:120px;text-align:center;border-color:${balColor}">
+    <div class="card-title">${balLabel}</div>
+    <div style="color:${balColor};font-size:1.1rem;font-weight:700">${balText}</div>
+  </div>`;
+  const summary = `<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">${pcBox}${paidBox}${balBox}</div>`;
 
-  // --- Punch cards ---
-  const punchCards = load('punchCards');
-  const myCards = punchCards.filter(pc=>pc.ownerClientId===c.id||(pc.linkedClientIds||[]).includes(c.id));
-  const pcHtml = myCards.length ? `<div class="cp-section" style="margin-bottom:16px">
-    <div class="cp-section-title">כרטיסיות</div>
-    ${myCards.map(pc=>{
-      const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
-      const rem=pc.totalSessions-used-booked;
-      const remColor=rem===0?'var(--accent)':rem<=2?'#ff9800':'#4caf50';
-      const ownerLabel=pc.ownerClientId===c.id?'בעלים':` שייך ל-${clientName(pc.ownerClientId)}`;
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-        <span>${esc(pc.name||'כרטיסייה')} <span style="font-size:.8rem;color:var(--muted)">${ownerLabel}</span></span>
-        <span style="color:${remColor};font-weight:700">${rem}/${pc.totalSessions} נשאר (${used} נוצל)</span>
-      </div>`;
-    }).join('')}
-  </div>` : '';
-
-  // --- Payments ---
-  const payments = load('payments').filter(p=>p.clientId===c.id&&p.status==='paid').sort((a,b)=>a.date<b.date?1:-1);
-  const payRows = payments.length ? payments.map(p=>`<tr>
+  // --- Payments history ---
+  const sortedPays = [...allPayments].sort((a,b)=>a.date<b.date?1:-1);
+  const payRows = sortedPays.length ? sortedPays.map(p=>`<tr>
     <td>₪${(+p.amount||0).toLocaleString()}</td>
     <td>${fmtDate(p.date)}</td>
     <td>${esc(p.notes||p.package||'—')}</td>
@@ -894,60 +898,103 @@ function renderCpDetails(c) {
       <button class="btn btn-danger btn-sm" onclick="deleteCpPayment('${p.id}','${c.id}')">מחק</button>
     </td>
   </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">אין תשלומים</td></tr>';
-
-  const addBtn = `<div style="margin-bottom:8px"><button class="btn btn-sm" onclick="openAddClientPayment('${c.id}')">+ הוסף תשלום</button></div>`;
   const payTable = `<div class="cp-section">
     <div class="cp-section-title">היסטוריית תשלומים</div>
-    ${addBtn}
+    <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="openAddClientPayment('${c.id}')">+ הוסף תשלום</button></div>
     <div class="table-wrap"><table><thead><tr><th>סכום</th><th>תאריך</th><th>הערה</th><th>פעולות</th></tr></thead><tbody>${payRows}</tbody></table></div>
   </div>`;
 
-  // --- Sessions ---
+  // --- Sessions history ---
   const allSess = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&s.source!=='client').sort((a,b)=>a.date<b.date?1:-1);
-  const availCards = punchCards.filter(pc=>pc.ownerClientId===c.id||(pc.linkedClientIds||[]).includes(c.id));
+  const availCards = load('punchCards').filter(pc=>pc.ownerClientId===c.id||(pc.linkedClientIds||[]).includes(c.id));
+  const editSessId = _cpEditSessionId;
   const sessRows = allSess.length ? allSess.map(s=>{
     const isFuture = s.date > today;
-    const pcOpts = `<option value="">— בודד —</option>`+availCards.map(pc=>{
-      const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
-      const rem=pc.totalSessions-used-booked;
-      return `<option value="${pc.id}"${s.punchCardId===pc.id?' selected':''}>${esc(pc.name||clientName(pc.ownerClientId))} (${rem})</option>`;
-    }).join('');
-    if (isFuture) return `<tr style="opacity:.6;font-style:italic">
-      <td>${fmtDate(s.date)}</td>
+    const rowStyle = isFuture ? 'opacity:.7;font-style:italic' : '';
+    const futureTag = isFuture ? ' <span style="font-size:.72rem;color:var(--accent2)">(עתידי)</span>' : '';
+    if (editSessId === s.id) {
+      // Edit mode row
+      const pcOpts = `<option value="">— בודד —</option>`+availCards.map(pc=>{
+        const u=punchCardSessionsUsed(pc.id).length,b2=punchCardSessionsBooked(pc.id).length;
+        return `<option value="${pc.id}"${s.punchCardId===pc.id?' selected':''}>${esc(pc.name||clientName(pc.ownerClientId))} (${pc.totalSessions-u-b2})</option>`;
+      }).join('');
+      const initMode = s.punchCardId ? 'punch' : 'price';
+      return `<tr style="background:rgba(255,255,255,.03)">
+        <td>${fmtDate(s.date)} ${futureTag}</td>
+        <td>${esc(s.time||'—')}</td>
+        <td colspan="2">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--border);flex-shrink:0">
+              <button type="button" id="cp-billing-price-${s.id}" onclick="cpSwitchBilling('${s.id}','price')" style="padding:5px 10px;border:none;cursor:pointer;font-family:inherit;font-size:.82rem;${initMode==='price'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">מחיר</button>
+              <button type="button" id="cp-billing-punch-${s.id}" onclick="cpSwitchBilling('${s.id}','punch')" style="padding:5px 10px;border:none;cursor:pointer;font-family:inherit;font-size:.82rem;${initMode==='punch'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">כרטיסייה</button>
+            </div>
+            <input id="cp-sess-price-${s.id}" type="number" min="0" step="1" value="${esc(s.price||'')}" placeholder="0" style="width:80px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 8px;font-size:.85rem;font-family:inherit;${initMode==='punch'?'display:none':''}">
+            <select id="cp-sess-punch-${s.id}" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 8px;font-size:.82rem;font-family:inherit;${initMode==='price'?'display:none':''}">${pcOpts}</select>
+          </div>
+        </td>
+        <td class="actions">
+          <button class="btn btn-sm" onclick="cpSaveSessEdit('${s.id}','${c.id}')">שמור</button>
+          <button class="btn btn-ghost btn-sm" onclick="_cpEditSessionId='';renderClientProfile()">ביטול</button>
+        </td>
+      </tr>`;
+    }
+    // View mode row
+    let billingDisplay;
+    if (s.punchCardId) {
+      const pc = load('punchCards').find(x=>x.id===s.punchCardId);
+      billingDisplay = `<span style="color:var(--accent2);font-size:.85rem">🎟 ${esc(pc?.name||clientName(pc?.ownerClientId)||'כרטיסייה')}</span>`;
+    } else if (s.price) {
+      billingDisplay = `<span style="color:${isFuture?'var(--muted)':'#4caf50'};font-weight:600">₪${(+s.price).toLocaleString()}</span>`;
+    } else {
+      billingDisplay = `<span style="color:var(--muted)">—</span>`;
+    }
+    return `<tr style="${rowStyle}">
+      <td>${fmtDate(s.date)}${futureTag}</td>
       <td>${esc(s.time||'—')}</td>
-      <td style="color:var(--muted)">${s.price ? `₪${(+s.price).toLocaleString()}` : '—'} <span style="font-size:.75rem;color:var(--accent2)">(עתידי)</span></td>
-      <td style="color:var(--muted)">—</td>
+      <td>${billingDisplay}</td>
+      <td></td>
+      <td class="actions"><button class="btn btn-ghost btn-sm" onclick="_cpEditSessionId='${s.id}';renderClientProfile()">עריכה</button></td>
     </tr>`;
-    return `<tr>
-      <td>${fmtDate(s.date)}</td>
-      <td>${esc(s.time||'—')}</td>
-      <td><input type="number" min="0" step="1" value="${esc(s.price||'')}" placeholder="0" style="width:75px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit" onchange="setSessionPrice('${s.id}',this.value)"></td>
-      <td><select onchange="setSessionPunchCard('${s.id}',this.value)" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit">${pcOpts}</select></td>
-    </tr>`;
-  }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">אין אימונים</td></tr>';
-
+  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">אין אימונים</td></tr>';
   const sessTable = `<div class="cp-section" style="margin-top:16px">
     <div class="cp-section-title">היסטוריית אימונים</div>
-    <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>שעה</th><th>תעריף (₪)</th><th>כרטיסייה</th></tr></thead><tbody>${sessRows}</tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>תאריך</th><th>שעה</th><th>עלות / כרטיסייה</th><th></th><th></th></tr></thead><tbody>${sessRows}</tbody></table></div>
   </div>`;
 
-  // --- Plans ---
-  const plans = load('plans').filter(p=>p.clientId===c.id&&!p.isTemplate).sort((a,b)=>a.createdAt<b.createdAt?1:-1);
-  const planRows = plans.length ? plans.map(p=>{
-    const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('he-IL') : '—';
+  // --- Punch cards history ---
+  const pcRows = ownedCards.length ? ownedCards.sort((a,b)=>a.createdAt<b.createdAt?1:-1).map(pc=>{
+    const u=punchCardSessionsUsed(pc.id).length, b2=punchCardSessionsBooked(pc.id).length;
+    const rem=pc.totalSessions-u-b2;
+    const remColor=rem===0?'var(--accent)':rem<=2?'#ff9800':'#4caf50';
     return `<tr>
-      <td>${esc(p.name||'תוכנית')}</td>
-      <td style="font-size:.82rem;color:var(--muted)">${dateStr}</td>
-      <td><input type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0" style="width:75px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit" onchange="setPlanPrice('${p.id}',this.value)"></td>
+      <td>${esc(pc.name||'כרטיסייה')}</td>
+      <td>${pc.createdAt?new Date(pc.createdAt).toLocaleDateString('he-IL'):'—'}</td>
+      <td>${pc.totalSessions} אימונים</td>
+      <td>${pc.price?`₪${(+pc.price).toLocaleString()}`:'—'}</td>
+      <td style="color:${remColor};font-weight:600">${rem} נשאר</td>
     </tr>`;
-  }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--muted)">אין תוכניות</td></tr>';
+  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">אין כרטיסיות</td></tr>';
+  const pcTable = `<div class="cp-section" style="margin-top:16px">
+    <div class="cp-section-title">היסטוריית כרטיסיות</div>
+    <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="openAddPunchCardForClient('${c.id}')">+ הוסף כרטיסייה</button></div>
+    <div class="table-wrap"><table><thead><tr><th>שם</th><th>תאריך</th><th>אימונים</th><th>מחיר</th><th>נשאר</th></tr></thead><tbody>${pcRows}</tbody></table></div>
+  </div>`;
 
+  // --- Plans history ---
+  const sortedPlans = [...plans].sort((a,b)=>a.createdAt<b.createdAt?1:-1);
+  const planRows = sortedPlans.length ? sortedPlans.map(p=>`<tr>
+    <td>${esc(p.name||'תוכנית')}</td>
+    <td>${p.createdAt?new Date(p.createdAt).toLocaleDateString('he-IL'):'—'}</td>
+    <td><input type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0" style="width:75px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit" onchange="setPlanPrice('${p.id}',this.value)"></td>
+    <td style="color:var(--muted);font-size:.82rem">${esc(p.notes||'—')}</td>
+  </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">אין תוכניות</td></tr>';
   const planTable = `<div class="cp-section" style="margin-top:16px">
     <div class="cp-section-title">היסטוריית תוכניות</div>
-    <div class="table-wrap"><table><thead><tr><th>שם תוכנית</th><th>תאריך יצירה</th><th>מחיר (₪)</th></tr></thead><tbody>${planRows}</tbody></table></div>
+    <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="openAddPlanForClient('${c.id}')">+ הוסף תוכנית</button></div>
+    <div class="table-wrap"><table><thead><tr><th>שם תוכנית</th><th>תאריך</th><th>מחיר (₪)</th><th>הערות</th></tr></thead><tbody>${planRows}</tbody></table></div>
   </div>`;
 
-  return info + summary + pcHtml + payTable + sessTable + planTable;
+  return info + summary + payTable + sessTable + pcTable + planTable;
 }
 
 function renderCpPlans(c) {
@@ -1226,6 +1273,7 @@ function renderSessionsTable() {
 function sessionForm(s={}, forceType='') {
   const type = forceType || s.type || 'training';
   const isShift = type === 'shift';
+  const initBillingMode = s.punchCardId ? 'punch' : 'price';
   return `<form id="modal-form">
     <div class="type-toggle">
       <input type="radio" name="type" value="training" id="type-training" ${!isShift?'checked':''} onchange="toggleSessionType()">
@@ -1245,11 +1293,19 @@ function sessionForm(s={}, forceType='') {
       <div class="form-group" id="session-workout-group" style="${s.planId?'':'display:none'}"><label>אימון</label>
         <select name="workoutIdx" id="session-workout-sel">${s.planId?workoutOptionsForPlan(s.planId,s.workoutIdx||0):''}</select>
       </div>
-      <div class="form-group" id="session-price-group"><label>תעריף (₪)</label>
-        <input name="price" type="number" min="0" step="1" value="${esc(s.price||'')}" placeholder="0">
-      </div>
-      <div class="form-group" id="session-punchcard-group" style="display:none"><label>כרטיסייה (במקום תעריף)</label>
-        <select name="punchCardId" id="session-punchcard-sel" onchange="toggleSessionPriceField()"><option value="">— ללא כרטיסייה —</option></select>
+      <div id="session-billing-row" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0">
+            <button type="button" id="billing-price-btn" onclick="switchBillingMode('price')" style="padding:8px 16px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;${initBillingMode==='price'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">מחיר</button>
+            <button type="button" id="billing-punch-btn" onclick="switchBillingMode('punch')" style="padding:8px 16px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;${initBillingMode==='punch'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">כרטיסייה</button>
+          </div>
+          <div id="session-price-field" style="flex:1;${initBillingMode==='punch'?'display:none':''}">
+            <input name="price" type="number" min="0" step="1" value="${s.price||''}" placeholder="הזן מחיר" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.95rem;font-family:inherit">
+          </div>
+          <div id="session-punch-field" style="flex:1;${initBillingMode==='punch'?'':'display:none'}">
+            <select name="punchCardId" id="session-punchcard-sel" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.95rem;font-family:inherit"><option value="">— ללא כרטיסייה —</option></select>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1299,8 +1355,8 @@ function toggleSessionType() {
   document.getElementById('session-training-fields').style.display = isShift ? 'none' : '';
   document.getElementById('session-time-training').style.display = isShift ? 'none' : '';
   document.getElementById('session-time-shift').style.display = isShift ? '' : 'none';
-  if (!isShift) toggleSessionPriceField();
 }
+
 
 function updatePlanDropdown() {
   const clientId = document.getElementById('session-client-sel')?.value || '';
@@ -1310,29 +1366,28 @@ function updatePlanDropdown() {
   updateSessionPunchCard(clientId);
 }
 function updateSessionPunchCard(clientId, selectedId='') {
-  const group = document.getElementById('session-punchcard-group');
-  if (!group) return;
-  if (!clientId) { group.style.display = 'none'; toggleSessionPriceField(); return; }
-  const cards = load('punchCards').filter(pc => pc.ownerClientId===clientId || (pc.linkedClientIds||[]).includes(clientId));
-  if (!cards.length) { group.style.display = 'none'; toggleSessionPriceField(); return; }
-  group.style.display = '';
   const sel = document.getElementById('session-punchcard-sel');
-  if (sel) sel.innerHTML = '<option value="">— ללא כרטיסייה —</option>' + cards.map(pc => {
+  if (!sel) return;
+  if (!clientId) { sel.innerHTML = '<option value="">— ללא כרטיסייה —</option>'; return; }
+  const cards = load('punchCards').filter(pc => pc.ownerClientId===clientId || (pc.linkedClientIds||[]).includes(clientId));
+  sel.innerHTML = '<option value="">— ללא כרטיסייה —</option>' + cards.map(pc => {
     const used = punchCardSessionsUsed(pc.id).length, booked = punchCardSessionsBooked(pc.id).length;
     const rem = pc.totalSessions - used - booked;
     const ownerLabel = pc.ownerClientId===clientId ? '' : ` (של ${clientName(pc.ownerClientId)})`;
     return `<option value="${pc.id}"${pc.id===selectedId?' selected':''}>${esc(pc.name||clientName(pc.ownerClientId))}${ownerLabel} — ${rem}/${pc.totalSessions} נשאר</option>`;
   }).join('');
-  toggleSessionPriceField();
+  if (selectedId) sel.value = selectedId;
 }
-function toggleSessionPriceField() {
-  const pcSel = document.getElementById('session-punchcard-sel');
-  const priceGroup = document.getElementById('session-price-group');
-  if (!priceGroup) return;
-  const hasPunchCard = pcSel && pcSel.value;
-  priceGroup.style.display = hasPunchCard ? 'none' : '';
-  const priceInput = priceGroup.querySelector('input[name=price]');
-  if (priceInput) priceInput.required = !hasPunchCard;
+function switchBillingMode(mode) {
+  const isPunch = mode === 'punch';
+  const pf = document.getElementById('session-price-field');
+  const pc = document.getElementById('session-punch-field');
+  const pb = document.getElementById('billing-price-btn');
+  const cb = document.getElementById('billing-punch-btn');
+  if (pf) pf.style.display = isPunch ? 'none' : '';
+  if (pc) pc.style.display = isPunch ? '' : 'none';
+  if (pb) { pb.style.background = isPunch ? 'var(--card)' : 'var(--accent)'; pb.style.color = isPunch ? 'var(--muted)' : '#fff'; pb.style.fontWeight = isPunch ? '' : '600'; }
+  if (cb) { cb.style.background = isPunch ? 'var(--accent)' : 'var(--card)'; cb.style.color = isPunch ? '#fff' : 'var(--muted)'; cb.style.fontWeight = isPunch ? '600' : ''; }
 }
 function updateWorkoutDropdown() {
   const planId = document.getElementById('session-plan-sel')?.value || '';
@@ -3516,6 +3571,87 @@ async function setPlanPrice(planId, price) {
   if (!p) return;
   p.price = price ? +price : '';
   await saveItem('plans', p);
+}
+
+function cpSwitchBilling(sessId, mode) {
+  const isPunch = mode === 'punch';
+  const pi = document.getElementById(`cp-sess-price-${sessId}`);
+  const pc = document.getElementById(`cp-sess-punch-${sessId}`);
+  const pb = document.getElementById(`cp-billing-price-${sessId}`);
+  const cb = document.getElementById(`cp-billing-punch-${sessId}`);
+  if (pi) pi.style.display = isPunch ? 'none' : '';
+  if (pc) pc.style.display = isPunch ? '' : 'none';
+  if (pb) { pb.style.background = isPunch ? 'var(--card)' : 'var(--accent)'; pb.style.color = isPunch ? 'var(--muted)' : '#fff'; pb.style.fontWeight = isPunch ? '' : '600'; }
+  if (cb) { cb.style.background = isPunch ? 'var(--accent)' : 'var(--card)'; cb.style.color = isPunch ? '#fff' : 'var(--muted)'; cb.style.fontWeight = isPunch ? '600' : ''; }
+}
+
+async function cpSaveSessEdit(sessId, clientId) {
+  const s = load('sessions').find(x=>x.id===sessId);
+  if (!s) return;
+  const punchSel = document.getElementById(`cp-sess-punch-${sessId}`);
+  const priceInp = document.getElementById(`cp-sess-price-${sessId}`);
+  const isPunchVisible = punchSel && punchSel.style.display !== 'none';
+  if (isPunchVisible) {
+    s.punchCardId = punchSel.value;
+    s.price = '';
+  } else {
+    s.punchCardId = '';
+    s.price = priceInp && priceInp.value ? +priceInp.value : '';
+  }
+  await saveItem('sessions', s);
+  _cpEditSessionId = '';
+  renderClientProfile();
+}
+
+function openAddPunchCardForClient(clientId) {
+  openModal('הוסף כרטיסייה', `<form id="modal-form">
+    <div class="form-group"><label>שם כרטיסייה *</label><input name="name" required placeholder="למשל: כרטיסייה 10 כניסות"></div>
+    <div class="form-row">
+      <div class="form-group"><label>מספר אימונים *</label><input name="totalSessions" type="number" min="1" max="100" value="10" required></div>
+      <div class="form-group"><label>מחיר (₪)</label><input name="price" type="number" min="0" step="1" placeholder="0"></div>
+    </div>
+    <div class="form-group"><label>תאריך</label><input name="date" type="date" value="${localDateStr()}"></div>
+    <div class="form-group"><label>הערות</label><input name="notes" placeholder="הערות אופציונלי"></div>
+    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
+  </form>`, async fd => {
+    await saveItem('punchCards', {
+      id: uid(),
+      name: fd.get('name'),
+      ownerClientId: clientId,
+      linkedClientIds: [clientId],
+      totalSessions: +(fd.get('totalSessions')||10),
+      price: fd.get('price') ? +fd.get('price') : '',
+      notes: fd.get('notes')||'',
+      createdAt: new Date(fd.get('date')||localDateStr()).getTime(),
+      trainerId: currentTrainerId
+    });
+    renderClientProfile();
+  });
+}
+
+function openAddPlanForClient(clientId) {
+  openModal('הוסף תוכנית אימונים', `<form id="modal-form">
+    <div class="form-group"><label>שם תוכנית *</label><input name="name" required placeholder="למשל: תוכנית ירידה במשקל"></div>
+    <div class="form-row">
+      <div class="form-group"><label>מחיר (₪)</label><input name="price" type="number" min="0" step="1" placeholder="0"></div>
+      <div class="form-group"><label>תאריך</label><input name="date" type="date" value="${localDateStr()}"></div>
+    </div>
+    <div class="form-group"><label>הערות</label><input name="notes" placeholder="הערות אופציונלי"></div>
+    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
+  </form>`, async fd => {
+    await saveItem('plans', {
+      id: uid(),
+      name: fd.get('name'),
+      clientId: clientId,
+      isTemplate: false,
+      exercises: [],
+      price: fd.get('price') ? +fd.get('price') : '',
+      notes: fd.get('notes')||'',
+      createdAt: new Date(fd.get('date')||localDateStr()).getTime(),
+      trainerId: currentTrainerId
+    });
+    renderClientProfile();
+  });
 }
 
 async function settleAllDebts() {
