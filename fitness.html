@@ -569,6 +569,10 @@
 
   <section id="tab-admin">
     <div class="section-header"><h2>ניהול מאמנים</h2><button class="btn" onclick="openAddTrainer()">+ הוסף מאמן</button></div>
+    <div class="card" style="margin-bottom:16px;padding:16px;border-color:rgba(168,218,220,.3)">
+      <p style="margin-bottom:8px;font-size:.9rem;color:var(--muted)">סגור חובות פתוחים — יצירת תשלום לכל לקוח שיש לו חוב, כך שהיתרה תעמוד על 0</p>
+      <button class="btn" onclick="settleAllDebts()">סגור חובות פתוחים</button>
+    </div>
     <div class="card" id="admin-reset-card" style="margin-bottom:16px;padding:16px;border-color:rgba(233,69,96,.4)">
       <p style="margin-bottom:8px;font-size:.9rem;color:var(--muted)">איפוס מערכת תשלומים — מחיקת כל התשלומים, כרטיסיות וניקוי תעריפים מכל הלקוחות</p>
       <button class="btn btn-danger" onclick="resetAllPayments()">אפס תשלומים</button>
@@ -660,12 +664,12 @@ function localDateStr(d) { d = d || new Date(); return `${d.getFullYear()}-${Str
 function clientName(id) { const c = load('clients').find(x=>x.id===id); return c ? c.name : '—'; }
 function clientBalance(clientId) {
   const client = load('clients').find(c=>c.id===clientId);
-  const totalPaid = load('payments').filter(p=>p.clientId===clientId && p.status==='paid').reduce((sum,p)=>sum+(+p.amount||0),0);
-  if (!client || client.productType !== 'training') {
+  const totalPaid = load('payments').filter(p=>p.clientId===clientId && p.status==='paid' && !p.punchCardId).reduce((sum,p)=>sum+(+p.amount||0),0);
+  if (!client || !client.pricePerSession) {
     return { totalPaid, totalDebt: 0, balance: totalPaid, sessions: 0, price: 0 };
   }
   const price = +(client.pricePerSession) || 0;
-  const sessions = load('sessions').filter(s=>s.clientId===clientId && s.type==='training' && s.status!=='cancelled' && s.source!=='client' && s.date<=localDateStr());
+  const sessions = load('sessions').filter(s=>s.clientId===clientId && s.type==='training' && s.status!=='cancelled' && !s.punchCardId && s.date<=localDateStr());
   const totalDebt = sessions.length * price;
   return { totalPaid, totalDebt, balance: totalPaid - totalDebt, sessions: sessions.length, price };
 }
@@ -858,7 +862,7 @@ function renderCpDetails(c) {
       ${isPersonal?`<span>🏋️ ${sessions.length}/${+c.personalSessions||0} אימונים נוצלו</span>`:''}
       ${c.pricePerSession?`<span>💰 תעריף: ₪${(+c.pricePerSession).toLocaleString()}</span>`:''}
     </div>
-    ${c.productType==='training'&&c.pricePerSession?(() => { const b = clientBalance(c.id); const color = b.balance >= 0 ? '#4caf50' : 'var(--accent)'; return `<div style="margin-top:10px;font-size:.95rem;font-weight:600;color:${color}">יתרה: ₪${b.balance.toLocaleString()}${b.balance > 0 ? ' (זיכוי)' : b.balance < 0 ? ' (חוב)' : ''}</div>`; })():''}
+    ${c.pricePerSession?(() => { const b = clientBalance(c.id); const color = b.balance >= 0 ? '#4caf50' : 'var(--accent)'; return `<div style="margin-top:10px;font-size:.95rem;font-weight:600;color:${color}">יתרה: ₪${b.balance.toLocaleString()}${b.balance > 0 ? ' (זיכוי)' : b.balance < 0 ? ' (חוב)' : ''}</div>`; })():''}
     ${c.notes?`<div style="margin-top:12px;color:var(--muted);font-size:.85rem">📝 ${esc(c.notes)}</div>`:''}
   </div>
   <div class="cp-actions">
@@ -905,13 +909,11 @@ function renderCpPayments(c) {
     }).join('')}
   </div>` : '';
 
-  const productLabel = {'training':'אימונים פר אימון','plan':'תוכנית אימונים','punch_card':'כרטיסייה','none':'ללא מעקב'}[c.productType||'none']||'ללא מעקב';
-
   const summary = `${pcSummary}<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-    <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="card-title">סוג מוצר</div><div style="color:var(--text);font-size:.95rem;font-weight:700">${esc(productLabel)}</div></div>
-    ${c.productType==='training'?`<div class="card" style="flex:1;min-width:120px;text-align:center"><div class="card-title">תעריף לאימון</div><div style="color:var(--text);font-size:1.1rem;font-weight:700">₪${(b.price||0).toLocaleString()}</div></div>`:''}
+    ${c.pricePerSession?`<div class="card" style="flex:1;min-width:120px;text-align:center"><div class="card-title">תעריף לאימון</div><div style="color:var(--text);font-size:1.1rem;font-weight:700">₪${(+c.pricePerSession).toLocaleString()}</div></div>`:''}
+    ${c.planPrice?`<div class="card" style="flex:1;min-width:120px;text-align:center"><div class="card-title">מחיר תוכנית</div><div style="color:var(--text);font-size:1.1rem;font-weight:700">₪${(+c.planPrice).toLocaleString()}</div></div>`:''}
     <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="card-title">סה״כ שולם</div><div style="color:#4caf50;font-size:1.1rem;font-weight:700">₪${b.totalPaid.toLocaleString()}</div></div>
-    ${c.productType==='training'?`<div class="card" style="flex:1;min-width:120px;text-align:center"><div class="card-title">סה״כ חוב</div><div style="color:var(--muted);font-size:1.1rem;font-weight:700">₪${b.totalDebt.toLocaleString()}</div></div>
+    ${c.pricePerSession?`<div class="card" style="flex:1;min-width:120px;text-align:center"><div class="card-title">סה״כ חוב</div><div style="color:var(--muted);font-size:1.1rem;font-weight:700">₪${b.totalDebt.toLocaleString()}</div></div>
     <div class="card" style="flex:1;min-width:120px;text-align:center;border-color:${balColor}"><div class="card-title">יתרה</div><div style="color:${balColor};font-size:1.1rem;font-weight:700">${balText}</div></div>`:''}
   </div>`;
 
@@ -997,7 +999,6 @@ function renderClients() {
       </td></tr>`).join('')}</tbody></table>`;
 }
 function clientForm(c={}) {
-  const pt = c.productType || 'none';
   return `<form id="modal-form">
     <div class="form-row">
       <div class="form-group"><label>שם מלא *</label><input name="name" value="${esc(c.name||'')}" required></div>
@@ -1013,21 +1014,10 @@ function clientForm(c={}) {
     </div>
     <div class="form-row">
       <div class="form-group"><label>סטטוס</label><select name="status"><option value="פעיל"${(c.status||'פעיל')==='פעיל'?' selected':''}>פעיל</option><option value="בהשהיה"${c.status==='בהשהיה'?' selected':''}>בהשהיה</option><option value="הפסיק"${c.status==='הפסיק'?' selected':''}>הפסיק</option></select></div>
-      <div class="form-group"><label>סוג מוצר</label>
-        <select name="productType" id="client-product-type" onchange="toggleClientProductType()">
-          <option value="none"${pt==='none'?' selected':''}>ללא מעקב כספי</option>
-          <option value="training"${pt==='training'?' selected':''}>אימונים (פר אימון)</option>
-          <option value="plan"${pt==='plan'?' selected':''}>תוכנית אימונים</option>
-          <option value="punch_card"${pt==='punch_card'?' selected':''}>כרטיסייה</option>
-        </select>
-      </div>
+      <div class="form-group"><label>תעריף לאימון בודד (₪)</label><input name="pricePerSession" type="number" min="0" step="1" value="${esc(c.pricePerSession||'')}" placeholder="ריק = ללא חיוב"></div>
     </div>
-    <div class="form-row" id="client-price-group" style="${pt==='training'?'':'display:none'}">
-      <div class="form-group"><label>תעריף לאימון (₪)</label><input name="pricePerSession" type="number" min="0" step="1" value="${esc(c.pricePerSession||'')}" placeholder="למשל 150"></div>
-      <div class="form-group"></div>
-    </div>
-    <div class="form-row" id="client-plan-price-group" style="${pt==='plan'?'':'display:none'}">
-      <div class="form-group"><label>מחיר תוכנית (₪)</label><input name="planPrice" type="number" min="0" step="1" value="${esc(c.planPrice||'')}" placeholder="למשל 800"></div>
+    <div class="form-row">
+      <div class="form-group"><label>מחיר תוכנית (₪)</label><input name="planPrice" type="number" min="0" step="1" value="${esc(c.planPrice||'')}" placeholder="ריק = ללא תוכנית"></div>
       <div class="form-group"></div>
     </div>
     <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(c.notes||'')}</textarea></div>
@@ -1036,23 +1026,16 @@ function clientForm(c={}) {
       <button type="submit" class="btn">שמור</button>
     </div></form>`;
 }
-function toggleClientProductType() {
-  const val = document.getElementById('client-product-type')?.value;
-  const g = document.getElementById('client-price-group');
-  const pg = document.getElementById('client-plan-price-group');
-  if (g) g.style.display = val === 'training' ? '' : 'none';
-  if (pg) pg.style.display = val === 'plan' ? '' : 'none';
-}
 function openAddClient() {
   openModal('הוסף לקוח', clientForm(), async fd => {
-    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל', productType:fd.get('productType')||'none', pricePerSession:fd.get('pricePerSession')||'', planPrice:fd.get('planPrice')||''});
+    await saveItem('clients', {id:uid(), name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status')||'פעיל', pricePerSession:fd.get('pricePerSession')||'', planPrice:fd.get('planPrice')||''});
     renderClients();
   });
 }
 function openEditClient(id) {
   const c = load('clients').find(x=>x.id===id);
   openModal('עריכת לקוח', clientForm(c), async fd => {
-    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status'), productType:fd.get('productType')||'none', pricePerSession:fd.get('pricePerSession')||'', planPrice:fd.get('planPrice')||''});
+    Object.assign(c, {name:fd.get('name'), phone:fd.get('phone'), email:fd.get('email'), age:fd.get('age'), taxId:fd.get('taxId'), goals:fd.get('goals'), notes:fd.get('notes'), status:fd.get('status'), pricePerSession:fd.get('pricePerSession')||'', planPrice:fd.get('planPrice')||''});
     await saveItem('clients', c);
     renderClients();
   });
@@ -2912,15 +2895,15 @@ function renderPayTabSummary() {
   const monthLabel = now.toLocaleDateString('he-IL', { month:'long', year:'numeric' });
   const payments = load('payments'), clients = load('clients'), punchCards = load('punchCards');
   const monthIncome = payments.filter(p=>p.date&&p.date.startsWith(monthStr)&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
-  const trainingDebts = clients.filter(c=>c.productType==='training'&&c.pricePerSession).map(c=>{
+  const trainingDebts = clients.filter(c=>c.pricePerSession).map(c=>{
     const b=clientBalance(c.id); return b.balance<0?{name:c.name,debt:Math.abs(b.balance)}:null;
   }).filter(Boolean).sort((a,b)=>b.debt-a.debt);
   const pcDebts = punchCards.map(pc=>{
     const paid=payments.filter(p=>p.punchCardId===pc.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
     const debt=(+pc.price||0)-paid; return debt>0?{name:clientName(pc.ownerClientId),debt}:null;
   }).filter(Boolean).sort((a,b)=>b.debt-a.debt);
-  const planDebts = clients.filter(c=>c.productType==='plan'&&c.planPrice).map(c=>{
-    const paid=payments.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+  const planDebts = clients.filter(c=>c.planPrice).map(c=>{
+    const paid=payments.filter(p=>p.clientId===c.id&&p.status==='paid'&&!p.punchCardId).reduce((s,p)=>s+(+p.amount||0),0);
     const debt=(+c.planPrice||0)-paid; return debt>0?{name:c.name,debt}:null;
   }).filter(Boolean).sort((a,b)=>b.debt-a.debt);
   const totalDebt=[...trainingDebts,...pcDebts,...planDebts].reduce((s,x)=>s+x.debt,0);
@@ -2948,7 +2931,8 @@ function renderPayTabSummary() {
 }
 
 function renderPayTabTraining() {
-  const clients = load('clients'), sessions = load('sessions'), payments = load('payments');
+  const clients = load('clients'), allSessions = load('sessions'), payments = load('payments');
+  const punchCards = load('punchCards');
   const { clientId, period, monthOffset } = _payTrainingFilter;
   const now = new Date();
   let rangeStart, rangeEnd, periodLabel;
@@ -2963,15 +2947,46 @@ function renderPayTabTraining() {
     rangeStart = localDateStr(d); d.setDate(d.getDate()+6); rangeEnd = localDateStr(d);
     periodLabel = `${fmtDate(rangeStart)} – ${fmtDate(rangeEnd)}`;
   }
-  const trainingClients = clients.filter(c=>c.productType==='training'&&c.pricePerSession);
-  const filtered = clientId ? trainingClients.filter(c=>c.id===clientId) : trainingClients;
-  const rows = filtered.map(c=>{
-    const sessInRange=sessions.filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&s.source!=='client'&&s.date>=rangeStart&&s.date<=rangeEnd).length;
-    const paidInRange=payments.filter(p=>p.clientId===c.id&&p.status==='paid'&&p.date>=rangeStart&&p.date<=rangeEnd).reduce((s,p)=>s+(+p.amount||0),0);
+  // All training sessions in range (excluding shifts)
+  let sessInRange = allSessions.filter(s=>s.type==='training'&&s.status!=='cancelled'&&s.date>=rangeStart&&s.date<=rangeEnd);
+  if (clientId) sessInRange = sessInRange.filter(s=>s.clientId===clientId);
+  sessInRange.sort((a,b)=>a.date<b.date?1:-1);
+
+  // Client filter options (all clients who have any training sessions)
+  const clientsWithSess = [...new Set(allSessions.filter(s=>s.type==='training').map(s=>s.clientId))];
+  const allClients = clients.filter(c=>clientsWithSess.includes(c.id));
+  const clientOpts = `<option value="">כל הלקוחות</option>`+allClients.map(c=>`<option value="${c.id}"${c.id===clientId?' selected':''}>${esc(c.name)}</option>`).join('');
+
+  // Session rows
+  const sessRows = sessInRange.map(s=>{
+    const c = clients.find(x=>x.id===s.clientId);
+    // Punch cards available for this client
+    const availCards = punchCards.filter(pc=>pc.ownerClientId===s.clientId||(pc.linkedClientIds||[]).includes(s.clientId));
+    const pcOpts = `<option value="">— אימון בודד —</option>`+availCards.map(pc=>{
+      const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
+      const rem=pc.totalSessions-used-booked;
+      return `<option value="${pc.id}"${s.punchCardId===pc.id?' selected':''}>${esc(clientName(pc.ownerClientId))} (${rem} נשאר)</option>`;
+    }).join('');
+    const isPast = s.date <= localDateStr();
+    return `<tr${!isPast?' style="opacity:.65"':''}>
+      <td>${fmtDate(s.date)}</td>
+      <td style="font-size:.82rem;color:var(--muted)">${esc(s.time||'')}</td>
+      <td>${esc(clientName(s.clientId))}</td>
+      <td>
+        <select onchange="setSessionPunchCard('${s.id}',this.value)" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit">
+          ${pcOpts}
+        </select>
+      </td>
+      <td class="actions"><button class="btn btn-ghost btn-sm" onclick="openPayDetail('training','${s.clientId}')">פרטים</button></td>
+    </tr>`;
+  });
+
+  // Debt summary for clients with pricePerSession
+  const debtClients = clients.filter(c=>c.pricePerSession).map(c=>{
     const b=clientBalance(c.id);
-    return {name:c.name,id:c.id,sessInRange,paidInRange,debt:b.balance<0?Math.abs(b.balance):0};
-  }).filter(r=>r.sessInRange>0||r.paidInRange>0||(clientId&&r.id===clientId));
-  const clientOpts=`<option value="">כל הלקוחות</option>`+trainingClients.map(c=>`<option value="${c.id}"${c.id===clientId?' selected':''}>${esc(c.name)}</option>`).join('');
+    return {...b, name:c.name, id:c.id};
+  }).filter(b=>b.sessions>0||b.totalPaid>0).sort((a,b)=>a.balance-b.balance);
+
   return `
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
       <div class="form-group" style="margin:0;min-width:160px">
@@ -2988,19 +3003,31 @@ function renderPayTabTraining() {
         <button class="btn btn-ghost btn-sm" onclick="_payTrainingFilter.monthOffset++;renderPayments()"${monthOffset>=0?' disabled':''}>&#8250;</button>
       </div>
     </div>
-    <div class="card">
-      <div class="section-header" style="margin-bottom:4px"><h2>אימונים בודדים</h2></div>
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:12px">אימונים מהיומן — מוצגים לקוחות עם סוג מוצר "אימונים" שיש להם אימונים בתקופה הנבחרת</p>
-      ${rows.length?`<div class="table-wrap"><table>
-        <thead><tr><th>לקוח</th><th>אימונים בתקופה</th><th>שולם בתקופה</th><th>חוב כולל</th><th></th></tr></thead>
-        <tbody>${rows.map(r=>`<tr>
-          <td><strong>${esc(r.name)}</strong></td><td>${r.sessInRange}</td>
-          <td style="color:#4caf50">₪${r.paidInRange.toLocaleString()}</td>
-          <td style="color:${r.debt>0?'var(--accent)':'#4caf50'};font-weight:600">${r.debt>0?`₪${r.debt.toLocaleString()} חוב`:'✓'}</td>
-          <td class="actions"><button class="btn btn-ghost btn-sm" onclick="openPayDetail('training','${r.id}')">פרטים</button></td>
-        </tr>`).join('')}</tbody>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-header" style="margin-bottom:12px"><h2>אימונים בתקופה</h2></div>
+      ${sessRows.length?`<div class="table-wrap"><table>
+        <thead><tr><th>תאריך</th><th>שעה</th><th>לקוח</th><th>כרטיסייה / בודד</th><th></th></tr></thead>
+        <tbody>${sessRows.join('')}</tbody>
       </table></div>`:'<div class="empty">אין אימונים בתקופה זו.</div>'}
-    </div>`;
+    </div>
+    ${debtClients.length?`<div class="card">
+      <div class="section-header" style="margin-bottom:12px"><h2>סיכום חובות — אימונים בודדים</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>לקוח</th><th>תעריף</th><th>אימונים</th><th>שולם</th><th>יתרה</th><th></th></tr></thead>
+        <tbody>${debtClients.map(b=>{
+          const balColor=b.balance>=0?'#4caf50':'var(--accent)';
+          const balText=b.balance>0?`₪${b.balance.toLocaleString()} זיכוי`:b.balance<0?`₪${Math.abs(b.balance).toLocaleString()} חוב`:'✓';
+          return `<tr>
+            <td><strong>${esc(b.name)}</strong></td>
+            <td>₪${b.price.toLocaleString()}</td>
+            <td>${b.sessions}</td>
+            <td style="color:#4caf50">₪${b.totalPaid.toLocaleString()}</td>
+            <td style="color:${balColor};font-weight:700">${balText}</td>
+            <td class="actions"><button class="btn btn-ghost btn-sm" onclick="openPayDetail('training','${b.id}')">פרטים</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    </div>`:''}`;
 }
 
 function renderPayTabPunchCards() {
@@ -3052,8 +3079,8 @@ function renderPayTabPunchCards() {
 }
 
 function renderPayTabPlans() {
-  const clients = load('clients').filter(c=>c.productType==='plan'), payments = load('payments');
-  if (!clients.length) return '<div class="empty">אין לקוחות עם תוכנית אימונים. הגדר \'תוכנית אימונים\' בפרופיל הלקוח.</div>';
+  const clients = load('clients').filter(c=>c.planPrice), payments = load('payments');
+  if (!clients.length) return '<div class="empty">אין לקוחות עם מחיר תוכנית. הגדר \'מחיר תוכנית\' בפרופיל הלקוח.</div>';
   const rows = clients.map(c=>{
     const price=+(c.planPrice)||0;
     const paid=payments.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
@@ -3087,8 +3114,8 @@ function renderPayDetailTraining(clientId) {
   const client = load('clients').find(c=>c.id===clientId);
   if (!client) return '<div class="empty">לקוח לא נמצא</div>';
   const price = +(client.pricePerSession)||0, today = localDateStr();
-  const allSess = load('sessions').filter(s=>s.clientId===clientId&&s.type==='training'&&s.source!=='client');
-  const pays = load('payments').filter(p=>p.clientId===clientId&&p.status==='paid');
+  const allSess = load('sessions').filter(s=>s.clientId===clientId&&s.type==='training'&&s.source!=='client'&&!s.punchCardId);
+  const pays = load('payments').filter(p=>p.clientId===clientId&&p.status==='paid'&&!p.punchCardId);
   const entries = [];
   allSess.forEach(s=>entries.push({date:s.date,type:'session',desc:`אימון${s.notes?` — ${s.notes}`:''}`,amount:s.date<=today&&s.status!=='cancelled'?-price:0,cancelled:s.status==='cancelled',future:s.date>today}));
   pays.forEach(p=>entries.push({date:p.date,type:'payment',desc:`תשלום${p.notes?` — ${p.notes}`:''}`,amount:+p.amount||0,cancelled:false,future:false}));
@@ -3410,6 +3437,39 @@ function toggleInvoiceFields(docType) {
 
 // ========================
 // ===== ADMIN =============
+async function setSessionPunchCard(sessionId, punchCardId) {
+  const sessions = load('sessions');
+  const s = sessions.find(x=>x.id===sessionId);
+  if (!s) return;
+  s.punchCardId = punchCardId || '';
+  await saveItem('sessions', s);
+  renderPayments();
+}
+
+async function settleAllDebts() {
+  if (!currentTrainerIsAdmin) { showToast('רק מנהל יכול לבצע פעולה זו'); return; }
+  if (!confirm('ליצור תשלומים לכל הלקוחות עם חוב פתוח, כך שהיתרה תעמוד על 0?')) return;
+  const clients = load('clients').filter(c=>c.pricePerSession);
+  let count = 0;
+  for (const c of clients) {
+    const bal = clientBalance(c.id);
+    const debt = -bal.balance; // balance is negative when client owes money
+    if (debt > 0) {
+      await saveItem('payments', {
+        clientId: c.id,
+        amount: debt,
+        date: localDateStr(),
+        status: 'paid',
+        notes: 'סגירת יתרה ידנית',
+        trainerId: currentTrainerId
+      });
+      count++;
+    }
+  }
+  showToast(`נוצרו ${count} תשלומים — כל החובות סגורים ✓`);
+  renderPayments();
+}
+
 // ========================
 async function resetAllPayments() {
   if (!currentTrainerIsAdmin) { showToast('רק מנהל יכול לאפס תשלומים'); return; }
@@ -3429,8 +3489,8 @@ async function resetAllPayments() {
   const clients = load('clients');
   await Promise.all(clients.map(async c => {
     c.pricePerSession = '';
-    c.productType = 'none';
-    await db.collection('clients').doc(c.id).update({ pricePerSession: '', productType: 'none' });
+    c.planPrice = '';
+    await db.collection('clients').doc(c.id).update({ pricePerSession: '', planPrice: '' });
   }));
   showToast('כל נתוני התשלומים אופסו ✓');
 }
