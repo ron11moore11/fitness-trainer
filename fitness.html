@@ -885,7 +885,7 @@ function renderCpPayments(c) {
   const b = clientBalance(c.id);
   const payments = load('payments').filter(p=>p.clientId===c.id && p.status==='paid');
   const sorted = [...payments].sort((a,b)=>a.date<b.date?1:-1);
-  const sessions = load('sessions').filter(s=>s.clientId===c.id && s.type==='training' && s.status!=='cancelled' && s.source!=='client').sort((a,b)=>a.date<b.date?1:-1);
+  const sessions = load('sessions').filter(s=>s.clientId===c.id && s.type==='training' && s.status!=='cancelled' && s.source!=='client' && s.date<=localDateStr()).sort((a,b)=>a.date<b.date?1:-1);
 
   const balColor = b.balance >= 0 ? '#4caf50' : 'var(--accent)';
   const balText = b.balance > 0 ? `₪${b.balance.toLocaleString()} זיכוי` : b.balance < 0 ? `₪${Math.abs(b.balance).toLocaleString()} חוב` : '₪0';
@@ -2924,7 +2924,6 @@ function renderPayTabSummary() {
 }
 
 function renderPayTabTraining() {
-  const today = localDateStr();
   const clients = load('clients'), sessions = load('sessions'), payments = load('payments');
   const { clientId, period, monthOffset } = _payTrainingFilter;
   const now = new Date();
@@ -3080,7 +3079,6 @@ function renderPayDetailTraining(clientId) {
     const balStr=`₪${Math.abs(bal).toLocaleString()}${bal>0?' זיכוי':bal<0?' חוב':''}`;
     return `<tr><td>${fmtDate(e.date)}</td><td>${esc(e.desc)}</td><td style="color:${amtColor};font-weight:600">${amtStr}</td><td style="color:${balColor};font-weight:700">${balStr}</td></tr>`;
   });
-  const pastCount=allSess.filter(s=>s.date<=today&&s.status!=='cancelled').length;
   const finalColor=bal>=0?'#4caf50':'var(--accent)';
   const finalText=bal>0?`₪${bal.toLocaleString()} זיכוי`:bal<0?`₪${Math.abs(bal).toLocaleString()} חוב`:'₪0';
   return `<div class="card">
