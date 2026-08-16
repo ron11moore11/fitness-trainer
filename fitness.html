@@ -1237,8 +1237,11 @@ function sessionForm(s={}, forceType='') {
       <div class="form-group" id="session-workout-group" style="${s.planId?'':'display:none'}"><label>אימון</label>
         <select name="workoutIdx" id="session-workout-sel">${s.planId?workoutOptionsForPlan(s.planId,s.workoutIdx||0):''}</select>
       </div>
-      <div class="form-group" id="session-punchcard-group" style="display:none"><label>כרטיסייה</label>
-        <select name="punchCardId" id="session-punchcard-sel"><option value="">— ללא כרטיסייה —</option></select>
+      <div class="form-group" id="session-price-group"><label>תעריף (₪)</label>
+        <input name="price" type="number" min="0" step="1" value="${esc(s.price||'')}" placeholder="0">
+      </div>
+      <div class="form-group" id="session-punchcard-group" style="display:none"><label>כרטיסייה (במקום תעריף)</label>
+        <select name="punchCardId" id="session-punchcard-sel" onchange="toggleSessionPriceField()"><option value="">— ללא כרטיסייה —</option></select>
       </div>
     </div>
 
@@ -1288,6 +1291,7 @@ function toggleSessionType() {
   document.getElementById('session-training-fields').style.display = isShift ? 'none' : '';
   document.getElementById('session-time-training').style.display = isShift ? 'none' : '';
   document.getElementById('session-time-shift').style.display = isShift ? '' : 'none';
+  if (!isShift) toggleSessionPriceField();
 }
 
 function updatePlanDropdown() {
@@ -1300,16 +1304,27 @@ function updatePlanDropdown() {
 function updateSessionPunchCard(clientId, selectedId='') {
   const group = document.getElementById('session-punchcard-group');
   if (!group) return;
-  if (!clientId) { group.style.display = 'none'; return; }
-  const cards = load('punchCards').filter(pc => pc.linkedClientIds && pc.linkedClientIds.includes(clientId));
-  if (!cards.length) { group.style.display = 'none'; return; }
+  if (!clientId) { group.style.display = 'none'; toggleSessionPriceField(); return; }
+  const cards = load('punchCards').filter(pc => pc.ownerClientId===clientId || (pc.linkedClientIds||[]).includes(clientId));
+  if (!cards.length) { group.style.display = 'none'; toggleSessionPriceField(); return; }
   group.style.display = '';
   const sel = document.getElementById('session-punchcard-sel');
   if (sel) sel.innerHTML = '<option value="">— ללא כרטיסייה —</option>' + cards.map(pc => {
-    const used = punchCardSessions(pc.id).length;
-    const rem = pc.totalSessions - used;
-    return `<option value="${pc.id}"${pc.id===selectedId?' selected':''}>${esc(clientName(pc.ownerClientId))} — ${rem}/${pc.totalSessions} נשארו</option>`;
+    const used = punchCardSessionsUsed(pc.id).length, booked = punchCardSessionsBooked(pc.id).length;
+    const rem = pc.totalSessions - used - booked;
+    const ownerLabel = pc.ownerClientId===clientId ? '' : ` (של ${clientName(pc.ownerClientId)})`;
+    return `<option value="${pc.id}"${pc.id===selectedId?' selected':''}>${esc(pc.name||clientName(pc.ownerClientId))}${ownerLabel} — ${rem}/${pc.totalSessions} נשאר</option>`;
   }).join('');
+  toggleSessionPriceField();
+}
+function toggleSessionPriceField() {
+  const pcSel = document.getElementById('session-punchcard-sel');
+  const priceGroup = document.getElementById('session-price-group');
+  if (!priceGroup) return;
+  const hasPunchCard = pcSel && pcSel.value;
+  priceGroup.style.display = hasPunchCard ? 'none' : '';
+  const priceInput = priceGroup.querySelector('input[name=price]');
+  if (priceInput) priceInput.required = !hasPunchCard;
 }
 function updateWorkoutDropdown() {
   const planId = document.getElementById('session-plan-sel')?.value || '';
@@ -1369,6 +1384,7 @@ function openAddSession(date, type) {
       hourlyRate: isShift ? fd.get('hourlyRate') : '',
       notes: fd.get('notes'),
       punchCardId: isShift ? '' : (fd.get('punchCardId') || ''),
+      price: isShift ? '' : (fd.get('punchCardId') ? '' : (fd.get('price') ? +fd.get('price') : '')),
       isRecurring: false,
       recurringGroupId: ''
     };
@@ -1438,7 +1454,8 @@ function editSingleSession(id) {
       endTime: isShift ? fd.get('endTime') : '',
       hourlyRate: isShift ? fd.get('hourlyRate') : '',
       notes: fd.get('notes'),
-      punchCardId: isShift ? '' : (fd.get('punchCardId') || '')
+      punchCardId: isShift ? '' : (fd.get('punchCardId') || ''),
+      price: isShift ? '' : (fd.get('punchCardId') ? '' : (fd.get('price') ? +fd.get('price') : ''))
     });
     await saveItem('sessions', s);
     renderSchedule();
@@ -1465,7 +1482,8 @@ function editFutureSessions(id) {
       endTime: isShift ? fd.get('endTime') : '',
       hourlyRate: isShift ? fd.get('hourlyRate') : '',
       notes: fd.get('notes'),
-      punchCardId: isShift ? '' : (fd.get('punchCardId') || '')
+      punchCardId: isShift ? '' : (fd.get('punchCardId') || ''),
+      price: isShift ? '' : (fd.get('punchCardId') ? '' : (fd.get('price') ? +fd.get('price') : ''))
     };
     await Promise.all(futureSessions.map(fs => {
       Object.assign(fs, updates);
