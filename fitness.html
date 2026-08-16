@@ -1287,7 +1287,17 @@ function sessionForm(s={}, forceType='') {
     <!-- Training fields -->
     <div id="session-training-fields" ${isShift?'style="display:none"':''}>
       <div class="form-group"><label>לקוח *</label>
-        <select name="clientId" id="session-client-sel" onchange="updatePlanDropdown()"><option value="">— בחר לקוח —</option>${clientOptions(s.clientId||'')}</select>
+        <div style="position:relative">
+          <input type="text" id="session-client-search" autocomplete="off" placeholder="חפש לקוח..." value="${esc(s.clientId ? (load('clients').find(c=>c.id===s.clientId)?.name||'') : '')}"
+            oninput="filterSessionClients(this.value)"
+            onfocus="document.getElementById('session-client-dropdown').style.display=''"
+            onblur="setTimeout(()=>document.getElementById('session-client-dropdown').style.display='none',200)"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.95rem;font-family:inherit;box-sizing:border-box">
+          <div id="session-client-dropdown" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:200;max-height:200px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 12px rgba(0,0,0,.4)">
+            ${load('clients').map(c=>`<div class="sc-opt" data-id="${c.id}" data-name="${esc(c.name)}" onclick="selectSessionClient('${c.id}','${esc(c.name)}')" style="padding:10px 14px;cursor:pointer;font-size:.9rem" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">${esc(c.name)}</div>`).join('')}
+          </div>
+        </div>
+        <input type="hidden" name="clientId" id="session-client-sel" value="${esc(s.clientId||'')}">
       </div>
       <div class="form-group"><label>תוכנית אימון</label>
         <select name="planId" id="session-plan-sel" onchange="updateWorkoutDropdown()">${s.clientId ? planOptionsForClient(s.clientId, s.planId||'') : '<option value="">— בחר לקוח קודם —</option>'}</select>
@@ -1366,6 +1376,23 @@ function updatePlanDropdown() {
   if (planSel) planSel.innerHTML = planOptionsForClient(clientId);
   updateWorkoutDropdown();
   updateSessionPunchCard(clientId);
+}
+function filterSessionClients(q) {
+  const dd = document.getElementById('session-client-dropdown');
+  if (!dd) return;
+  dd.style.display = '';
+  dd.querySelectorAll('.sc-opt').forEach(el => {
+    el.style.display = el.dataset.name.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function selectSessionClient(id, name) {
+  const hidden = document.getElementById('session-client-sel');
+  const search = document.getElementById('session-client-search');
+  const dd = document.getElementById('session-client-dropdown');
+  if (hidden) hidden.value = id;
+  if (search) search.value = name;
+  if (dd) dd.style.display = 'none';
+  updatePlanDropdown();
 }
 function updateSessionPunchCard(clientId, selectedId='') {
   const sel = document.getElementById('session-punchcard-sel');
