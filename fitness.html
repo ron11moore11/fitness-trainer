@@ -494,9 +494,9 @@
   <div class="nav-tabs">
     <button class="nav-tab" data-tab="clients">לקוחות</button>
     <button class="nav-tab" data-tab="schedule">לוח זמנים</button>
+    <button class="nav-tab" data-tab="payments">תשלומים</button>
     <button class="nav-tab" data-tab="exercises">בנק תרגילים</button>
     <button class="nav-tab" data-tab="workouts">תוכניות אימון</button>
-    <button class="nav-tab" data-tab="payments">תשלומים</button>
     <button class="nav-tab" data-tab="reminders">תזכורות</button>
     <button class="nav-tab" data-tab="admin" id="nav-admin-tab" style="display:none">ניהול</button>
   </div>
@@ -2820,7 +2820,8 @@ function punchCardForm(pc={}) {
     </div>
     <div class="form-group"><label>תאריך רכישה</label><input name="date" type="date" value="${esc(pc.date||localDateStr())}"></div>
     <div class="form-group"><label>לקוחות שמורשים להשתמש בכרטיסייה</label>
-      <div style="background:var(--bg);border:2px solid var(--border);border-radius:8px;padding:12px;max-height:200px;overflow-y:auto">
+      <input type="text" placeholder="חפש לקוח..." oninput="filterPunchCardClients(this.value)" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-size:.85rem;font-family:inherit;width:100%;box-sizing:border-box;margin-bottom:6px">
+      <div id="punch-card-clients-list" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;padding:12px;max-height:200px;overflow-y:auto">
         ${allClients.length ? clientCheckboxes : '<span style="color:var(--muted);font-size:.85rem">אין לקוחות</span>'}
       </div>
     </div>
@@ -2830,6 +2831,14 @@ function punchCardForm(pc={}) {
       <button type="submit" class="btn">שמור</button>
     </div>
   </form>`;
+}
+function filterPunchCardClients(q) {
+  const list = document.getElementById('punch-card-clients-list');
+  if (!list) return;
+  list.querySelectorAll('label').forEach(lbl => {
+    const name = (lbl.querySelector('span')?.textContent || '').toLowerCase();
+    lbl.style.display = name.includes(q.toLowerCase()) ? '' : 'none';
+  });
 }
 function openAddPunchCard() {
   if (!load('clients').length) { alert('יש להוסיף לקוחות קודם.'); return; }
@@ -2860,6 +2869,21 @@ async function deletePunchCard(id) {
   if (!confirm('למחוק כרטיסייה זו?')) return;
   await deleteItem('punchCards', id);
   renderPayments();
+}
+
+function openAddPlanSale() {
+  const clientOpts = `<option value="">— בחר לקוח —</option>` + load('clients').map(c=>`<option value="${c.id}"${c.productType==='plan'?' (תוכנית קיימת)':''} >${esc(c.name)}${c.productType==='plan'?` (₪${+(c.planPrice)||0})`:''}</option>`).join('');
+  openModal('רישום תוכנית אימונים', `<form id="modal-form">
+    <div class="form-group"><label>לקוח *</label><select name="clientId" required>${clientOpts}</select></div>
+    <div class="form-group"><label>מחיר תוכנית (₪) *</label><input name="planPrice" type="number" min="0" step="1" required placeholder="למשל 800"></div>
+    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
+  </form>`, async fd => {
+    const client = load('clients').find(c=>c.id===fd.get('clientId'));
+    if (!client) return;
+    Object.assign(client, { productType:'plan', planPrice: fd.get('planPrice') });
+    await saveItem('clients', client);
+    renderPayments();
+  });
 }
 
 // ========================
@@ -2965,7 +2989,8 @@ function renderPayTabTraining() {
       </div>
     </div>
     <div class="card">
-      <div class="section-header" style="margin-bottom:12px"><h2>אימונים פר אימון</h2></div>
+      <div class="section-header" style="margin-bottom:4px"><h2>אימונים בודדים</h2></div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:12px">אימונים מהיומן — מוצגים לקוחות עם סוג מוצר "אימונים" שיש להם אימונים בתקופה הנבחרת</p>
       ${rows.length?`<div class="table-wrap"><table>
         <thead><tr><th>לקוח</th><th>אימונים בתקופה</th><th>שולם בתקופה</th><th>חוב כולל</th><th></th></tr></thead>
         <tbody>${rows.map(r=>`<tr>
@@ -3035,7 +3060,7 @@ function renderPayTabPlans() {
     return {name:c.name,id:c.id,price,paid,debt:price>0?Math.max(0,price-paid):0};
   });
   return `<div class="card">
-    <div class="section-header" style="margin-bottom:12px"><h2>תוכניות אימון</h2></div>
+    <div class="section-header" style="margin-bottom:12px"><h2>תוכניות אימון</h2><button class="btn" onclick="openAddPlanSale()">+ הוסף תוכנית</button></div>
     <div class="table-wrap"><table>
       <thead><tr><th>לקוח</th><th>מחיר תוכנית</th><th>שולם</th><th>חוב</th><th></th></tr></thead>
       <tbody>${rows.map(r=>`<tr>
