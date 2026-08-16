@@ -664,7 +664,7 @@ function localDateStr(d) { d = d || new Date(); return `${d.getFullYear()}-${Str
 function clientName(id) { const c = load('clients').find(x=>x.id===id); return c ? c.name : '—'; }
 function clientBalance(clientId) {
   const totalPaid = load('payments').filter(p=>p.clientId===clientId && p.status==='paid' && !p.punchCardId).reduce((sum,p)=>sum+(+p.amount||0),0);
-  const sessions = load('sessions').filter(s=>s.clientId===clientId && s.type==='training' && s.status!=='cancelled' && !s.punchCardId && s.date<=localDateStr() && s.source!=='client');
+  const sessions = load('sessions').filter(s=>s.clientId===clientId && s.type==='training' && s.status!=='cancelled' && !s.punchCardId && s.source!=='client');
   const totalDebt = sessions.reduce((sum,s)=>sum+(+s.price||0),0);
   return { totalPaid, totalDebt, balance: totalPaid - totalDebt, sessions: sessions.length };
 }
@@ -912,10 +912,11 @@ function renderCpDetails(c) {
       const rem=pc.totalSessions-used-booked;
       return `<option value="${pc.id}"${s.punchCardId===pc.id?' selected':''}>${esc(pc.name||clientName(pc.ownerClientId))} (${rem})</option>`;
     }).join('');
-    if (isFuture) return `<tr style="opacity:.55;font-style:italic">
+    if (isFuture) return `<tr style="opacity:.6;font-style:italic">
       <td>${fmtDate(s.date)}</td>
       <td>${esc(s.time||'—')}</td>
-      <td colspan="2" style="color:var(--muted)">עתידי</td>
+      <td style="color:var(--muted)">${s.price ? `₪${(+s.price).toLocaleString()}` : '—'} <span style="font-size:.75rem;color:var(--accent2)">(עתידי)</span></td>
+      <td style="color:var(--muted)">—</td>
     </tr>`;
     return `<tr>
       <td>${fmtDate(s.date)}</td>
