@@ -149,6 +149,7 @@
     .cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
     .cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
     .cal-dot.shift-dot { background: var(--shift); }
+    .cal-dot.personal-dot { background: #1565c0; }
     .cal-dot.cancelled-dot { background: var(--muted); opacity: .5; }
     .cal-view-toggle { display: flex; gap: 0; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; }
     .cal-view-btn { background: none; border: none; color: var(--muted); padding: 5px 14px; cursor: pointer; font-size: .8rem; font-family: inherit; transition: all .2s; }
@@ -165,6 +166,7 @@
     .week-col.selected .week-col-num { color: var(--accent); }
     .week-session { font-size: .72rem; padding: 3px 4px; margin-bottom: 3px; border-radius: 4px; background: rgba(233,69,96,.1); color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .week-session.shift { background: rgba(255,167,38,.1); color: var(--shift); }
+    .week-session.personal { background: #1565c0; color: #fff; }
     .week-session.cancelled { background: rgba(150,150,150,.1); color: var(--muted); text-decoration: line-through; }
     tr.cancelled-row td { opacity: .5; }
     .badge-cancelled { background: rgba(150,150,150,.2); color: var(--muted); }
@@ -524,6 +526,7 @@
         <h3 id="cal-title"></h3>
         <button class="btn btn-ghost btn-sm" onclick="calNext()">&#8249;</button>
       </div>
+      <div id="week-training-count" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;color:var(--accent2);font-weight:600"></div>
       <div id="cal-container"></div>
     </div>
     <div class="card">
@@ -532,8 +535,10 @@
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn btn-ghost" onclick="openAddSession(_calSelectedDate,'shift')">+ משמרת</button>
           <button class="btn" onclick="openAddSession(_calSelectedDate,'training')">+ אימון</button>
+          <button class="btn" style="background:#1565c0;border-color:#1565c0" onclick="openAddPersonalEvent(_calSelectedDate)">+ אירוע</button>
         </div>
       </div>
+      <div id="today-training-count" style="margin-bottom:10px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;color:var(--accent2);font-weight:600;display:none"></div>
       <div class="table-wrap" id="sessions-table"></div>
     </div>
   </section>
@@ -1054,7 +1059,6 @@ function renderClients() {
   });
   document.getElementById('dashboard').innerHTML = `
     <div class="card"><div class="card-title">סה"כ לקוחות</div><div class="card-value">${clients.length}</div></div>
-    <div class="card"><div class="card-title">אימונים היום</div><div class="card-value">${sessions.filter(s=>s.date===today&&s.status!=='cancelled').length}</div></div>
     <div class="card"><div class="card-title">תשלומים ממתינים</div><div class="card-value" style="color:var(--accent)">${payments.filter(p=>p.status==='pending').length}</div></div>
     <div class="card"><div class="card-title">חובות פתוחים</div><div class="card-value" style="color:var(--accent)">₪${clients.reduce((sum,c)=>{const b=clientBalance(c.id);return sum+(b.balance<0?Math.abs(b.balance):0);},0).toLocaleString()}</div></div>
   `;
@@ -1169,11 +1173,13 @@ function renderCalendarMonth() {
     const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const daySessions = sessionMap[ds]||[];
     let dots = '';
-    if (daySessions.length) { dots=`<div class="cal-dots">${daySessions.slice(0,5).map(s=>{const cls=s.status==='cancelled'?' cancelled-dot':s.type==='shift'?' shift-dot':'';return `<div class="cal-dot${cls}"></div>`;}).join('')}</div>`; }
+    if (daySessions.length) { dots=`<div class="cal-dots">${daySessions.slice(0,5).map(s=>{const cls=s.status==='cancelled'?' cancelled-dot':s.type==='shift'?' shift-dot':s.type==='personal'?' personal-dot':'';return `<div class="cal-dot${cls}"></div>`;}).join('')}</div>`; }
     html+=`<div class="cal-day${ds===today?' today':''}${ds===_calSelectedDate?' selected':''}" onclick="handleCalDayClick('${ds}')"><div class="cal-day-num">${d}</div>${dots}</div>`;
   }
   html += '</div>';
   document.getElementById('cal-container').innerHTML=html;
+  const weekCountEl = document.getElementById('week-training-count');
+  if (weekCountEl) weekCountEl.style.display = 'none';
 }
 
 function renderCalendarWeek() {
@@ -1201,8 +1207,9 @@ function renderCalendarWeek() {
     const sessHtml = daySessions.sort((a,b)=>(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1).map(s => {
       const isShift = s.type==='shift';
       const isCancelled = s.status==='cancelled';
-      const label = isShift ? 'משמרת' : clientName(s.clientId);
-      return `<div class="week-session${isShift?' shift':''}${isCancelled?' cancelled':''}">${esc(label)}</div>`;
+      const isPersonal = s.type === 'personal';
+      const label = isShift ? 'משמרת' : isPersonal ? (s.notes||'אירוע אישי') : clientName(s.clientId);
+      return `<div class="week-session${isShift?' shift':''}${isPersonal?' personal':''}${isCancelled?' cancelled':''}">${esc(label)}</div>`;
     }).join('');
     html += `<div class="week-col${ds===today?' today':''}${ds===_calSelectedDate?' selected':''}" onclick="handleCalDayClick('${ds}')">
       <div class="week-col-header"><div class="week-col-day">${dayNames[i]}</div><div class="week-col-num">${d.getDate()}</div></div>
@@ -1211,6 +1218,10 @@ function renderCalendarWeek() {
   }
   html += '</div>';
   document.getElementById('cal-container').innerHTML=html;
+  // Weekly training count
+  const weekSessions = sessions.filter(s=>s.date>=_calWeekStart&&s.date<=weekEnd&&s.type==='training'&&s.status!=='cancelled');
+  const weekCountEl = document.getElementById('week-training-count');
+  if (weekCountEl) { weekCountEl.style.display = ''; weekCountEl.textContent = `אימונים השבוע: ${weekSessions.length}`; }
 }
 
 function handleCalDayClick(dateStr) {
@@ -1224,13 +1235,21 @@ function renderSessionsTable() {
     .sort((a,b)=>(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1);
   const headingEl = document.querySelector('#tab-schedule .card:last-child .section-header h2');
   if (headingEl) headingEl.textContent = fmtDateLong(_calSelectedDate);
+  // Today training count
+  const todayCountEl = document.getElementById('today-training-count');
+  if (todayCountEl) {
+    const trainingCount = filtered.filter(s=>s.type==='training'&&s.status!=='cancelled').length;
+    if (trainingCount > 0) { todayCountEl.style.display=''; todayCountEl.textContent=`אימונים היום: ${trainingCount}`; }
+    else { todayCountEl.style.display='none'; }
+  }
   if (!filtered.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים ביום הזה.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
     <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>פרטים</th><th>עלות / כרטיסייה</th><th>הערות</th><th>פעולות</th></tr></thead>
     <tbody>${filtered.map(s=>{
       const isShift = s.type === 'shift';
+      const isPersonal = s.type === 'personal';
       const isCancelled = s.status==='cancelled';
-      const typeBadge = isShift ? '<span class="badge badge-shift">משמרת</span>' : '🏋️';
+      const typeBadge = isShift ? '<span class="badge badge-shift">משמרת</span>' : isPersonal ? '<span class="badge" style="background:#1565c0;color:#fff">אירוע</span>' : '🏋️';
       const cancelledBadge = isCancelled ? ' <span class="badge badge-cancelled">בוטל</span>' : '';
       const recurring = s.recurringGroupId ? ' <span class="badge badge-recurring">🔁</span>' : '';
       const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
@@ -1257,6 +1276,15 @@ function renderSessionsTable() {
       const cancelBtn = isCancelled
         ? `<button class="btn btn-ghost btn-sm" onclick="toggleCancelSession('${s.id}')">שחזר</button>`
         : `<button class="btn btn-ghost btn-sm" style="color:var(--muted)" onclick="toggleCancelSession('${s.id}')">בטל</button>`;
+      if (isPersonal) return `<tr style="background:rgba(21,101,192,.08);border-right:3px solid #1565c0">
+        <td>${typeBadge}</td>
+        <td colspan="3" style="color:var(--text)">${esc(s.startTime||'')}${s.startTime&&s.endTime?' – ':''}${esc(s.endTime||'')} ${esc(s.notes||'אירוע אישי')}</td>
+        <td colspan="3"></td>
+        <td class="actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEditPersonalEvent('${s.id}')">עריכה</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">מחק</button>
+        </td>
+      </tr>`;
       return `<tr class="${isCancelled?'cancelled-row':''}">
       <td>${typeBadge}${cancelledBadge}${recurring}</td>
       <td>${clientCol}</td><td>${fmtDate(s.date)}</td>
@@ -1621,6 +1649,43 @@ async function deleteSingleSession(id) {
   showToast('נמחק ✓');
 }
 
+function openAddPersonalEvent(date) {
+  openModal('הוסף אירוע אישי', `<form id="modal-form">
+    <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${date||localDateStr()}" required></div>
+    <div class="form-row">
+      <div class="form-group"><label>שעת התחלה</label><input name="startTime" type="time"></div>
+      <div class="form-group"><label>שעת סיום</label><input name="endTime" type="time"></div>
+    </div>
+    <div class="form-group"><label>הערות</label><textarea name="notes" rows="2" placeholder="תיאור האירוע..."></textarea></div>
+    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn" style="background:#1565c0;border-color:#1565c0">שמור</button></div>
+  </form>`, async fd => {
+    await saveItem('sessions', {
+      id: uid(), type: 'personal',
+      date: fd.get('date'), startTime: fd.get('startTime')||'', endTime: fd.get('endTime')||'',
+      notes: fd.get('notes')||'', status: 'active', clientId: '', planId: '', trainerId: currentTrainerId
+    });
+    renderSchedule();
+  });
+}
+
+function openEditPersonalEvent(id) {
+  const s = load('sessions').find(x=>x.id===id);
+  if (!s) return;
+  openModal('ערוך אירוע אישי', `<form id="modal-form">
+    <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${esc(s.date||'')}" required></div>
+    <div class="form-row">
+      <div class="form-group"><label>שעת התחלה</label><input name="startTime" type="time" value="${esc(s.startTime||'')}"></div>
+      <div class="form-group"><label>שעת סיום</label><input name="endTime" type="time" value="${esc(s.endTime||'')}"></div>
+    </div>
+    <div class="form-group"><label>הערות</label><textarea name="notes" rows="2">${esc(s.notes||'')}</textarea></div>
+    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn" style="background:#1565c0;border-color:#1565c0">שמור</button></div>
+  </form>`, async fd => {
+    Object.assign(s, { date: fd.get('date'), startTime: fd.get('startTime')||'', endTime: fd.get('endTime')||'', notes: fd.get('notes')||'' });
+    await saveItem('sessions', s);
+    renderSchedule();
+  });
+}
+
 async function deleteFutureSessions(id) {
   const s = load('sessions').find(x=>x.id===id);
   if (!s) return;
@@ -1701,6 +1766,7 @@ async function closeLiveWorkout() {
       <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-ghost" onclick="openAddSession(_calSelectedDate,'shift')">+ משמרת</button>
         <button class="btn" onclick="openAddSession(_calSelectedDate,'training')">+ אימון</button>
+        <button class="btn" style="background:#1565c0;border-color:#1565c0" onclick="openAddPersonalEvent(_calSelectedDate)">+ אירוע</button>
       </div>
     </div>
     <div class="table-wrap" id="sessions-table"></div>
