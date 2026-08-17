@@ -1141,12 +1141,27 @@ function openAddClientPayment(clientId) {
     const product = fd.get('product')||'session';
     const date = fd.get('date'), method = fd.get('paymentMethod')||'', transfer = fd.get('transferMethod')||'', notes = fd.get('notes')||'', amount = fd.get('amount');
     if (product === 'card') {
-      const pcId = uid();
-      await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', createdAt:new Date().toISOString()});
-      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', punchCardId:pcId, paymentMethod:method, transferMethod:transfer, notes});
+      const pcMode = fd.get('pcMode')||'new';
+      if (pcMode === 'existing') {
+        const existingPcId = fd.get('existingPcId');
+        if (!existingPcId) { alert('יש לבחור כרטיסייה קיימת'); return; }
+        const pc = load('punchCards').find(x=>x.id===existingPcId);
+        await saveItem('payments', {id:uid(), clientId:pc?.ownerClientId||clientId, amount, date, status:'paid', punchCardId:existingPcId, paymentMethod:method, transferMethod:transfer, notes});
+      } else {
+        const pcId = uid();
+        await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', createdAt:new Date().toISOString()});
+        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', punchCardId:pcId, paymentMethod:method, transferMethod:transfer, notes});
+      }
     } else if (product === 'plan') {
-      await saveItem('plans', {id:uid(), clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
-      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+      const planMode = fd.get('planMode')||'new';
+      if (planMode === 'existing') {
+        const existingPlanId = fd.get('existingPlanId');
+        if (!existingPlanId) { alert('יש לבחור תוכנית קיימת'); return; }
+        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+      } else {
+        await saveItem('plans', {id:uid(), clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
+        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+      }
     } else {
       await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
     }
@@ -3704,7 +3719,9 @@ function paymentForm(p={}) {
   </form>`;
 }
 function purchaseFormHTML(lockedClientId=null) {
-  const clientSel = lockedClientId ? '' : `<div class="form-group"><label>לקוח *</label><select name="clientId" required><option value="">— בחר לקוח —</option>${clientOptions('')}</select></div>`;
+  const clientSel = lockedClientId
+    ? `<input type="hidden" name="clientId" value="${esc(lockedClientId)}">`
+    : `<div class="form-group"><label>לקוח *</label>${clientPickerHTML('clientId','','purch')}</div>`;
   const methBtns = ['cash','transfer','check','other'].map(m=>{
     const lbl={cash:'מזומן',transfer:'העברה',check:"צ'ק",other:'אחר'}[m];
     return `<button type="button" onclick="selectPayMethod('${m}')" id="pm-btn-${m}" style="padding:8px 18px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;transition:all .15s;background:var(--card);color:var(--muted)">${lbl}</button>`;
@@ -3713,6 +3730,36 @@ function purchaseFormHTML(lockedClientId=null) {
     const lbl={bit:'ביט',paybox:'פייבוקס',bank:'העברה בנקאית',other_transfer:'אחר'}[m];
     return `<button type="button" onclick="selectTransferMethod('${m}')" id="tm-btn-${m}" style="padding:7px 14px;border:none;cursor:pointer;font-family:inherit;font-size:.85rem;transition:all .15s;background:var(--card);color:var(--muted)">${lbl}</button>`;
   }).join('');
+  const subToggle = (id1,lbl1,id2,lbl2,fn) =>
+    `<div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content;margin-bottom:12px">
+      <button type="button" id="${id1}" onclick="${fn}('existing')" style="padding:7px 16px;border:none;cursor:pointer;font-family:inherit;font-size:.88rem;transition:all .15s;background:var(--gold);color:#fff;font-weight:600">${lbl1}</button>
+      <button type="button" id="${id2}" onclick="${fn}('new')" style="padding:7px 16px;border:none;cursor:pointer;font-family:inherit;font-size:.88rem;transition:all .15s;background:var(--card);color:var(--muted)">${lbl2}</button>
+    </div>`;
+  // Build existing punch card dropdown items
+  const allCards = load('punchCards').filter(pc => {
+    const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
+    return pc.totalSessions-used-booked > 0;
+  });
+  const pcPriority = lockedClientId ? allCards.filter(pc=>pc.ownerClientId===lockedClientId) : [];
+  const pcOthers   = lockedClientId ? allCards.filter(pc=>pc.ownerClientId!==lockedClientId) : allCards;
+  function pcItem(pc) {
+    const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
+    const rem=pc.totalSessions-used-booked;
+    const label=`${esc(pc.name||clientName(pc.ownerClientId))} — ${esc(clientName(pc.ownerClientId))} (${rem} נשאר)`;
+    return `<div class="pc-opt" data-name="${esc(pc.name||clientName(pc.ownerClientId))}" onclick="selectPurchasePunchCard('${pc.id}','${esc(pc.name||clientName(pc.ownerClientId))}','${esc(String(pc.price||''))}')" style="padding:10px 14px;cursor:pointer;font-size:.88rem" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">${label}</div>`;
+  }
+  let pcDdHtml = '';
+  if (pcPriority.length) pcDdHtml += `<div style="padding:4px 14px;font-size:.75rem;color:var(--gold);border-bottom:1px solid var(--border)">של הלקוח</div>`+pcPriority.map(pcItem).join('');
+  if (pcOthers.length)   pcDdHtml += (pcPriority.length?`<div style="padding:4px 14px;font-size:.75rem;color:var(--muted);border-top:1px solid var(--border)">אחרות</div>`:'') + pcOthers.map(pcItem).join('');
+  if (!allCards.length)  pcDdHtml = `<div style="padding:10px 14px;font-size:.85rem;color:var(--muted)">אין כרטיסיות עם יתרה</div>`;
+  // Build existing plans dropdown items
+  const allPlans = load('plans').filter(p=>!p.isTemplate&&p.clientId&&(lockedClientId?p.clientId===lockedClientId:true));
+  const planDdHtml = allPlans.length ? allPlans.map(p=>{
+    const label = lockedClientId ? esc(p.name) : `${esc(p.name)} — ${esc(clientName(p.clientId))}`;
+    return `<div class="pl-opt" data-name="${esc(p.name)}" onclick="selectPurchasePlan('${p.id}','${esc(p.name)}','${esc(String(p.price||''))}')" style="padding:10px 14px;cursor:pointer;font-size:.88rem" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">${label}</div>`;
+  }).join('') : `<div style="padding:10px 14px;font-size:.85rem;color:var(--muted)">אין תוכניות</div>`;
+  const ddStyle = 'display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:200;max-height:200px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 12px rgba(0,0,0,.4)';
+  const searchStyle = 'width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.95rem;font-family:inherit;box-sizing:border-box';
   return `<form id="modal-form">
     ${clientSel}
     <div class="form-group">
@@ -3725,17 +3772,41 @@ function purchaseFormHTML(lockedClientId=null) {
       <input type="hidden" name="product" id="prod-value" value="session">
     </div>
     <div id="prod-card-fields" style="display:none;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:4px;background:rgba(255,255,255,.02)">
-      <div style="font-size:.8rem;color:var(--gold);font-weight:600;margin-bottom:10px">פרטי כרטיסייה</div>
-      <div class="form-group"><label>שם כרטיסייה *</label><input name="pcName" placeholder='למשל: כרטיסייה 10 אימונים'></div>
-      <div class="form-row">
-        <div class="form-group"><label>מספר אימונים *</label><input name="pcSessions" type="number" min="1" step="1" placeholder="10"></div>
-        <div class="form-group"><label>מחיר כרטיסייה (₪) *</label><input name="pcPrice" type="number" min="0" step="1" placeholder="0"></div>
+      ${subToggle('pc-mode-btn-existing','כרטיסייה קיימת','pc-mode-btn-new','כרטיסייה חדשה','selectCardMode')}
+      <input type="hidden" name="pcMode" id="pc-mode-value" value="existing">
+      <div id="pc-existing-section">
+        <div class="form-group"><label>בחר כרטיסייה</label>
+          <div style="position:relative">
+            <input type="text" id="purch-pc-search" autocomplete="off" placeholder="חפש שם כרטיסייה או לקוח..." oninput="filterPurchasePunchCards(this.value)" onfocus="document.getElementById('purch-pc-dd').style.display=''" onblur="setTimeout(()=>document.getElementById('purch-pc-dd').style.display='none',200)" style="${searchStyle}">
+            <div id="purch-pc-dd" style="${ddStyle}">${pcDdHtml}</div>
+          </div>
+          <input type="hidden" name="existingPcId" id="purch-pc-val" value="">
+        </div>
+      </div>
+      <div id="pc-new-section" style="display:none">
+        <div class="form-group"><label>שם כרטיסייה *</label><input name="pcName" placeholder='למשל: כרטיסייה 10 אימונים'></div>
+        <div class="form-row">
+          <div class="form-group"><label>מספר אימונים *</label><input name="pcSessions" type="number" min="1" step="1" placeholder="10"></div>
+          <div class="form-group"><label>מחיר כרטיסייה (₪) *</label><input name="pcPrice" type="number" min="0" step="1" placeholder="0"></div>
+        </div>
       </div>
     </div>
     <div id="prod-plan-fields" style="display:none;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:4px;background:rgba(255,255,255,.02)">
-      <div style="font-size:.8rem;color:var(--gold);font-weight:600;margin-bottom:10px">פרטי תוכנית אימונים</div>
-      <div class="form-group"><label>שם תוכנית *</label><input name="planName" placeholder='למשל: תוכנית חיטוב'></div>
-      <div class="form-group"><label>מחיר תוכנית (₪) *</label><input name="planPrice" type="number" min="0" step="1" placeholder="0"></div>
+      ${subToggle('plan-mode-btn-existing','תוכנית קיימת','plan-mode-btn-new','תוכנית חדשה','selectPlanMode')}
+      <input type="hidden" name="planMode" id="plan-mode-value" value="existing">
+      <div id="plan-existing-section">
+        <div class="form-group"><label>בחר תוכנית</label>
+          <div style="position:relative">
+            <input type="text" id="purch-plan-search" autocomplete="off" placeholder="חפש תוכנית..." oninput="filterPurchasePlans(this.value)" onfocus="document.getElementById('purch-plan-dd').style.display=''" onblur="setTimeout(()=>document.getElementById('purch-plan-dd').style.display='none',200)" style="${searchStyle}">
+            <div id="purch-plan-dd" style="${ddStyle}">${planDdHtml}</div>
+          </div>
+          <input type="hidden" name="existingPlanId" id="purch-plan-val" value="">
+        </div>
+      </div>
+      <div id="plan-new-section" style="display:none">
+        <div class="form-group"><label>שם תוכנית *</label><input name="planName" placeholder='למשל: תוכנית חיטוב'></div>
+        <div class="form-group"><label>מחיר תוכנית (₪) *</label><input name="planPrice" type="number" min="0" step="1" placeholder="0"></div>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group"><label id="amount-label">סכום תשלום (₪) *</label><input name="amount" type="number" min="0" step="1" required></div>
@@ -3756,6 +3827,46 @@ function purchaseFormHTML(lockedClientId=null) {
     <div class="form-group"><label>הערות</label><input name="notes" placeholder="הערה נוספת..."></div>
     <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
   </form>`;
+}
+function selectCardMode(mode) {
+  const isNew = mode === 'new';
+  const bE=document.getElementById('pc-mode-btn-existing'), bN=document.getElementById('pc-mode-btn-new');
+  const sE=document.getElementById('pc-existing-section'), sN=document.getElementById('pc-new-section');
+  if (bE){bE.style.background=isNew?'var(--card)':'var(--gold)';bE.style.color=isNew?'var(--muted)':'#fff';bE.style.fontWeight=isNew?'400':'600';}
+  if (bN){bN.style.background=isNew?'var(--gold)':'var(--card)';bN.style.color=isNew?'#fff':'var(--muted)';bN.style.fontWeight=isNew?'600':'400';}
+  if (sE) sE.style.display = isNew ? 'none' : '';
+  if (sN) sN.style.display = isNew ? '' : 'none';
+  const v=document.getElementById('pc-mode-value'); if(v) v.value=mode;
+}
+function selectPlanMode(mode) {
+  const isNew = mode === 'new';
+  const bE=document.getElementById('plan-mode-btn-existing'), bN=document.getElementById('plan-mode-btn-new');
+  const sE=document.getElementById('plan-existing-section'), sN=document.getElementById('plan-new-section');
+  if (bE){bE.style.background=isNew?'var(--card)':'var(--gold)';bE.style.color=isNew?'var(--muted)':'#fff';bE.style.fontWeight=isNew?'400':'600';}
+  if (bN){bN.style.background=isNew?'var(--gold)':'var(--card)';bN.style.color=isNew?'#fff':'var(--muted)';bN.style.fontWeight=isNew?'600':'400';}
+  if (sE) sE.style.display = isNew ? 'none' : '';
+  if (sN) sN.style.display = isNew ? '' : 'none';
+  const v=document.getElementById('plan-mode-value'); if(v) v.value=mode;
+}
+function filterPurchasePunchCards(q) {
+  const dd=document.getElementById('purch-pc-dd'); if(!dd) return;
+  dd.style.display='';
+  dd.querySelectorAll('.pc-opt').forEach(el=>{el.style.display=(el.dataset.name||'').toLowerCase().includes(q.toLowerCase())||!q?'':'none';});
+}
+function selectPurchasePunchCard(id, name, price) {
+  const val=document.getElementById('purch-pc-val'), search=document.getElementById('purch-pc-search'), dd=document.getElementById('purch-pc-dd');
+  if(val) val.value=id; if(search) search.value=name; if(dd) dd.style.display='none';
+  if(price){const amt=document.querySelector('[name=amount]');if(amt&&!amt.value)amt.value=price;}
+}
+function filterPurchasePlans(q) {
+  const dd=document.getElementById('purch-plan-dd'); if(!dd) return;
+  dd.style.display='';
+  dd.querySelectorAll('.pl-opt').forEach(el=>{el.style.display=(el.dataset.name||'').toLowerCase().includes(q.toLowerCase())||!q?'':'none';});
+}
+function selectPurchasePlan(id, name, price) {
+  const val=document.getElementById('purch-plan-val'), search=document.getElementById('purch-plan-search'), dd=document.getElementById('purch-plan-dd');
+  if(val) val.value=id; if(search) search.value=name; if(dd) dd.style.display='none';
+  if(price){const amt=document.querySelector('[name=amount]');if(amt&&!amt.value)amt.value=price;}
 }
 function selectPurchaseProduct(product) {
   ['session','card','plan'].forEach(p=>{
@@ -3869,12 +3980,27 @@ function openAddPayment() {
     const clientId = fd.get('clientId');
     const date = fd.get('date'), method = fd.get('paymentMethod')||'', transfer = fd.get('transferMethod')||'', notes = fd.get('notes')||'', amount = fd.get('amount');
     if (product === 'card') {
-      const pcId = uid();
-      await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', createdAt:new Date().toISOString()});
-      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', punchCardId:pcId, paymentMethod:method, transferMethod:transfer, notes});
+      const pcMode = fd.get('pcMode')||'new';
+      if (pcMode === 'existing') {
+        const existingPcId = fd.get('existingPcId');
+        if (!existingPcId) { alert('יש לבחור כרטיסייה קיימת'); return; }
+        const pc = load('punchCards').find(x=>x.id===existingPcId);
+        await saveItem('payments', {id:uid(), clientId:pc?.ownerClientId||clientId, amount, date, status:'paid', punchCardId:existingPcId, paymentMethod:method, transferMethod:transfer, notes});
+      } else {
+        const pcId = uid();
+        await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', createdAt:new Date().toISOString()});
+        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', punchCardId:pcId, paymentMethod:method, transferMethod:transfer, notes});
+      }
     } else if (product === 'plan') {
-      await saveItem('plans', {id:uid(), clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
-      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+      const planMode = fd.get('planMode')||'new';
+      if (planMode === 'existing') {
+        const existingPlanId = fd.get('existingPlanId');
+        if (!existingPlanId) { alert('יש לבחור תוכנית קיימת'); return; }
+        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+      } else {
+        await saveItem('plans', {id:uid(), clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
+        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+      }
     } else {
       await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
     }
