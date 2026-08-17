@@ -794,6 +794,7 @@ let _paySummaryMode = 'income'; // 'income' | 'debts'
 let _paySummaryFromDate = (()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; })();
 let _paySummaryToDate = (()=>{ const d=new Date(); const y=d.getFullYear(),m=d.getMonth(); return `${y}-${String(m+1).padStart(2,'0')}-${String(new Date(y,m+1,0).getDate()).padStart(2,'0')}`; })();
 let _paySummaryClientId = '';
+let _paySummaryMethod = '';
 function openPayDetail(type, id) { _payDetail = { active:true, type, id }; renderPayments(); }
 function closePayDetail() { _payDetail = { active:false, type:'', id:'' }; renderPayments(); }
 function switchPayTab(tab) { _payTab = tab; _payDetail = { active:false, type:'', id:'' }; renderPayments(); }
@@ -3223,9 +3224,6 @@ function renderPayments() {
         <div class="card-title">חובות פתוחים</div>
         <div class="card-value" style="color:var(--accent);font-size:1.6rem">₪${_td.toLocaleString()}</div>
       </div>
-      <div style="flex:1;min-width:130px;display:flex;align-items:center;justify-content:center">
-        <button class="btn" style="width:100%;max-width:160px" onclick="openAddPayment()">+ תשלום</button>
-      </div>
     </div>`;
   }
   const tabs = [
@@ -3252,8 +3250,10 @@ function renderPayTabSummary() {
   </div>`;
 
   if (_paySummaryMode === 'income') {
-    // Build month quick-select (last 18 months)
     const nowD = new Date();
+    const inputStyle = `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit;width:100%`;
+    const lblStyle = `font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px`;
+    // Month quick-select (last 18 months)
     const monthOpts = Array.from({length:18},(_,i)=>{
       const d=new Date(nowD.getFullYear(),nowD.getMonth()-i,1);
       const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),last=String(new Date(y,d.getMonth()+1,0).getDate()).padStart(2,'0');
@@ -3264,12 +3264,19 @@ function renderPayTabSummary() {
     // Client options
     const allClients2 = load('clients').slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
     const clientOpts2 = `<option value="">כל הלקוחות</option>`+allClients2.map(c=>`<option value="${c.id}"${c.id===_paySummaryClientId?' selected':''}>${esc(c.name)}</option>`).join('');
-    const inputStyle = `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit`;
-    // Filter
+    // Method options
+    const methodOpts = [{v:'',l:'כל האמצעים'},{v:'cash',l:'מזומן'},{v:'transfer',l:'העברה'},{v:'bit',l:'ביט'},{v:'paybox',l:'פייבוקס'},{v:'bank',l:'העברה בנקאית'},{v:'check',l:"צ'ק"},{v:'other',l:'אחר'}]
+      .map(o=>`<option value="${o.v}"${o.v===_paySummaryMethod?' selected':''}>${o.l}</option>`).join('');
+    // Apply filters
     let filtered = payments.filter(p=>p.status==='paid');
     if (_paySummaryFromDate) filtered=filtered.filter(p=>p.date>=_paySummaryFromDate);
     if (_paySummaryToDate) filtered=filtered.filter(p=>p.date<=_paySummaryToDate);
     if (_paySummaryClientId) filtered=filtered.filter(p=>p.clientId===_paySummaryClientId);
+    if (_paySummaryMethod) {
+      if (_paySummaryMethod==='transfer') filtered=filtered.filter(p=>p.paymentMethod==='transfer');
+      else if (['bit','paybox','bank'].includes(_paySummaryMethod)) filtered=filtered.filter(p=>p.paymentMethod==='transfer'&&p.transferMethod===_paySummaryMethod);
+      else filtered=filtered.filter(p=>p.paymentMethod===_paySummaryMethod);
+    }
     filtered.sort((a,b)=>a.date<b.date?1:-1);
     const total = filtered.reduce((s,p)=>s+(+p.amount||0),0);
     const rows = filtered.length ? filtered.map(p=>`<tr>
@@ -3279,38 +3286,36 @@ function renderPayTabSummary() {
       <td style="font-size:.85rem;color:var(--accent2)">${fmtPayMethod(p)}</td>
       <td style="color:var(--muted);font-size:.85rem">${esc(p.notes||'—')}</td>
     </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--muted)">אין תשלומים בתקופה זו</td></tr>`;
+    const footerRow = filtered.length ? `<tr style="font-weight:700;background:rgba(255,255,255,.04);border-top:2px solid var(--border)">
+      <td colspan="2" style="color:var(--muted);font-size:.85rem">${filtered.length} תשלומים</td>
+      <td style="color:#4caf50">₪${total.toLocaleString()}</td>
+      <td colspan="2"></td>
+    </tr>` : '';
     return `${modeToggle}
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
-        <div class="form-group" style="margin:0;min-width:160px">
-          <label style="font-size:.8rem;color:var(--muted)">בחר חודש</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div><label style="${lblStyle}">בחר חודש</label>
           <select onchange="setPaySummaryMonth(this.value)" style="${inputStyle}">
             <option value="">— בחר חודש —</option>${monthOpts}
-          </select>
+          </select></div>
+        <div><label style="${lblStyle}">לקוח</label>
+          <select onchange="_paySummaryClientId=this.value;renderPayments()" style="${inputStyle}">${clientOpts2}</select></div>
+        <div><label style="${lblStyle}">מתאריך</label>
+          <input type="date" value="${_paySummaryFromDate}" onchange="_paySummaryFromDate=this.value;renderPayments()" style="${inputStyle}"></div>
+        <div><label style="${lblStyle}">עד תאריך</label>
+          <input type="date" value="${_paySummaryToDate}" onchange="_paySummaryToDate=this.value;renderPayments()" style="${inputStyle}"></div>
+        <div><label style="${lblStyle}">אמצעי תשלום</label>
+          <select onchange="_paySummaryMethod=this.value;renderPayments()" style="${inputStyle}">${methodOpts}</select></div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-ghost btn-sm" style="width:100%" onclick="_paySummaryFromDate='';_paySummaryToDate='';_paySummaryClientId='';_paySummaryMethod='';renderPayments()">נקה סננים</button>
         </div>
-        <div class="form-group" style="margin:0">
-          <label style="font-size:.8rem;color:var(--muted)">מתאריך</label>
-          <input type="date" value="${_paySummaryFromDate}" onchange="_paySummaryFromDate=this.value;_paySummaryToDate='';renderPayments()" style="${inputStyle}">
-        </div>
-        <div class="form-group" style="margin:0">
-          <label style="font-size:.8rem;color:var(--muted)">עד תאריך</label>
-          <input type="date" value="${_paySummaryToDate}" onchange="_paySummaryToDate=this.value;renderPayments()" style="${inputStyle}">
-        </div>
-        <div class="form-group" style="margin:0;min-width:140px">
-          <label style="font-size:.8rem;color:var(--muted)">לקוח</label>
-          <select onchange="_paySummaryClientId=this.value;renderPayments()" style="${inputStyle}">${clientOpts2}</select>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="align-self:flex-end;margin-bottom:2px" onclick="_paySummaryFromDate='';_paySummaryToDate='';_paySummaryClientId='';renderPayments()">נקה</button>
       </div>
-      <div class="card" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;padding:16px 20px">
-        <div>
-          <div style="color:var(--muted);font-size:.82rem;margin-bottom:4px">${filtered.length} תשלומים</div>
-          <div style="font-size:1.8rem;font-weight:700;color:#4caf50">₪${total.toLocaleString()}</div>
-        </div>
-        <div style="font-size:2rem">💰</div>
+      <div style="margin-bottom:14px">
+        <button class="btn" onclick="openAddPayment()">+ תשלום</button>
       </div>
       <div class="card"><div class="table-wrap"><table>
         <thead><tr><th>תאריך</th><th>לקוח</th><th>סכום</th><th>אמצעי תשלום</th><th>הערות</th></tr></thead>
         <tbody>${rows}</tbody>
+        ${footerRow?`<tfoot>${footerRow}</tfoot>`:''}
       </table></div></div>`;
   }
 
