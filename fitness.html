@@ -795,7 +795,7 @@ let _payTab = 'summary';
 let _payDetail = { active: false, type: '', id: '' };
 let _payDetailRenderer = 'payments';
 let _payTrainingFilter = (()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), lastDay=String(new Date(d.getFullYear(),d.getMonth()+1,0).getDate()).padStart(2,'0'); return { clientId:'', fromDate:`${y}-${m}-01`, toDate:`${y}-${m}-${lastDay}` }; })();
-let _payPunchFilter = { clientId: '', activeOnly: false };
+let _payPunchFilter = { searchQ: '' };
 let _paySummaryMonthOffset = 0;
 let _paySummaryMode = 'income'; // 'income' | 'debts'
 let _paySummaryFromDate = (()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; })();
@@ -3436,25 +3436,18 @@ function renderPayTabTraining() {
 
 function renderPayTabPunchCards() {
   const punchCards = load('punchCards');
-  const { clientId, activeOnly } = _payPunchFilter;
+  const q = (_payPunchFilter.searchQ||'').trim().toLowerCase();
   let cards = punchCards.map(pc=>{
     const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
     const rem=pc.totalSessions-used-booked;
     return {...pc,used,booked,rem};
   });
-  if (clientId) cards=cards.filter(pc=>pc.ownerClientId===clientId||(pc.linkedClientIds||[]).includes(clientId));
-  if (activeOnly) cards=cards.filter(pc=>pc.rem>0||pc.booked>0);
-  const ownerIds=[...new Set(punchCards.map(pc=>pc.ownerClientId))];
-  const clientOpts=`<option value="">כל הלקוחות</option>`+ownerIds.map(id=>`<option value="${id}"${id===clientId?' selected':''}>${esc(clientName(id))}</option>`).join('');
+  if (q) cards=cards.filter(pc=>(clientName(pc.ownerClientId)||'').toLowerCase().includes(q)||(pc.name||'').toLowerCase().includes(q));
   return `
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
-      <div class="form-group" style="margin:0;min-width:160px">
-        <label style="font-size:.8rem;color:var(--muted)">לקוח</label>
-        <select onchange="_payPunchFilter.clientId=this.value;renderProducts()">${clientOpts}</select>
-      </div>
-      <div style="display:flex;gap:4px">
-        <button class="sub-tab-btn${!activeOnly?' active':''}" onclick="_payPunchFilter.activeOnly=false;renderProducts()">הכל</button>
-        <button class="sub-tab-btn${activeOnly?' active':''}" onclick="_payPunchFilter.activeOnly=true;renderProducts()">יש יתרה</button>
+      <div class="form-group" style="margin:0;min-width:220px">
+        <label style="font-size:.8rem;color:var(--muted)">חיפוש לקוח</label>
+        <input type="text" value="${esc(_payPunchFilter.searchQ||'')}" placeholder="הקלד שם לקוח או שם כרטיסייה..." oninput="_payPunchFilter.searchQ=this.value;renderProducts()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit;width:100%;box-sizing:border-box">
       </div>
       <button class="btn" onclick="openAddPunchCard()" style="margin-right:auto">+ כרטיסייה</button>
     </div>
