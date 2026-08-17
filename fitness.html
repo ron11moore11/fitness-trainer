@@ -645,6 +645,7 @@
 
 
   <section id="tab-payments">
+    <div id="pay-quick-summary" style="margin-bottom:4px"></div>
     <div id="pay-tabs-nav"></div>
     <div id="pay-tab-content"></div>
   </section>
@@ -791,6 +792,8 @@ let _payPunchFilter = { clientId: '', activeOnly: false };
 let _paySummaryMonthOffset = 0;
 let _paySummaryMode = 'income'; // 'income' | 'debts'
 let _paySummaryFromDate = (()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; })();
+let _paySummaryToDate = (()=>{ const d=new Date(); const y=d.getFullYear(),m=d.getMonth(); return `${y}-${String(m+1).padStart(2,'0')}-${String(new Date(y,m+1,0).getDate()).padStart(2,'0')}`; })();
+let _paySummaryClientId = '';
 function openPayDetail(type, id) { _payDetail = { active:true, type, id }; renderPayments(); }
 function closePayDetail() { _payDetail = { active:false, type:'', id:'' }; renderPayments(); }
 function switchPayTab(tab) { _payTab = tab; _payDetail = { active:false, type:'', id:'' }; renderPayments(); }
@@ -1115,17 +1118,8 @@ function renderCpPlans(c) {
 
 
 function openAddClientPayment(clientId) {
-  const client = load('clients').find(c=>c.id===clientId);
-  const defaultAmount = '';
-  openModal('הוסף תשלום', `<form id="modal-form">
-    <div class="form-row">
-      <div class="form-group"><label>סכום (₪) *</label><input name="amount" type="number" min="0" step="1" value="${defaultAmount}" required></div>
-      <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${localDateStr()}" required></div>
-    </div>
-    <div class="form-group"><label>הערה</label><input name="notes" placeholder="למשל: מזומן, ביט, העברה..."></div>
-    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
-  </form>`, async fd => {
-    await saveItem('payments', {id:uid(), clientId, amount:fd.get('amount'), date:fd.get('date'), status:'paid', package:'פר אימון', notes:fd.get('notes')||''});
+  openModal('הוסף תשלום', paymentFormHTML({}, clientId), async fd => {
+    await saveItem('payments', {id:uid(), clientId, amount:fd.get('amount'), date:fd.get('date'), status:'paid', paymentMethod:fd.get('paymentMethod')||'', transferMethod:fd.get('transferMethod')||'', notes:fd.get('notes')||''});
     if (_payDetail.active) renderPayments(); else renderClientProfile();
   });
 }
@@ -3206,6 +3200,34 @@ function openAddPlanSale() {
 // ===== PAYMENTS =========
 // ========================
 function renderPayments() {
+  // Quick summary bar
+  const _qs = document.getElementById('pay-quick-summary');
+  if (_qs) {
+    const _allPay = load('payments').filter(p=>p.status==='paid');
+    const _d = new Date(), _ms = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}`;
+    const _mi = _allPay.filter(p=>p.date.startsWith(_ms)).reduce((s,p)=>s+(+p.amount||0),0);
+    const _sess=load('sessions'),_plans=load('plans'),_pcs=load('punchCards'),_pays=load('payments');
+    const _td = load('clients').reduce((sum,c)=>{
+      const sd=_sess.filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&!s.punchCardId&&s.source!=='client').reduce((s,x)=>s+(+x.price||0),0);
+      const pd=_plans.filter(p=>p.clientId===c.id&&!p.isTemplate&&p.price).reduce((s,p)=>s+(+p.price||0),0);
+      const pcd=_pcs.filter(pc=>pc.ownerClientId===c.id).reduce((s,pc)=>s+(+pc.price||0),0);
+      const paid=_pays.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+      const debt=sd+pd+pcd-paid; return sum+(debt>0?debt:0);
+    },0);
+    _qs.innerHTML = `<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:stretch">
+      <div class="card" style="flex:1;min-width:130px;text-align:center;padding:12px 16px">
+        <div class="card-title">הכנסות החודש</div>
+        <div class="card-value" style="color:#4caf50;font-size:1.6rem">₪${_mi.toLocaleString()}</div>
+      </div>
+      <div class="card" style="flex:1;min-width:130px;text-align:center;padding:12px 16px">
+        <div class="card-title">חובות פתוחים</div>
+        <div class="card-value" style="color:var(--accent);font-size:1.6rem">₪${_td.toLocaleString()}</div>
+      </div>
+      <div style="flex:1;min-width:130px;display:flex;align-items:center;justify-content:center">
+        <button class="btn" style="width:100%;max-width:160px" onclick="openAddPayment()">+ תשלום</button>
+      </div>
+    </div>`;
+  }
   const tabs = [
     { id:'summary', label:'סיכום' }, { id:'training', label:'אימונים' },
     { id:'punch_card', label:'כרטיסיות' }, { id:'plan', label:'תוכניות' }
@@ -3230,24 +3252,64 @@ function renderPayTabSummary() {
   </div>`;
 
   if (_paySummaryMode === 'income') {
-    const filtered = payments.filter(p=>p.status==='paid'&&p.date>=_paySummaryFromDate).sort((a,b)=>a.date<b.date?1:-1);
+    // Build month quick-select (last 18 months)
+    const nowD = new Date();
+    const monthOpts = Array.from({length:18},(_,i)=>{
+      const d=new Date(nowD.getFullYear(),nowD.getMonth()-i,1);
+      const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),last=String(new Date(y,d.getMonth()+1,0).getDate()).padStart(2,'0');
+      const val=`${y}-${m}-01|${y}-${m}-${last}`;
+      const sel=_paySummaryFromDate===`${y}-${m}-01`&&_paySummaryToDate===`${y}-${m}-${last}`?' selected':'';
+      return `<option value="${val}"${sel}>${d.toLocaleDateString('he-IL',{month:'long',year:'numeric'})}</option>`;
+    }).join('');
+    // Client options
+    const allClients2 = load('clients').slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
+    const clientOpts2 = `<option value="">כל הלקוחות</option>`+allClients2.map(c=>`<option value="${c.id}"${c.id===_paySummaryClientId?' selected':''}>${esc(c.name)}</option>`).join('');
+    const inputStyle = `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit`;
+    // Filter
+    let filtered = payments.filter(p=>p.status==='paid');
+    if (_paySummaryFromDate) filtered=filtered.filter(p=>p.date>=_paySummaryFromDate);
+    if (_paySummaryToDate) filtered=filtered.filter(p=>p.date<=_paySummaryToDate);
+    if (_paySummaryClientId) filtered=filtered.filter(p=>p.clientId===_paySummaryClientId);
+    filtered.sort((a,b)=>a.date<b.date?1:-1);
     const total = filtered.reduce((s,p)=>s+(+p.amount||0),0);
     const rows = filtered.length ? filtered.map(p=>`<tr>
       <td>${fmtDate(p.date)}</td>
       <td>${p.clientId?`<a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${p.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(p.clientId))}</a>`:'—'}</td>
       <td style="color:#4caf50;font-weight:600">₪${(+p.amount||0).toLocaleString()}</td>
-      <td style="color:var(--muted);font-size:.85rem">${esc(p.notes||p.package||'—')}</td>
-    </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">אין תשלומים בתקופה זו</td></tr>';
+      <td style="font-size:.85rem;color:var(--accent2)">${fmtPayMethod(p)}</td>
+      <td style="color:var(--muted);font-size:.85rem">${esc(p.notes||'—')}</td>
+    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--muted)">אין תשלומים בתקופה זו</td></tr>`;
     return `${modeToggle}
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+        <div class="form-group" style="margin:0;min-width:160px">
+          <label style="font-size:.8rem;color:var(--muted)">בחר חודש</label>
+          <select onchange="setPaySummaryMonth(this.value)" style="${inputStyle}">
+            <option value="">— בחר חודש —</option>${monthOpts}
+          </select>
+        </div>
         <div class="form-group" style="margin:0">
           <label style="font-size:.8rem;color:var(--muted)">מתאריך</label>
-          <input type="date" value="${_paySummaryFromDate}" onchange="_paySummaryFromDate=this.value;renderPayments()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit">
+          <input type="date" value="${_paySummaryFromDate}" onchange="_paySummaryFromDate=this.value;_paySummaryToDate='';renderPayments()" style="${inputStyle}">
         </div>
-        <div style="font-size:1.1rem;font-weight:700;color:#4caf50;align-self:flex-end;padding-bottom:4px">סה"כ: ₪${total.toLocaleString()}</div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:.8rem;color:var(--muted)">עד תאריך</label>
+          <input type="date" value="${_paySummaryToDate}" onchange="_paySummaryToDate=this.value;renderPayments()" style="${inputStyle}">
+        </div>
+        <div class="form-group" style="margin:0;min-width:140px">
+          <label style="font-size:.8rem;color:var(--muted)">לקוח</label>
+          <select onchange="_paySummaryClientId=this.value;renderPayments()" style="${inputStyle}">${clientOpts2}</select>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="align-self:flex-end;margin-bottom:2px" onclick="_paySummaryFromDate='';_paySummaryToDate='';_paySummaryClientId='';renderPayments()">נקה</button>
+      </div>
+      <div class="card" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;padding:16px 20px">
+        <div>
+          <div style="color:var(--muted);font-size:.82rem;margin-bottom:4px">${filtered.length} תשלומים</div>
+          <div style="font-size:1.8rem;font-weight:700;color:#4caf50">₪${total.toLocaleString()}</div>
+        </div>
+        <div style="font-size:2rem">💰</div>
       </div>
       <div class="card"><div class="table-wrap"><table>
-        <thead><tr><th>תאריך</th><th>לקוח</th><th>סכום</th><th>הערה</th></tr></thead>
+        <thead><tr><th>תאריך</th><th>לקוח</th><th>סכום</th><th>אמצעי תשלום</th><th>הערות</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div></div>`;
   }
@@ -3549,18 +3611,82 @@ function paymentForm(p={}) {
     <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
   </form>`;
 }
+function paymentFormHTML(p={}, lockedClientId=null) {
+  const method = p.paymentMethod||'';
+  const transfer = p.transferMethod||'';
+  const methBtns = ['cash','transfer','check','other'].map(m=>{
+    const lbl={cash:'מזומן',transfer:'העברה',check:"צ'ק",other:'אחר'}[m];
+    const active=m===method;
+    return `<button type="button" onclick="selectPayMethod('${m}')" id="pm-btn-${m}" style="padding:8px 18px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;transition:all .15s;${active?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">${lbl}</button>`;
+  }).join('');
+  const transBtns = ['bit','paybox','bank','other_transfer'].map(m=>{
+    const lbl={bit:'ביט',paybox:'פייבוקס',bank:'העברה בנקאית',other_transfer:'אחר'}[m];
+    const active=m===transfer;
+    return `<button type="button" onclick="selectTransferMethod('${m}')" id="tm-btn-${m}" style="padding:7px 14px;border:none;cursor:pointer;font-family:inherit;font-size:.85rem;transition:all .15s;${active?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">${lbl}</button>`;
+  }).join('');
+  const clientSel = lockedClientId ? '' : `<div class="form-group"><label>לקוח *</label><select name="clientId" required><option value="">— בחר לקוח —</option>${clientOptions(p.clientId||'')}</select></div>`;
+  return `<form id="modal-form">
+    ${clientSel}
+    <div class="form-row">
+      <div class="form-group"><label>סכום (₪) *</label><input name="amount" type="number" min="0" step="1" value="${esc(p.amount||'')}" required></div>
+      <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${esc(p.date||localDateStr())}" required></div>
+    </div>
+    <div class="form-group">
+      <label>אמצעי תשלום</label>
+      <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content">${methBtns}</div>
+      <input type="hidden" name="paymentMethod" id="pm-value" value="${esc(method)}">
+    </div>
+    <div id="pm-transfer-opts" style="display:${method==='transfer'?'block':'none'}">
+      <div class="form-group">
+        <label>סוג העברה</label>
+        <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content">${transBtns}</div>
+        <input type="hidden" name="transferMethod" id="tm-value" value="${esc(transfer)}">
+      </div>
+    </div>
+    <div class="form-group"><label>הערות</label><input name="notes" placeholder="הערה נוספת..." value="${esc(p.notes||'')}"></div>
+    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
+  </form>`;
+}
+function selectPayMethod(m) {
+  ['cash','transfer','check','other'].forEach(x=>{
+    const b=document.getElementById(`pm-btn-${x}`);
+    if(b){b.style.background=x===m?'var(--gold)':'var(--card)';b.style.color=x===m?'#fff':'var(--muted)';b.style.fontWeight=x===m?'600':'400';}
+  });
+  const v=document.getElementById('pm-value'); if(v) v.value=m;
+  const t=document.getElementById('pm-transfer-opts'); if(t) t.style.display=m==='transfer'?'block':'none';
+}
+function selectTransferMethod(m) {
+  ['bit','paybox','bank','other_transfer'].forEach(x=>{
+    const b=document.getElementById(`tm-btn-${x}`);
+    if(b){b.style.background=x===m?'var(--gold)':'var(--card)';b.style.color=x===m?'#fff':'var(--muted)';b.style.fontWeight=x===m?'600':'400';}
+  });
+  const v=document.getElementById('tm-value'); if(v) v.value=m;
+}
+function fmtPayMethod(p) {
+  const ml={cash:'מזומן',transfer:'העברה',check:"צ'ק",other:'אחר'};
+  const tl={bit:'ביט',paybox:'פייבוקס',bank:'העברה בנקאית',other_transfer:'אחר'};
+  if(!p.paymentMethod) return '—';
+  if(p.paymentMethod==='transfer'&&p.transferMethod) return tl[p.transferMethod]||'העברה';
+  return ml[p.paymentMethod]||'—';
+}
+function setPaySummaryMonth(val) {
+  if(!val){_paySummaryFromDate='';_paySummaryToDate='';}
+  else{const[f,t]=val.split('|');_paySummaryFromDate=f;_paySummaryToDate=t;}
+  renderPayments();
+}
 function openAddPayment() {
   if (!load('clients').length) { alert('יש להוסיף לקוח.'); return; }
-  openModal('הוסף תשלום', paymentForm(), async fd => {
-    await saveItem('payments', {id:uid(), clientId:fd.get('clientId'), amount:fd.get('amount'), date:fd.get('date'), status:fd.get('status'), package:fd.get('package')});
+  openModal('הוסף תשלום', paymentFormHTML(), async fd => {
+    await saveItem('payments', {id:uid(), clientId:fd.get('clientId'), amount:fd.get('amount'), date:fd.get('date'), status:'paid', paymentMethod:fd.get('paymentMethod')||'', transferMethod:fd.get('transferMethod')||'', notes:fd.get('notes')||''});
     renderPayments();
   });
 }
 function openEditPayment(id) {
   const p = load('payments').find(x=>x.id===id);
-  openModal('עריכת תשלום', paymentForm(p), async fd => {
-    Object.assign(p, {clientId:fd.get('clientId'), amount:fd.get('amount'), date:fd.get('date'), status:fd.get('status'), package:fd.get('package')});
-    await saveItem('payments', p); renderPayments();
+  openModal('עריכת תשלום', paymentFormHTML(p), async fd => {
+    Object.assign(p, {clientId:fd.get('clientId')||p.clientId, amount:fd.get('amount'), date:fd.get('date'), paymentMethod:fd.get('paymentMethod')||p.paymentMethod||'', transferMethod:fd.get('transferMethod')||p.transferMethod||'', notes:fd.get('notes')||''});
+    await saveItem('payments', p);
+    if (_payDetail.active) renderPayments(); else renderClientProfile();
   });
 }
 async function togglePayment(id) {
