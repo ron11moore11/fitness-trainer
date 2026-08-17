@@ -169,13 +169,13 @@
     .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 24px; }
     .cal-day-name { text-align: center; font-size: .75rem; color: var(--muted); padding: 4px 0; }
     .cal-day { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 4px; min-height: 52px; text-align: center; cursor: pointer; transition: border-color .2s; }
-    .cal-day:hover { border-color: var(--accent); }
+    .cal-day:hover { border-color: var(--gold); }
     .cal-day.today { border-color: var(--accent2); }
     .cal-day.empty-day { background: none; border-color: transparent; cursor: default; }
     .cal-day-num { font-size: .85rem; color: var(--muted); }
     .cal-day.today .cal-day-num { color: var(--accent2); font-weight: bold; }
-    .cal-day.selected { border-color: var(--accent); background: rgba(233,69,96,.1); }
-    .cal-day.selected .cal-day-num { color: var(--accent); font-weight: bold; }
+    .cal-day.selected { border-color: var(--gold); background: rgba(240,192,64,.12); }
+    .cal-day.selected .cal-day-num { color: var(--gold); font-weight: bold; }
     .cal-dots { display: flex; gap: 3px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
     .cal-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
     .cal-dot.shift-dot { background: var(--shift); }
@@ -186,14 +186,14 @@
     .cal-view-btn.active { background: var(--gold); color: #fff; }
     .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
     .week-col { background: var(--card); border: 2px solid var(--border); border-radius: 10px; padding: 8px 6px; min-height: 120px; cursor: pointer; transition: border-color .2s; }
-    .week-col:hover { border-color: var(--accent); }
-    .week-col.selected { border-color: var(--accent); background: rgba(233,69,96,.1); }
+    .week-col:hover { border-color: var(--gold); }
+    .week-col.selected { border-color: var(--gold); background: rgba(240,192,64,.12); }
     .week-col.today { border-color: var(--accent2); }
     .week-col-header { text-align: center; margin-bottom: 6px; }
     .week-col-day { font-size: .75rem; color: var(--muted); }
     .week-col-num { font-size: 1rem; font-weight: 600; color: var(--text); }
     .week-col.today .week-col-num { color: var(--accent2); }
-    .week-col.selected .week-col-num { color: var(--accent); }
+    .week-col.selected .week-col-num { color: var(--gold); }
     .week-session { font-size: .72rem; padding: 3px 4px; margin-bottom: 3px; border-radius: 4px; background: rgba(233,69,96,.1); color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .week-session.shift { background: rgba(255,167,38,.1); color: var(--shift); }
     .week-session.personal { background: #1565c0; color: #fff; }
