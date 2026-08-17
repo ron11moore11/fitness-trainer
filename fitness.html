@@ -3121,52 +3121,32 @@ function renderExerciseChart(exName, sessions) {
 // ===== PUNCH CARDS ======
 // ========================
 function punchCardForm(pc={}) {
-  const allClients = load('clients');
-  const linkedIds = pc.linkedClientIds || [];
-  const clientCheckboxes = allClients.map(c =>
-    `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer">
-      <input type="checkbox" name="linkedClients" value="${c.id}" ${linkedIds.includes(c.id)?'checked':''}>
-      <span>${esc(c.name)}</span>
-    </label>`
-  ).join('');
   return `<form id="modal-form">
     <div class="form-group"><label>בעלים (רוכש) *</label>
       <select name="ownerClientId" required><option value="">— בחר לקוח —</option>${clientOptions(pc.ownerClientId||'')}</select>
     </div>
+    <div class="form-group"><label>שם כרטיסייה *</label><input name="name" required placeholder="למשל: כרטיסייה 10 כניסות" value="${esc(pc.name||'')}"></div>
     <div class="form-row">
-      <div class="form-group"><label>מספר אימונים בכרטיסייה *</label><input name="totalSessions" type="number" min="1" value="${esc(pc.totalSessions||10)}" required></div>
-      <div class="form-group"><label>מחיר (₪) *</label><input name="price" type="number" min="0" value="${esc(pc.price||'')}" required></div>
+      <div class="form-group"><label>מספר אימונים *</label><input name="totalSessions" type="number" min="1" value="${esc(pc.totalSessions||10)}" required></div>
+      <div class="form-group"><label>מחיר (₪)</label><input name="price" type="number" min="0" step="1" value="${esc(pc.price||'')}" placeholder="0"></div>
     </div>
-    <div class="form-group"><label>תאריך רכישה</label><input name="date" type="date" value="${esc(pc.date||localDateStr())}"></div>
-    <div class="form-group"><label>לקוחות שמורשים להשתמש בכרטיסייה</label>
-      <input type="text" placeholder="חפש לקוח..." oninput="filterPunchCardClients(this.value)" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-size:.85rem;font-family:inherit;width:100%;box-sizing:border-box;margin-bottom:6px">
-      <div id="punch-card-clients-list" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;padding:12px;max-height:200px;overflow-y:auto">
-        ${allClients.length ? clientCheckboxes : '<span style="color:var(--muted);font-size:.85rem">אין לקוחות</span>'}
-      </div>
-    </div>
-    <div class="form-group"><label>הערות</label><input name="notes" value="${esc(pc.notes||'')}"></div>
+    <div class="form-group"><label>תאריך</label><input name="date" type="date" value="${esc(pc.date||localDateStr())}"></div>
+    <div class="form-group"><label>הערות</label><input name="notes" placeholder="הערות אופציונלי" value="${esc(pc.notes||'')}"></div>
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
       <button type="submit" class="btn">שמור</button>
     </div>
   </form>`;
 }
-function filterPunchCardClients(q) {
-  const list = document.getElementById('punch-card-clients-list');
-  if (!list) return;
-  list.querySelectorAll('label').forEach(lbl => {
-    const name = (lbl.querySelector('span')?.textContent || '').toLowerCase();
-    lbl.style.display = name.includes(q.toLowerCase()) ? '' : 'none';
-  });
-}
 function openAddPunchCard() {
   if (!load('clients').length) { alert('יש להוסיף לקוחות קודם.'); return; }
   openModal('כרטיסייה חדשה', punchCardForm(), async fd => {
-    const linkedIds = fd.getAll('linkedClients');
+    const clientId = fd.get('ownerClientId');
     await saveItem('punchCards', {
-      id: uid(), ownerClientId: fd.get('ownerClientId'),
-      linkedClientIds: linkedIds, totalSessions: +(fd.get('totalSessions')||10),
-      price: +(fd.get('price')||0), date: fd.get('date'), notes: fd.get('notes')||''
+      id: uid(), ownerClientId: clientId, name: fd.get('name')||'כרטיסייה',
+      linkedClientIds: [clientId], totalSessions: +(fd.get('totalSessions')||10),
+      price: fd.get('price') ? +fd.get('price') : '', date: fd.get('date'),
+      notes: fd.get('notes')||'', createdAt: new Date(fd.get('date')||localDateStr()).getTime()
     });
     renderProducts();
   });
@@ -3174,11 +3154,12 @@ function openAddPunchCard() {
 function openEditPunchCard(id) {
   const pc = load('punchCards').find(x=>x.id===id);
   openModal('עריכת כרטיסייה', punchCardForm(pc), async fd => {
-    const linkedIds = fd.getAll('linkedClients');
+    const clientId = fd.get('ownerClientId');
     Object.assign(pc, {
-      ownerClientId: fd.get('ownerClientId'),
-      linkedClientIds: linkedIds, totalSessions: +(fd.get('totalSessions')||10),
-      price: +(fd.get('price')||0), date: fd.get('date'), notes: fd.get('notes')||''
+      ownerClientId: clientId, name: fd.get('name')||pc.name||'כרטיסייה',
+      linkedClientIds: pc.linkedClientIds||[clientId],
+      totalSessions: +(fd.get('totalSessions')||10),
+      price: fd.get('price') ? +fd.get('price') : '', date: fd.get('date'), notes: fd.get('notes')||''
     });
     await saveItem('punchCards', pc);
     renderProducts();
