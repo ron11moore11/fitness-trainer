@@ -877,7 +877,8 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
 
 // ===== TAB NAVIGATION =====
 const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, products:renderProducts, reminders:renderReminders, admin:renderAdmin };
-const MORE_TABS = ['exercises','workouts','products','reminders','admin'];
+const MORE_TABS = ['exercises','workouts','reminders','admin']; // desktop "אחר" dropdown tabs
+const MOBILE_MORE_TABS = ['exercises','workouts','products','reminders','admin']; // mobile "אחר" dropdown tabs
 function toggleNavMore(e) { e.stopPropagation(); document.getElementById('nav-more-dropdown').classList.toggle('open'); }
 function switchTabMore(tab) { document.getElementById('nav-more-dropdown').classList.remove('open'); switchTab(tab); }
 function toggleMobileMore(e) { e.stopPropagation(); document.getElementById('mobile-more-dropdown').classList.toggle('open'); }
@@ -897,7 +898,7 @@ async function switchTab(name) {
   document.getElementById('nav-more-btn').classList.toggle('active', MORE_TABS.includes(name));
   document.querySelectorAll('#nav-more-dropdown button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   document.querySelectorAll('.mobile-tab-btn[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
-  document.getElementById('mobile-more-btn')?.classList.toggle('active', MORE_TABS.includes(name));
+  document.getElementById('mobile-more-btn')?.classList.toggle('active', MOBILE_MORE_TABS.includes(name));
   document.querySelectorAll('#mobile-more-dropdown button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   RENDERERS[name]();
 }
@@ -1138,14 +1139,14 @@ function openAddClientPayment(clientId) {
     } else {
       await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
     }
-    if (_payDetail.active) renderPayments(); else renderClientProfile();
+    if (_clientProfile.active) renderClientProfile(); else if (_payDetailRenderer==='products') renderProducts(); else renderPayments();
   });
 }
 
 async function deleteCpPayment(payId, clientId) {
   if (!confirm('למחוק תשלום זה?')) return;
   await deleteItem('payments', payId);
-  if (_payDetail.active) renderPayments(); else renderClientProfile();
+  if (_clientProfile.active) renderClientProfile(); else if (_payDetailRenderer==='products') renderProducts(); else renderPayments();
 }
 
 function renderClients() {
@@ -3259,7 +3260,7 @@ function renderPayments() {
     </div>`;
   }
   document.getElementById('pay-tab-content').innerHTML =
-    _payDetail.active ? renderPayDetailView() : renderPayTabSummary();
+    (_payDetail.active && _payDetailRenderer === 'payments') ? renderPayDetailView() : renderPayTabSummary();
 }
 
 function renderPayTabSummary() {
