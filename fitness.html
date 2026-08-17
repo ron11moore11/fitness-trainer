@@ -535,6 +535,7 @@
   <div class="nav-tabs">
     <button class="nav-tab" data-tab="schedule">יומן</button>
     <button class="nav-tab" data-tab="payments">תשלומים</button>
+    <button class="nav-tab" data-tab="products">מוצרים</button>
     <button class="nav-tab" data-tab="clients">לקוחות</button>
     <div class="nav-more" id="nav-more-wrap">
       <button class="nav-tab" id="nav-more-btn" onclick="toggleNavMore(event)">אחר ▾</button>
@@ -564,6 +565,7 @@
       <span class="tab-icon">☰</span><span>אחר</span>
     </button>
     <div class="mobile-more-dropdown" id="mobile-more-dropdown">
+      <button data-tab="products" onclick="switchTabMobile('products')">📦 מוצרים</button>
       <button data-tab="exercises" onclick="switchTabMobile('exercises')">🏋️ בנק תרגילים</button>
       <button data-tab="workouts" onclick="switchTabMobile('workouts')">📋 תוכניות אימון</button>
       <button data-tab="reminders" onclick="switchTabMobile('reminders')">🔔 תזכורות</button>
@@ -642,9 +644,13 @@
   </section>
 
 
+  <section id="tab-products">
+    <div id="products-tabs-nav"></div>
+    <div id="products-tab-content"></div>
+  </section>
+
   <section id="tab-payments">
     <div id="pay-quick-summary" style="margin-bottom:4px"></div>
-    <div id="pay-tabs-nav"></div>
     <div id="pay-tab-content"></div>
   </section>
 
@@ -783,8 +789,9 @@ function bankOptions() {
 }
 function statusBadgeClass(status) { if (status==='בהשהיה') return 'badge-paused'; if (status==='הפסיק') return 'badge-stopped'; return 'badge-active'; }
 let payFilter = { active: false, month: null, fromDate: '', toDate: '', clientId: '' };
-let _payTab = 'income';
+let _payTab = 'summary';
 let _payDetail = { active: false, type: '', id: '' };
+let _payDetailRenderer = 'payments';
 let _payTrainingFilter = (()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), lastDay=String(new Date(d.getFullYear(),d.getMonth()+1,0).getDate()).padStart(2,'0'); return { clientId:'', fromDate:`${y}-${m}-01`, toDate:`${y}-${m}-${lastDay}` }; })();
 let _payPunchFilter = { clientId: '', activeOnly: false };
 let _paySummaryMonthOffset = 0;
@@ -793,8 +800,8 @@ let _paySummaryFromDate = (()=>{ const d=new Date(); return `${d.getFullYear()}-
 let _paySummaryToDate = (()=>{ const d=new Date(); const y=d.getFullYear(),m=d.getMonth(); return `${y}-${String(m+1).padStart(2,'0')}-${String(new Date(y,m+1,0).getDate()).padStart(2,'0')}`; })();
 let _paySummaryClientId = '';
 let _paySummaryMethod = '';
-function openPayDetail(type, id) { _payDetail = { active:true, type, id }; renderPayments(); }
-function closePayDetail() { _payDetail = { active:false, type:'', id:'' }; renderPayments(); }
+function openPayDetail(type, id, renderer) { _payDetail = { active:true, type, id }; _payDetailRenderer = renderer||'payments'; if (_payDetailRenderer==='products') renderProducts(); else renderPayments(); }
+function closePayDetail() { _payDetail = { active:false, type:'', id:'' }; if (_payDetailRenderer==='products') renderProducts(); else renderPayments(); }
 function switchPayTab(tab) { _payTab = tab; _payDetail = { active:false, type:'', id:'' }; renderPayments(); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Filter out client-created sessions from trainer views
@@ -869,8 +876,8 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
 });
 
 // ===== TAB NAVIGATION =====
-const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, reminders:renderReminders, admin:renderAdmin };
-const MORE_TABS = ['exercises','workouts','reminders','admin'];
+const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, products:renderProducts, reminders:renderReminders, admin:renderAdmin };
+const MORE_TABS = ['exercises','workouts','products','reminders','admin'];
 function toggleNavMore(e) { e.stopPropagation(); document.getElementById('nav-more-dropdown').classList.toggle('open'); }
 function switchTabMore(tab) { document.getElementById('nav-more-dropdown').classList.remove('open'); switchTab(tab); }
 function toggleMobileMore(e) { e.stopPropagation(); document.getElementById('mobile-more-dropdown').classList.toggle('open'); }
@@ -3158,7 +3165,7 @@ function openAddPunchCard() {
       linkedClientIds: linkedIds, totalSessions: +(fd.get('totalSessions')||10),
       price: +(fd.get('price')||0), date: fd.get('date'), notes: fd.get('notes')||''
     });
-    renderPayments();
+    renderProducts();
   });
 }
 function openEditPunchCard(id) {
@@ -3171,13 +3178,13 @@ function openEditPunchCard(id) {
       price: +(fd.get('price')||0), date: fd.get('date'), notes: fd.get('notes')||''
     });
     await saveItem('punchCards', pc);
-    renderPayments();
+    renderProducts();
   });
 }
 async function deletePunchCard(id) {
   if (!confirm('למחוק כרטיסייה זו?')) return;
   await deleteItem('punchCards', id);
-  renderPayments();
+  renderProducts();
 }
 async function deletePunchCardFromProfile(id, clientId) {
   if (!confirm('למחוק כרטיסייה זו?')) return;
@@ -3211,6 +3218,20 @@ function openAddPlanSale() {
 // ========================
 // ===== PAYMENTS =========
 // ========================
+let _productsTab = 'punch_card';
+function switchProductsTab(tab) { _productsTab = tab; renderProducts(); }
+function renderProducts() {
+  const tabs = [{id:'punch_card',label:'כרטיסיות'},{id:'plan',label:'תוכניות'},{id:'training',label:'אימונים'}];
+  document.getElementById('products-tabs-nav').innerHTML =
+    `<div class="sub-tabs">${tabs.map(t=>`<button class="sub-tab-btn${_productsTab===t.id?' active':''}" onclick="switchProductsTab('${t.id}')">${t.label}</button>`).join('')}</div>`;
+  let content = '';
+  if (_payDetail.active && _payDetailRenderer==='products') content = `<div style="margin-bottom:12px"><button class="btn btn-ghost btn-sm" onclick="closePayDetail()">&#8592; חזרה</button></div>${_payDetail.type==='punch_card'?renderPayDetailPunchCard(_payDetail.id):renderPayDetailPlan(_payDetail.id)}`;
+  else if (_productsTab==='punch_card') content = renderPayTabPunchCards();
+  else if (_productsTab==='plan') content = renderPayTabPlans();
+  else if (_productsTab==='training') content = renderPayTabTraining();
+  document.getElementById('products-tab-content').innerHTML = content;
+}
+
 function renderPayments() {
   // Quick summary bar
   const _qs = document.getElementById('pay-quick-summary');
@@ -3237,22 +3258,20 @@ function renderPayments() {
       </div>
     </div>`;
   }
-  const tabs = [
-    { id:'income', label:'הכנסות' },
-    { id:'debts', label:'חובות' }
-  ];
-  document.getElementById('pay-tabs-nav').innerHTML =
-    `<div class="sub-tabs">${tabs.map(t=>`<button class="sub-tab-btn${_payTab===t.id?' active':''}" onclick="switchPayTab('${t.id}')">${t.label}</button>`).join('')}</div>`;
-  let content = '';
-  if (_payDetail.active) content = renderPayDetailView();
-  else if (_payTab === 'income') content = renderPayTabIncome();
-  else if (_payTab === 'debts') content = renderPayTabDebts();
-  document.getElementById('pay-tab-content').innerHTML = content;
+  document.getElementById('pay-tab-content').innerHTML =
+    _payDetail.active ? renderPayDetailView() : renderPayTabSummary();
 }
 
-function renderPayTabIncome() {
-  const payments = load('payments');
-  const nowD = new Date();
+function renderPayTabSummary() {
+  const payments = load('payments'), clients = load('clients'), punchCards = load('punchCards'), plans = load('plans');
+
+  const modeToggle = `<div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px;width:fit-content">
+    <button type="button" onclick="_paySummaryMode='income';renderPayments()" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;${_paySummaryMode==='income'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">הכנסות</button>
+    <button type="button" onclick="_paySummaryMode='debts';renderPayments()" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;${_paySummaryMode==='debts'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">חובות</button>
+  </div>`;
+
+  if (_paySummaryMode === 'income') {
+    const nowD = new Date();
     const inputStyle = `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit;width:100%;height:38px;box-sizing:border-box`;
     const lblStyle = `font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px`;
     // Month quick-select (last 18 months)
@@ -3324,10 +3343,9 @@ function renderPayTabIncome() {
         <tbody>${rows}</tbody>
         ${footerRow?`<tfoot>${footerRow}</tfoot>`:''}
       </table></div></div>`;
-}
+  }
 
-function renderPayTabDebts() {
-  const payments = load('payments'), clients = load('clients'), punchCards = load('punchCards'), plans = load('plans');
+  // Debts mode — per client total debt
   const debtRows = clients.map(c=>{
     const sessDebt = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&!s.punchCardId&&s.source!=='client').reduce((s,sess)=>s+(+sess.price||0),0);
     const planDebt = plans.filter(p=>p.clientId===c.id&&!p.isTemplate&&p.price).reduce((s,p)=>s+(+p.price||0),0);
@@ -3338,14 +3356,16 @@ function renderPayTabDebts() {
     const debt = totalDebt - totalPaid;
     return debt > 0 ? {name:c.name, id:c.id, debt} : null;
   }).filter(Boolean).sort((a,b)=>b.debt-a.debt);
+
   const totalDebtAll = debtRows.reduce((s,x)=>s+x.debt,0);
-  return `
+  return `${modeToggle}
     <div style="font-size:1.1rem;font-weight:700;color:var(--accent);margin-bottom:16px">סה"כ חובות: ₪${totalDebtAll.toLocaleString()}</div>
     ${debtRows.length ? `<div class="card"><div class="table-wrap"><table>
-      <thead><tr><th>לקוח</th><th>חוב</th></tr></thead>
+      <thead><tr><th>לקוח</th><th>חוב</th><th></th></tr></thead>
       <tbody>${debtRows.map(x=>`<tr>
         <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${x.id}')" style="color:var(--accent2);text-decoration:none">${esc(x.name)}</a></strong></td>
         <td style="color:var(--accent);font-weight:700">₪${x.debt.toLocaleString()}</td>
+        <td></td>
       </tr>`).join('')}</tbody>
     </table></div></div>` : '<div class="empty">אין חובות פתוחים 🎉</div>'}`;
 }
@@ -3401,15 +3421,15 @@ function renderPayTabTraining() {
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
       <div class="form-group" style="margin:0;min-width:160px">
         <label style="font-size:.8rem;color:var(--muted)">לקוח</label>
-        <select onchange="_payTrainingFilter.clientId=this.value;renderPayments()">${clientOpts}</select>
+        <select onchange="_payTrainingFilter.clientId=this.value;renderProducts()">${clientOpts}</select>
       </div>
       <div class="form-group" style="margin:0">
         <label style="font-size:.8rem;color:var(--muted)">מתאריך</label>
-        <input type="date" value="${fromDate}" onchange="_payTrainingFilter.fromDate=this.value;renderPayments()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit">
+        <input type="date" value="${fromDate}" onchange="_payTrainingFilter.fromDate=this.value;renderProducts()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit">
       </div>
       <div class="form-group" style="margin:0">
         <label style="font-size:.8rem;color:var(--muted)">עד תאריך</label>
-        <input type="date" value="${toDate}" onchange="_payTrainingFilter.toDate=this.value;renderPayments()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit">
+        <input type="date" value="${toDate}" onchange="_payTrainingFilter.toDate=this.value;renderProducts()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit">
       </div>
     </div>
     <div class="card">
@@ -3437,11 +3457,11 @@ function renderPayTabPunchCards() {
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
       <div class="form-group" style="margin:0;min-width:160px">
         <label style="font-size:.8rem;color:var(--muted)">לקוח</label>
-        <select onchange="_payPunchFilter.clientId=this.value;renderPayments()">${clientOpts}</select>
+        <select onchange="_payPunchFilter.clientId=this.value;renderProducts()">${clientOpts}</select>
       </div>
       <div style="display:flex;gap:4px">
-        <button class="sub-tab-btn${!activeOnly?' active':''}" onclick="_payPunchFilter.activeOnly=false;renderPayments()">הכל</button>
-        <button class="sub-tab-btn${activeOnly?' active':''}" onclick="_payPunchFilter.activeOnly=true;renderPayments()">יש יתרה</button>
+        <button class="sub-tab-btn${!activeOnly?' active':''}" onclick="_payPunchFilter.activeOnly=false;renderProducts()">הכל</button>
+        <button class="sub-tab-btn${activeOnly?' active':''}" onclick="_payPunchFilter.activeOnly=true;renderProducts()">יש יתרה</button>
       </div>
       <button class="btn" onclick="openAddPunchCard()" style="margin-right:auto">+ כרטיסייה</button>
     </div>
@@ -3458,7 +3478,7 @@ function renderPayTabPunchCards() {
             <td style="color:#4caf50">₪${pc.paid.toLocaleString()}</td>
             <td style="color:${pc.debt>0?'var(--accent)':'#4caf50'};font-weight:600">${pc.debt>0?`₪${pc.debt.toLocaleString()} חוב`:'✓'}</td>
             <td class="actions">
-              <button class="btn btn-ghost btn-sm" onclick="openPayDetail('punch_card','${pc.id}')">פרטים</button>
+              <button class="btn btn-ghost btn-sm" onclick="openPayDetail('punch_card','${pc.id}','products')">פרטים</button>
               <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
               <button class="btn btn-danger btn-sm" onclick="deletePunchCard('${pc.id}')">מחק</button>
             </td>
@@ -3485,7 +3505,7 @@ function renderPayTabPlans() {
       <td>${debtCol}</td>
       <td class="actions">
         <button class="btn btn-sm" onclick="openAddClientPayment('${p.clientId}')">+ תשלום</button>
-        <button class="btn btn-ghost btn-sm" onclick="openPayDetail('plan','${p.clientId}')">פרטים</button>
+        <button class="btn btn-ghost btn-sm" onclick="openPayDetail('plan','${p.clientId}','products')">פרטים</button>
       </td>
     </tr>`;
   });
@@ -3599,13 +3619,13 @@ function openAddPunchCardPayment(cardId) {
     <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
   </form>`, async fd => {
     await saveItem('payments', {id:uid(), clientId:pc.ownerClientId, punchCardId:cardId, amount:fd.get('amount'), date:fd.get('date'), status:'paid', package:'כרטיסייה', notes:fd.get('notes')||''});
-    renderPayments();
+    renderProducts();
   });
 }
 async function deletePunchCardPayment(payId, cardId) {
   if (!confirm('למחוק תשלום זה?')) return;
   await deleteItem('payments', payId);
-  renderPayments();
+  renderProducts();
 }
 function paymentForm(p={}) {
   const pkgs=['חד-פעמי','חודשי','רבעוני','מנוי שנתי'];
@@ -3998,6 +4018,7 @@ async function setPlanPrice(planId, price) {
   if (!p) return;
   p.price = price ? +price : '';
   await saveItem('plans', p);
+  if (_clientProfile.active) renderClientProfile(); else renderProducts();
 }
 
 function cpSwitchBilling(sessId, mode) {
