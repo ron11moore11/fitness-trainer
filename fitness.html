@@ -3565,12 +3565,23 @@ function renderPayDetailPunchCard(cardId) {
   const rem=pc.totalSessions-used.length-booked.length;
   const allSess=[...used,...booked].sort((a,b)=>a.date<b.date?-1:1);
   let entryNum=0;
+  const remColor=rem===0?'var(--accent)':rem<=2?'var(--shift)':'#4caf50';
   return `<div class="card">
-    <div class="section-header"><h2>כרטיסייה — ${esc(clientName(pc.ownerClientId))}</h2></div>
-    <div class="pay-summary" style="margin:12px 0">
-      <div class="card"><div class="card-title">נוצל</div><div style="font-size:1.3rem;font-weight:700">${used.length}</div></div>
-      <div class="card"><div class="card-title">מוזמן</div><div style="font-size:1.3rem;font-weight:700;color:var(--accent2)">${booked.length}</div></div>
-      <div class="card"><div class="card-title">נשאר</div><div style="font-size:1.3rem;font-weight:700;color:${rem<=2&&rem>0?'var(--shift)':rem===0?'var(--muted)':'#4caf50'}">${rem}</div></div>
+    <div class="section-header"><h2>כרטיסייה — ${esc(pc.name||clientName(pc.ownerClientId))}</h2><span style="color:var(--muted);font-size:.9rem">${esc(clientName(pc.ownerClientId))}</span></div>
+    <div style="display:flex;gap:12px;margin:16px 0">
+      <div class="card" style="flex:1;text-align:center;padding:18px 12px">
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;letter-spacing:.03em">נוצל</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--accent)">${used.length}</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:4px">מתוך ${pc.totalSessions}</div>
+      </div>
+      <div class="card" style="flex:1;text-align:center;padding:18px 12px">
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;letter-spacing:.03em">מוזמן</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--muted)">${booked.length}</div>
+      </div>
+      <div class="card" style="flex:1;text-align:center;padding:18px 12px">
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;letter-spacing:.03em">נשאר</div>
+        <div style="font-size:2rem;font-weight:700;color:${remColor}">${rem}</div>
+      </div>
     </div>
     <h3 style="color:var(--accent2);margin:16px 0 8px">שימושים</h3>
     ${allSess.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>לקוח</th><th>כניסה</th><th>הערות</th></tr></thead><tbody>${allSess.map(s=>{
