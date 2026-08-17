@@ -596,15 +596,15 @@
   <section id="tab-schedule">
     <div class="card" style="margin-bottom:20px">
       <div style="display:flex;justify-content:center;margin-bottom:10px">
-        <div class="cal-view-toggle">
-          <button class="cal-view-btn active" id="cal-view-month" onclick="setCalView('month')">חודשי</button>
-          <button class="cal-view-btn" id="cal-view-week" onclick="setCalView('week')">שבועי</button>
+        <div id="cal-view-toggle-wrap" style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content">
+          <button id="cal-view-month" type="button" onclick="setCalView('month')" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;transition:all .15s;background:var(--gold);color:#fff;font-weight:600">חודשי</button>
+          <button id="cal-view-week" type="button" onclick="setCalView('week')" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;transition:all .15s;background:var(--card);color:var(--muted)">שבועי</button>
         </div>
       </div>
       <div class="cal-nav">
-        <button class="btn btn-ghost btn-sm" onclick="calPrev()">&#8250;</button>
+        <button class="btn btn-ghost btn-sm" onclick="calNext()">&#8250;</button>
         <h3 id="cal-title"></h3>
-        <button class="btn btn-ghost btn-sm" onclick="calNext()">&#8249;</button>
+        <button class="btn btn-ghost btn-sm" onclick="calPrev()">&#8249;</button>
       </div>
       <div id="cal-stats-bar" style="display:flex;gap:8px;margin-bottom:10px">
         <div id="cal-stat-month" style="flex:1;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;color:var(--accent2);font-weight:600;text-align:center"></div>
@@ -1274,8 +1274,10 @@ function renderSchedule() {
   if (calMonth === undefined) calMonth = now.getMonth();
   if (!_calWeekStart) { const d=new Date(); d.setDate(d.getDate()-d.getDay()); _calWeekStart=localDateStr(d); }
   // Update toggle buttons
-  document.getElementById('cal-view-month')?.classList.toggle('active',_calView==='month');
-  document.getElementById('cal-view-week')?.classList.toggle('active',_calView==='week');
+  const _btnM = document.getElementById('cal-view-month');
+  const _btnW = document.getElementById('cal-view-week');
+  if (_btnM) { _btnM.style.background = _calView==='month' ? 'var(--gold)' : 'var(--card)'; _btnM.style.color = _calView==='month' ? '#fff' : 'var(--muted)'; _btnM.style.fontWeight = _calView==='month' ? '600' : '400'; }
+  if (_btnW) { _btnW.style.background = _calView==='week' ? 'var(--gold)' : 'var(--card)'; _btnW.style.color = _calView==='week' ? '#fff' : 'var(--muted)'; _btnW.style.fontWeight = _calView==='week' ? '600' : '400'; }
   if (_calView==='month') renderCalendarMonth(); else renderCalendarWeek();
   renderSessionsTable();
 }
@@ -1899,16 +1901,16 @@ async function closeLiveWorkout() {
   const schedEl = document.querySelector('#tab-schedule');
   schedEl.innerHTML = `<div class="card" style="margin-bottom:20px">
     <div style="display:flex;justify-content:center;margin-bottom:10px">
-      <div class="cal-view-toggle">
-        <button class="cal-view-btn" id="cal-view-month" onclick="setCalView('month')">חודשי</button>
-        <button class="cal-view-btn" id="cal-view-week" onclick="setCalView('week')">שבועי</button>
+        <div id="cal-view-toggle-wrap" style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content">
+          <button id="cal-view-month" type="button" onclick="setCalView('month')" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;transition:all .15s;background:var(--card);color:var(--muted)">חודשי</button>
+          <button id="cal-view-week" type="button" onclick="setCalView('week')" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;transition:all .15s;background:var(--card);color:var(--muted)">שבועי</button>
+        </div>
       </div>
-    </div>
-    <div class="cal-nav">
-      <button class="btn btn-ghost btn-sm" onclick="calPrev()">&#8250;</button>
-      <h3 id="cal-title"></h3>
-      <button class="btn btn-ghost btn-sm" onclick="calNext()">&#8249;</button>
-    </div>
+      <div class="cal-nav">
+        <button class="btn btn-ghost btn-sm" onclick="calNext()">&#8250;</button>
+        <h3 id="cal-title"></h3>
+        <button class="btn btn-ghost btn-sm" onclick="calPrev()">&#8249;</button>
+      </div>
     <div id="cal-container"></div>
   </div>
   <div class="card">
