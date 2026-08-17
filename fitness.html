@@ -783,7 +783,7 @@ function bankOptions() {
 }
 function statusBadgeClass(status) { if (status==='בהשהיה') return 'badge-paused'; if (status==='הפסיק') return 'badge-stopped'; return 'badge-active'; }
 let payFilter = { active: false, month: null, fromDate: '', toDate: '', clientId: '' };
-let _payTab = 'summary';
+let _payTab = 'income';
 let _payDetail = { active: false, type: '', id: '' };
 let _payTrainingFilter = (()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), lastDay=String(new Date(d.getFullYear(),d.getMonth()+1,0).getDate()).padStart(2,'0'); return { clientId:'', fromDate:`${y}-${m}-01`, toDate:`${y}-${m}-${lastDay}` }; })();
 let _payPunchFilter = { clientId: '', activeOnly: false };
@@ -3238,30 +3238,21 @@ function renderPayments() {
     </div>`;
   }
   const tabs = [
-    { id:'summary', label:'סיכום' }, { id:'training', label:'אימונים' },
-    { id:'punch_card', label:'כרטיסיות' }, { id:'plan', label:'תוכניות' }
+    { id:'income', label:'הכנסות' },
+    { id:'debts', label:'חובות' }
   ];
   document.getElementById('pay-tabs-nav').innerHTML =
     `<div class="sub-tabs">${tabs.map(t=>`<button class="sub-tab-btn${_payTab===t.id?' active':''}" onclick="switchPayTab('${t.id}')">${t.label}</button>`).join('')}</div>`;
   let content = '';
   if (_payDetail.active) content = renderPayDetailView();
-  else if (_payTab === 'summary') content = renderPayTabSummary();
-  else if (_payTab === 'training') content = renderPayTabTraining();
-  else if (_payTab === 'punch_card') content = renderPayTabPunchCards();
-  else if (_payTab === 'plan') content = renderPayTabPlans();
+  else if (_payTab === 'income') content = renderPayTabIncome();
+  else if (_payTab === 'debts') content = renderPayTabDebts();
   document.getElementById('pay-tab-content').innerHTML = content;
 }
 
-function renderPayTabSummary() {
-  const payments = load('payments'), clients = load('clients'), punchCards = load('punchCards'), plans = load('plans');
-
-  const modeToggle = `<div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px;width:fit-content">
-    <button type="button" onclick="_paySummaryMode='income';renderPayments()" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;${_paySummaryMode==='income'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">הכנסות</button>
-    <button type="button" onclick="_paySummaryMode='debts';renderPayments()" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;${_paySummaryMode==='debts'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">חובות</button>
-  </div>`;
-
-  if (_paySummaryMode === 'income') {
-    const nowD = new Date();
+function renderPayTabIncome() {
+  const payments = load('payments');
+  const nowD = new Date();
     const inputStyle = `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit;width:100%;height:38px;box-sizing:border-box`;
     const lblStyle = `font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px`;
     // Month quick-select (last 18 months)
@@ -3333,9 +3324,10 @@ function renderPayTabSummary() {
         <tbody>${rows}</tbody>
         ${footerRow?`<tfoot>${footerRow}</tfoot>`:''}
       </table></div></div>`;
-  }
+}
 
-  // Debts mode — per client total debt
+function renderPayTabDebts() {
+  const payments = load('payments'), clients = load('clients'), punchCards = load('punchCards'), plans = load('plans');
   const debtRows = clients.map(c=>{
     const sessDebt = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&!s.punchCardId&&s.source!=='client').reduce((s,sess)=>s+(+sess.price||0),0);
     const planDebt = plans.filter(p=>p.clientId===c.id&&!p.isTemplate&&p.price).reduce((s,p)=>s+(+p.price||0),0);
@@ -3346,16 +3338,14 @@ function renderPayTabSummary() {
     const debt = totalDebt - totalPaid;
     return debt > 0 ? {name:c.name, id:c.id, debt} : null;
   }).filter(Boolean).sort((a,b)=>b.debt-a.debt);
-
   const totalDebtAll = debtRows.reduce((s,x)=>s+x.debt,0);
-  return `${modeToggle}
+  return `
     <div style="font-size:1.1rem;font-weight:700;color:var(--accent);margin-bottom:16px">סה"כ חובות: ₪${totalDebtAll.toLocaleString()}</div>
     ${debtRows.length ? `<div class="card"><div class="table-wrap"><table>
-      <thead><tr><th>לקוח</th><th>חוב</th><th></th></tr></thead>
+      <thead><tr><th>לקוח</th><th>חוב</th></tr></thead>
       <tbody>${debtRows.map(x=>`<tr>
         <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${x.id}')" style="color:var(--accent2);text-decoration:none">${esc(x.name)}</a></strong></td>
         <td style="color:var(--accent);font-weight:700">₪${x.debt.toLocaleString()}</td>
-        <td></td>
       </tr>`).join('')}</tbody>
     </table></div></div>` : '<div class="empty">אין חובות פתוחים 🎉</div>'}`;
 }
