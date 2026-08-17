@@ -35,7 +35,7 @@
 
     /* NAV */
     nav {
-      background: var(--card); border-bottom: 2px solid var(--border);
+      background: #0f3460; border-bottom: 2px solid rgba(168,218,220,.2);
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 24px; height: 60px; position: sticky; top: 0; z-index: 100; gap: 12px;
     }
@@ -452,9 +452,11 @@
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     @media (max-width: 640px) {
-      nav { flex-direction: row; height: 48px; padding: 0 16px; gap: 0; }
+      nav { flex-direction: row; height: 48px; padding: 0 12px; gap: 0; justify-content: center; position: relative; }
+      nav .app-title { position: absolute; left: 50%; transform: translateX(-50%); }
+      nav .logout-btn { position: absolute; left: 12px; font-size: .75rem; padding: 4px 10px; }
       .nav-tabs { display: none; }
-      .mobile-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 2px solid var(--border); z-index: 150; padding-bottom: env(safe-area-inset-bottom,0px); }
+      .mobile-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #0f3460; border-top: 2px solid rgba(168,218,220,.2); z-index: 150; padding-bottom: env(safe-area-inset-bottom,0px); }
       main { padding: 14px; padding-bottom: 80px; }
       .toast { bottom: 80px; }
       .dashboard { grid-template-columns: repeat(3,1fr); gap: 4px; margin-bottom: 14px; }
@@ -514,7 +516,7 @@
 </div>
 
 <nav>
-  <div class="app-title">💪 <span id="nav-trainer-name">מאמן כושר</span></div>
+  <div class="app-title"><span id="nav-trainer-name">מאמן כושר</span> 💪</div>
   <button class="logout-btn" onclick="handleLogout()">התנתק</button>
   <div class="nav-tabs">
     <button class="nav-tab" data-tab="clients">לקוחות</button>
