@@ -1574,6 +1574,37 @@ function selectSessionClient(id, name) {
   if (dd) dd.style.display = 'none';
   updatePlanDropdown();
 }
+// Generic client picker (used in modals: punchcard, payment, plan, template)
+function clientPickerHTML(fieldName, selectedId, suffix, required=true) {
+  const sel = load('clients').find(c=>c.id===selectedId);
+  const selName = sel ? sel.name : '';
+  const opts = load('clients').map(c=>`<div class="sc-opt" data-id="${c.id}" data-name="${esc(c.name)}" onclick="selectClientPicker('${suffix}','${c.id}','${esc(c.name)}')" style="padding:10px 14px;cursor:pointer;font-size:.9rem" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">${esc(c.name)}</div>`).join('');
+  return `<div style="position:relative">
+    <input type="text" id="cp-search-${suffix}" autocomplete="off" placeholder="חפש לקוח..." value="${esc(selName)}"
+      oninput="filterClientPicker('${suffix}',this.value)"
+      onfocus="document.getElementById('cp-dd-${suffix}').style.display=''"
+      onblur="setTimeout(()=>document.getElementById('cp-dd-${suffix}').style.display='none',200)"
+      style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.95rem;font-family:inherit;box-sizing:border-box">
+    <div id="cp-dd-${suffix}" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:200;max-height:200px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 12px rgba(0,0,0,.4)">${opts}</div>
+  </div>
+  <input type="hidden" name="${fieldName}" id="cp-val-${suffix}" value="${esc(selectedId||'')}"${required?' required':''}>`;
+}
+function filterClientPicker(suffix, q) {
+  const dd = document.getElementById('cp-dd-'+suffix);
+  if (!dd) return;
+  dd.style.display = '';
+  dd.querySelectorAll('.sc-opt').forEach(el => {
+    el.style.display = el.dataset.name.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function selectClientPicker(suffix, id, name) {
+  const val = document.getElementById('cp-val-'+suffix);
+  const search = document.getElementById('cp-search-'+suffix);
+  const dd = document.getElementById('cp-dd-'+suffix);
+  if (val) val.value = id;
+  if (search) search.value = name;
+  if (dd) dd.style.display = 'none';
+}
 function updateSessionPunchCard(clientId, selectedId='') {
   const sel = document.getElementById('session-punchcard-sel');
   if (!sel) return;
@@ -2708,7 +2739,7 @@ function openAssignTemplate(templateId) {
   if (!load('clients').length) { alert('יש להוסיף לקוח.'); return; }
   openModal('הקצה תבנית ללקוח', `<form id="modal-form">
     <p style="color:var(--muted);margin-bottom:16px;font-size:.9rem">עותק של "<strong>${esc(tmpl.name)}</strong>"</p>
-    <div class="form-group"><label>בחר לקוח *</label><select name="clientId" required><option value="">— בחר —</option>${clientOptions()}</select></div>
+    <div class="form-group"><label>לקוח *</label>${clientPickerHTML('clientId','','tmpl')}</div>
     <div class="form-group"><label>שם התוכנית</label><input name="planName" value="${esc(tmpl.name)}" required></div>
     <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">צור</button></div>
   </form>`, async fd => {
@@ -3133,7 +3164,7 @@ function renderExerciseChart(exName, sessions) {
 function punchCardForm(pc={}) {
   return `<form id="modal-form">
     <div class="form-group"><label>בעלים (רוכש) *</label>
-      <select name="ownerClientId" required><option value="">— בחר לקוח —</option>${clientOptions(pc.ownerClientId||'')}</select>
+      ${clientPickerHTML('ownerClientId', pc.ownerClientId||'', 'pc')}
     </div>
     <div class="form-group"><label>שם כרטיסייה *</label><input name="name" required placeholder="למשל: כרטיסייה 10 כניסות" value="${esc(pc.name||'')}"></div>
     <div class="form-row">
@@ -3187,9 +3218,8 @@ async function deletePunchCardFromProfile(id, clientId) {
 }
 
 function openAddPlanSale() {
-  const clientOpts = `<option value="">— בחר לקוח —</option>` + load('clients').map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   openModal('רישום תוכנית אימונים', `<form id="modal-form">
-    <div class="form-group"><label>לקוח *</label><select name="clientId" required>${clientOpts}</select></div>
+    <div class="form-group"><label>לקוח *</label>${clientPickerHTML('clientId','','plansale')}</div>
     <div class="form-group"><label>מחיר תוכנית (₪) *</label><input name="planPrice" type="number" min="0" step="1" required placeholder="למשל 800"></div>
     <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
   </form>`, async fd => {
@@ -3625,7 +3655,7 @@ async function deletePunchCardPayment(payId, cardId) {
 function paymentForm(p={}) {
   const pkgs=['חד-פעמי','חודשי','רבעוני','מנוי שנתי'];
   return `<form id="modal-form">
-    <div class="form-group"><label>לקוח *</label><select name="clientId" required><option value="">— בחר לקוח —</option>${clientOptions(p.clientId||'')}</select></div>
+    <div class="form-group"><label>לקוח *</label>${clientPickerHTML('clientId', p.clientId||'', 'pay')}</div>
     <div class="form-row">
       <div class="form-group"><label>סכום (₪) *</label><input name="amount" type="number" min="0" step="0.01" value="${esc(p.amount||'')}" required></div>
       <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${esc(p.date||localDateStr())}" required></div>
