@@ -138,7 +138,7 @@
     .badge-paid    { background: #1a4a2e; color: #4caf50; }
     .badge-pending { background: #4a3a1a; color: #ffa726; }
     .badge-cat  { background: rgba(168,218,220,.15); color: var(--accent2); }
-    .badge-tmpl { background: rgba(233,69,96,.15); color: var(--accent); }
+    .badge-tmpl { background: rgba(240,192,64,.15); color: var(--gold); }
     .badge-shift { background: rgba(255,167,38,.15); color: var(--shift); }
     .badge-recurring { background: rgba(168,218,220,.15); color: var(--accent2); font-size: .75rem; }
     .badge-logged { background: rgba(92,75,158,.2); color: #b39ddb; }
@@ -205,7 +205,7 @@
     /* PLAN CARDS */
     .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 16px; }
     .plan-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 24px; max-width: 900px; margin: 0 auto; }
-    .plan-card.tmpl-card { border-color: rgba(233,69,96,.4); }
+    .plan-card.tmpl-card { border-color: rgba(240,192,64,.4); }
     .plan-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
     .plan-name { font-size: 1.15rem; font-weight: bold; color: var(--accent2); }
     .plan-client { font-size: .85rem; color: var(--muted); margin-top: 4px; }
@@ -213,7 +213,7 @@
     .plan-table { width: 100%; border-collapse: collapse; }
     .plan-table th { text-align: right; padding: 10px 14px; color: var(--muted); font-size: .82rem; font-weight: 600; border-bottom: 2px solid var(--border); }
     .plan-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: .9rem; cursor: pointer; transition: background .15s; }
-    .plan-table tr:hover td { background: rgba(233,69,96,.06); }
+    .plan-table tr:hover td { background: rgba(240,192,64,.06); }
     .plan-table .plan-client-name { color: var(--accent2); font-weight: 600; }
     .plan-table .plan-date { color: var(--muted); font-size: .82rem; }
     .pb-client-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 2px solid var(--border); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
@@ -380,15 +380,15 @@
     .cp-layout { display: flex; gap: 24px; }
     .cp-sidebar { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 10px; align-self: flex-start; position: sticky; top: 80px; }
     .cp-sidebar-btn { text-align: right; padding: 10px 14px; background: none; border: none; border-radius: 8px; color: var(--muted); cursor: pointer; font-size: .88rem; font-family: inherit; transition: all .15s; }
-    .cp-sidebar-btn:hover { color: var(--text); background: rgba(233,69,96,.06); }
-    .cp-sidebar-btn.active { color: var(--accent); background: rgba(233,69,96,.1); font-weight: 600; }
+    .cp-sidebar-btn:hover { color: var(--text); background: rgba(240,192,64,.06); }
+    .cp-sidebar-btn.active { color: var(--gold); background: rgba(240,192,64,.1); font-weight: 600; }
     .cp-content { flex: 1; min-width: 0; }
     .cp-header { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
     .cp-name { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
     .cp-info { display: flex; flex-wrap: wrap; gap: 16px; color: var(--muted); font-size: .88rem; }
     .cp-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
     .cp-section { margin-bottom: 20px; }
-    .cp-section-title { color: var(--accent); font-size: .95rem; font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    .cp-section-title { color: var(--gold); font-size: .95rem; font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid var(--gold); padding-bottom: 6px; }
     @media (max-width: 640px) { .cp-layout { flex-direction: column; } .cp-sidebar { width: 100%; flex-direction: row; overflow-x: auto; position: static; } }
     .cp-plan-row { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; font-size: .88rem; }
     .cp-month { color: var(--accent2); font-size: .85rem; font-weight: 600; margin: 16px 0 8px; }
@@ -404,11 +404,11 @@
     .tr-date-pills::-webkit-scrollbar { height: 4px; }
     .tr-date-pills::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
     .tr-date-pill { background: var(--bg); border: 2px solid var(--border); border-radius: 10px; padding: 8px 16px; cursor: pointer; white-space: nowrap; font-size: .82rem; transition: all .2s; flex-shrink: 0; text-align: center; color: var(--text); }
-    .tr-date-pill:hover { border-color: var(--accent); color: var(--accent); }
-    .tr-date-pill.active { border-color: var(--accent); background: rgba(233,69,96,.1); color: var(--accent); font-weight: 600; }
+    .tr-date-pill:hover { border-color: var(--gold); color: var(--gold); }
+    .tr-date-pill.active { border-color: var(--gold); background: rgba(240,192,64,.1); color: var(--gold); font-weight: 600; }
     .tr-date-pill .tr-pill-date { font-weight: 600; }
     .tr-date-pill .tr-pill-name { font-size: .72rem; color: var(--muted); margin-top: 2px; }
-    .tr-date-pill.active .tr-pill-name { color: var(--accent); opacity: .7; }
+    .tr-date-pill.active .tr-pill-name { color: var(--gold); opacity: .7; }
     .tr-session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
     .tr-session-title { font-size: 1.1rem; font-weight: 700; color: var(--accent2); }
     .tr-session-meta { font-size: .82rem; color: var(--muted); }
@@ -1031,8 +1031,8 @@ function renderCpDetails(c) {
         <td colspan="2">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--border);flex-shrink:0">
-              <button type="button" id="cp-billing-price-${s.id}" onclick="cpSwitchBilling('${s.id}','price')" style="padding:5px 10px;border:none;cursor:pointer;font-family:inherit;font-size:.82rem;${initMode==='price'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">מחיר</button>
-              <button type="button" id="cp-billing-punch-${s.id}" onclick="cpSwitchBilling('${s.id}','punch')" style="padding:5px 10px;border:none;cursor:pointer;font-family:inherit;font-size:.82rem;${initMode==='punch'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">כרטיסייה</button>
+              <button type="button" id="cp-billing-price-${s.id}" onclick="cpSwitchBilling('${s.id}','price')" style="padding:5px 10px;border:none;cursor:pointer;font-family:inherit;font-size:.82rem;${initMode==='price'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">מחיר</button>
+              <button type="button" id="cp-billing-punch-${s.id}" onclick="cpSwitchBilling('${s.id}','punch')" style="padding:5px 10px;border:none;cursor:pointer;font-family:inherit;font-size:.82rem;${initMode==='punch'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">כרטיסייה</button>
             </div>
             <input id="cp-sess-price-${s.id}" type="number" min="0" step="1" value="${esc(s.price||'')}" placeholder="0" style="width:80px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 8px;font-size:.85rem;font-family:inherit;${initMode==='punch'?'display:none':''}">
             <select id="cp-sess-punch-${s.id}" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:4px 8px;font-size:.82rem;font-family:inherit;${initMode==='price'?'display:none':''}">${pcOpts}</select>
@@ -1467,8 +1467,8 @@ function sessionForm(s={}, forceType='') {
       <div id="session-billing-row" style="margin-bottom:16px">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0">
-            <button type="button" id="billing-price-btn" onclick="switchBillingMode('price')" style="padding:8px 16px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;${initBillingMode==='price'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">מחיר</button>
-            <button type="button" id="billing-punch-btn" onclick="switchBillingMode('punch')" style="padding:8px 16px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;${initBillingMode==='punch'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">כרטיסייה</button>
+            <button type="button" id="billing-price-btn" onclick="switchBillingMode('price')" style="padding:8px 16px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;${initBillingMode==='price'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">מחיר</button>
+            <button type="button" id="billing-punch-btn" onclick="switchBillingMode('punch')" style="padding:8px 16px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;${initBillingMode==='punch'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">כרטיסייה</button>
           </div>
           <div id="session-price-field" style="flex:1;${initBillingMode==='punch'?'display:none':''}">
             <input name="price" type="number" min="0" step="1" value="${s.price||''}" placeholder="הזן מחיר" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.95rem;font-family:inherit">
@@ -1576,8 +1576,8 @@ function switchBillingMode(mode) {
   const cb = document.getElementById('billing-punch-btn');
   if (pf) pf.style.display = isPunch ? 'none' : '';
   if (pc) pc.style.display = isPunch ? '' : 'none';
-  if (pb) { pb.style.background = isPunch ? 'var(--card)' : 'var(--accent)'; pb.style.color = isPunch ? 'var(--muted)' : '#fff'; pb.style.fontWeight = isPunch ? '' : '600'; }
-  if (cb) { cb.style.background = isPunch ? 'var(--accent)' : 'var(--card)'; cb.style.color = isPunch ? '#fff' : 'var(--muted)'; cb.style.fontWeight = isPunch ? '600' : ''; }
+  if (pb) { pb.style.background = isPunch ? 'var(--card)' : 'var(--gold)'; pb.style.color = isPunch ? 'var(--muted)' : '#fff'; pb.style.fontWeight = isPunch ? '' : '600'; }
+  if (cb) { cb.style.background = isPunch ? 'var(--gold)' : 'var(--card)'; cb.style.color = isPunch ? '#fff' : 'var(--muted)'; cb.style.fontWeight = isPunch ? '600' : ''; }
 }
 function updateWorkoutDropdown() {
   const planId = document.getElementById('session-plan-sel')?.value || '';
@@ -3799,8 +3799,8 @@ function cpSwitchBilling(sessId, mode) {
   const cb = document.getElementById(`cp-billing-punch-${sessId}`);
   if (pi) pi.style.display = isPunch ? 'none' : '';
   if (pc) pc.style.display = isPunch ? '' : 'none';
-  if (pb) { pb.style.background = isPunch ? 'var(--card)' : 'var(--accent)'; pb.style.color = isPunch ? 'var(--muted)' : '#fff'; pb.style.fontWeight = isPunch ? '' : '600'; }
-  if (cb) { cb.style.background = isPunch ? 'var(--accent)' : 'var(--card)'; cb.style.color = isPunch ? '#fff' : 'var(--muted)'; cb.style.fontWeight = isPunch ? '600' : ''; }
+  if (pb) { pb.style.background = isPunch ? 'var(--card)' : 'var(--gold)'; pb.style.color = isPunch ? 'var(--muted)' : '#fff'; pb.style.fontWeight = isPunch ? '' : '600'; }
+  if (cb) { cb.style.background = isPunch ? 'var(--gold)' : 'var(--card)'; cb.style.color = isPunch ? '#fff' : 'var(--muted)'; cb.style.fontWeight = isPunch ? '600' : ''; }
 }
 
 async function cpSaveSessEdit(sessId, clientId) {
