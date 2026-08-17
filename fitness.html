@@ -156,7 +156,7 @@
     .month-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
     .month-btn { background: var(--bg); border: 2px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: .8rem; transition: all .2s; }
     .month-btn:hover { border-color: var(--accent2); color: var(--text); }
-    .month-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(233,69,96,.1); }
+    .month-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(240,192,64,.1); }
     .pay-filter-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
     .pay-filter-row .form-group { margin-bottom: 0; min-width: 140px; }
 
@@ -3230,8 +3230,8 @@ function renderPayTabSummary() {
   const payments = load('payments'), clients = load('clients'), punchCards = load('punchCards'), plans = load('plans');
 
   const modeToggle = `<div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px;width:fit-content">
-    <button type="button" onclick="_paySummaryMode='income';renderPayments()" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;${_paySummaryMode==='income'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">הכנסות</button>
-    <button type="button" onclick="_paySummaryMode='debts';renderPayments()" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;${_paySummaryMode==='debts'?'background:var(--accent);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">חובות</button>
+    <button type="button" onclick="_paySummaryMode='income';renderPayments()" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;${_paySummaryMode==='income'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">הכנסות</button>
+    <button type="button" onclick="_paySummaryMode='debts';renderPayments()" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;${_paySummaryMode==='debts'?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">חובות</button>
   </div>`;
 
   if (_paySummaryMode === 'income') {
