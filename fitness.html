@@ -443,10 +443,10 @@
     @media (max-width: 640px) {
       nav { flex-direction: column; height: auto; padding: 12px; gap: 8px; }
       .nav-tabs { justify-content: center; }
-      .dashboard { grid-template-columns: repeat(3,1fr); gap: 8px; }
-      .dashboard .card { padding: 10px 8px; }
-      .dashboard .card-title { font-size: .7rem; }
-      .dashboard .card-value { font-size: 1.2rem; }
+      .dashboard { grid-template-columns: repeat(3,1fr); gap: 6px; }
+      .dashboard .card { padding: 10px 6px; }
+      .dashboard .card-title { font-size: .72rem; }
+      .dashboard .card-value { font-size: 1.4rem; }
       .pay-summary { grid-template-columns: 1fr; }
       .form-row, .form-row-3 { grid-template-columns: 1fr; }
       .ex-set-row, .ex-sets-header { grid-template-columns: 30px 1fr 1fr auto; }
@@ -1090,9 +1090,9 @@ function renderClients() {
     return sum+(debt>0?debt:0);
   },0);
   document.getElementById('dashboard').innerHTML = `
-    <div class="card"><div class="card-title">לקוחות פעילים</div><div class="card-value">${clients.filter(c=>(c.status||'פעיל')==='פעיל').length}</div></div>
-    <div class="card"><div class="card-title">חובות פתוחים</div><div class="card-value" style="color:var(--accent)">₪${totalDebt.toLocaleString()}</div></div>
     <div class="card"><div class="card-title">הכנסות החודש</div><div class="card-value" style="color:#4caf50">₪${monthIncome.toLocaleString()}</div></div>
+    <div class="card"><div class="card-title">לקוחות פעילים</div><div class="card-value" style="color:#4caf50">${clients.filter(c=>(c.status||'פעיל')==='פעיל').length}</div></div>
+    <div class="card"><div class="card-title">חובות פתוחים</div><div class="card-value" style="color:var(--accent)">₪${totalDebt.toLocaleString()}</div></div>
   `;
   const statusOrder = {'פעיל':0,'בהשהיה':1,'הפסיק':2};
   filtered.sort((a,b)=>{
