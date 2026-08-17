@@ -557,6 +557,9 @@
   <button class="mobile-tab-btn" data-tab="payments" onclick="switchTab('payments')">
     <span class="tab-icon">💳</span><span>תשלומים</span>
   </button>
+  <button class="mobile-tab-btn" data-tab="products" onclick="switchTab('products')">
+    <span class="tab-icon">📦</span><span>מוצרים</span>
+  </button>
   <button class="mobile-tab-btn" data-tab="clients" onclick="switchTab('clients')">
     <span class="tab-icon">👥</span><span>לקוחות</span>
   </button>
@@ -565,7 +568,6 @@
       <span class="tab-icon">☰</span><span>אחר</span>
     </button>
     <div class="mobile-more-dropdown" id="mobile-more-dropdown">
-      <button data-tab="products" onclick="switchTabMobile('products')">📦 מוצרים</button>
       <button data-tab="exercises" onclick="switchTabMobile('exercises')">🏋️ בנק תרגילים</button>
       <button data-tab="workouts" onclick="switchTabMobile('workouts')">📋 תוכניות אימון</button>
       <button data-tab="reminders" onclick="switchTabMobile('reminders')">🔔 תזכורות</button>
@@ -878,7 +880,7 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
 // ===== TAB NAVIGATION =====
 const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, products:renderProducts, reminders:renderReminders, admin:renderAdmin };
 const MORE_TABS = ['exercises','workouts','reminders','admin']; // desktop "אחר" dropdown tabs
-const MOBILE_MORE_TABS = ['exercises','workouts','products','reminders','admin']; // mobile "אחר" dropdown tabs
+const MOBILE_MORE_TABS = ['exercises','workouts','reminders','admin']; // mobile "אחר" dropdown tabs
 function toggleNavMore(e) { e.stopPropagation(); document.getElementById('nav-more-dropdown').classList.toggle('open'); }
 function switchTabMore(tab) { document.getElementById('nav-more-dropdown').classList.remove('open'); switchTab(tab); }
 function toggleMobileMore(e) { e.stopPropagation(); document.getElementById('mobile-more-dropdown').classList.toggle('open'); }
