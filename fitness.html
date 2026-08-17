@@ -1105,17 +1105,10 @@ function renderCpDetails(c) {
   </div>`;
 
   // --- Plans history ---
-  const sortedPlans = [...plans].sort((a,b)=>a.createdAt<b.createdAt?1:-1);
-  const planRows = sortedPlans.length ? sortedPlans.map(p=>`<tr>
-    <td>${esc(p.name||'תוכנית')}</td>
-    <td>${p.createdAt?new Date(p.createdAt).toLocaleDateString('he-IL'):'—'}</td>
-    <td><input type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0" style="width:75px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit" onchange="setPlanPrice('${p.id}',this.value)"></td>
-    <td style="color:var(--muted);font-size:.82rem">${esc(p.notes||'—')}</td>
-  </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">אין תוכניות</td></tr>';
   const planTable = `<div class="cp-section" style="margin-top:16px">
     <div class="cp-section-title">היסטוריית תוכניות</div>
-    <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="openAddPlanForClient('${c.id}')">+ הוסף תוכנית</button></div>
-    <div class="table-wrap"><table><thead><tr><th>שם תוכנית</th><th>תאריך</th><th>מחיר (₪)</th><th>הערות</th></tr></thead><tbody>${planRows}</tbody></table></div>
+    <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ הוסף תוכנית</button></div>
+    ${planRows('', c.id)}
   </div>`;
 
   return info + summary + payTable + sessTable + pcTable + planTable;
