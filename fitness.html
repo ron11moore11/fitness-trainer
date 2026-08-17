@@ -183,7 +183,7 @@
     .cal-dot.cancelled-dot { background: var(--muted); opacity: .5; }
     .cal-view-toggle { display: flex; gap: 0; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; }
     .cal-view-btn { background: none; border: none; color: var(--muted); padding: 5px 14px; cursor: pointer; font-size: .8rem; font-family: inherit; transition: all .2s; }
-    .cal-view-btn.active { background: var(--gold); color: #1a1a2e; }
+    .cal-view-btn.active { background: var(--gold); color: #fff; }
     .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
     .week-col { background: var(--card); border: 2px solid var(--border); border-radius: 10px; padding: 8px 6px; min-height: 120px; cursor: pointer; transition: border-color .2s; }
     .week-col:hover { border-color: var(--accent); }
@@ -575,7 +575,14 @@
   <section id="tab-clients">
     <div class="dashboard" id="dashboard"></div>
     <div class="card">
-      <div class="section-header"><h2>לקוחות</h2><div id="clients-controls" style="display:flex;gap:8px;align-items:center"><input id="client-search" placeholder="חפש לקוח..." oninput="renderClients()" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;font-size:.85rem;font-family:inherit;width:160px"><select class="status-filter" id="client-status-filter" onchange="renderClients()"><option value="all">הכל</option><option value="פעיל">פעיל</option><option value="בהשהיה">בהשהיה</option><option value="הפסיק">הפסיק</option></select><button class="btn" style="background:var(--gold);border-color:var(--gold);color:#1a1a2e;white-space:nowrap" onclick="openAddClient()">+ לקוח</button></div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-start;margin-bottom:16px;gap:8px">
+        <h2 style="font-size:1.2rem;color:var(--accent2)">לקוחות</h2>
+        <div id="clients-controls" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="client-search" placeholder="חפש לקוח..." oninput="renderClients()" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;font-size:.85rem;font-family:inherit;width:160px">
+          <select class="status-filter" id="client-status-filter" onchange="renderClients()"><option value="all">הכל</option><option value="פעיל">פעיל</option><option value="בהשהיה">בהשהיה</option><option value="הפסיק">הפסיק</option></select>
+          <button class="btn" style="background:var(--gold);border-color:var(--gold);color:#fff;white-space:nowrap" onclick="openAddClient()">+ לקוח</button>
+        </div>
+      </div>
       <div class="table-wrap" id="clients-table"></div>
     </div>
   </section>
@@ -600,15 +607,19 @@
       <div id="cal-container"></div>
     </div>
     <div class="card">
-      <div style="display:flex;flex-direction:column;align-items:flex-end;margin-bottom:16px;gap:8px">
-        <h2 style="font-size:1.2rem;color:var(--accent2)">אימונים</h2>
+      <div style="display:flex;flex-direction:column;align-items:flex-start;margin-bottom:12px;gap:8px">
+        <h2 id="schedule-day-heading" style="font-size:1.2rem;color:var(--accent2)">אימונים</h2>
         <div style="display:flex;gap:8px">
           <button class="btn" style="background:var(--shift);border-color:var(--shift);color:#fff;min-width:90px" onclick="openAddSession(_calSelectedDate,'shift')">+ משמרת</button>
           <button class="btn" style="min-width:90px" onclick="openAddSession(_calSelectedDate,'training')">+ אימון</button>
           <button class="btn" style="background:#1565c0;border-color:#1565c0;min-width:90px" onclick="openAddPersonalEvent(_calSelectedDate)">+ אישי</button>
         </div>
       </div>
-      <div id="today-training-count" style="margin-bottom:10px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;color:var(--accent2);font-weight:600;display:none"></div>
+      <div id="today-summary" style="margin-bottom:12px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);display:flex;gap:20px;align-items:center;flex-wrap:wrap;font-size:.9rem;font-weight:600">
+        <span id="today-stat-training" style="color:var(--accent2)"></span>
+        <span id="today-stat-shift"></span>
+        <span id="today-stat-personal"></span>
+      </div>
       <div class="table-wrap" id="sessions-table"></div>
     </div>
   </section>
@@ -1349,15 +1360,18 @@ function renderSessionsTable() {
   const allSessions = trainerSessions();
   const filtered = allSessions.filter(s=>s.date===_calSelectedDate)
     .sort((a,b)=>(a.time||a.startTime||'')<(b.time||b.startTime||'')?-1:1);
-  const headingEl = document.querySelector('#tab-schedule .card:last-child .section-header h2');
+  const headingEl = document.getElementById('schedule-day-heading');
   if (headingEl) headingEl.textContent = fmtDateLong(_calSelectedDate);
-  // Today training count
-  const todayCountEl = document.getElementById('today-training-count');
-  if (todayCountEl) {
-    const trainingCount = filtered.filter(s=>s.type==='training'&&s.status!=='cancelled').length;
-    if (trainingCount > 0) { todayCountEl.style.display=''; todayCountEl.textContent=`אימונים היום: ${trainingCount}`; }
-    else { todayCountEl.style.display='none'; }
-  }
+  // Today summary
+  const trainingCount = filtered.filter(s=>s.type==='training'&&s.status!=='cancelled').length;
+  const hasShift = filtered.some(s=>s.type==='shift'&&s.status!=='cancelled');
+  const hasPersonal = filtered.some(s=>s.type==='personal');
+  const stEl = document.getElementById('today-stat-training');
+  const ssEl = document.getElementById('today-stat-shift');
+  const spEl = document.getElementById('today-stat-personal');
+  if (stEl) stEl.textContent = `🏋️ אימונים היום: ${trainingCount}`;
+  if (ssEl) { ssEl.textContent = hasShift ? '✅ משמרת' : '❌ משמרת'; ssEl.style.color = hasShift ? '#4caf50' : 'var(--muted)'; }
+  if (spEl) { spEl.textContent = hasPersonal ? '✅ לו״ז אישי' : '❌ לו״ז אישי'; spEl.style.color = hasPersonal ? '#4caf50' : 'var(--muted)'; }
   if (!filtered.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים ביום הזה.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
     <thead><tr><th>סוג</th><th>לקוח</th><th>שעה</th><th>פרטים</th><th>עלות / כרטיסייה</th><th>הערות</th><th>פעולות</th></tr></thead>
