@@ -27,7 +27,7 @@
     .loading-box { text-align: center; color: var(--accent2); }
     .spinner {
       width: 44px; height: 44px; border: 4px solid var(--border);
-      border-top-color: var(--accent); border-radius: 50%;
+      border-top-color: var(--gold); border-radius: 50%;
       animation: spin .8s linear infinite; margin: 0 auto 16px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -43,7 +43,7 @@
     nav .app-title { order: 1; }
     nav .logout-btn { order: 3; margin-right: auto; }
     nav .nav-tabs { order: 2; flex: 1; justify-content: center; }
-    .app-title { color: var(--accent); font-size: 1.2rem; font-weight: bold; text-shadow: 0 0 15px rgba(233,69,96,.5); white-space: nowrap; }
+    .app-title { color: var(--gold); font-size: 1.2rem; font-weight: bold; text-shadow: 0 0 15px rgba(240,192,64,.4); white-space: nowrap; }
     .trainer-name-gold {
       background: linear-gradient(135deg, #f0c040 0%, #fff8c0 50%, #e8a020 100%);
       -webkit-background-clip: text;
@@ -94,8 +94,8 @@
 
     /* CARDS */
     .card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 18px; }
-    .card-title { color: var(--accent2); font-size: 1rem; margin-bottom: 6px; }
-    .card-value { font-size: 2rem; font-weight: bold; }
+    .card-title { color: var(--accent2); font-size: 1rem; margin-bottom: 6px; text-align: center; }
+    .card-value { font-size: 2rem; font-weight: bold; text-align: center; }
     .dashboard { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 28px; }
 
     /* SECTION HEADER */
@@ -218,7 +218,7 @@
     .plan-table .plan-date { color: var(--muted); font-size: .82rem; }
     .pb-client-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 2px solid var(--border); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
     .pb-client-option { padding: 8px 12px; cursor: pointer; font-size: .9rem; }
-    .pb-client-option:hover { background: rgba(233,69,96,.08); }
+    .pb-client-option:hover { background: rgba(240,192,64,.08); }
     .ex-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
     .ex-table th, .ex-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: right; }
     .ex-table th { color: var(--muted); font-size: .8rem; }
@@ -228,10 +228,10 @@
     /* REMINDERS */
     .reminders-list { display: flex; flex-direction: column; gap: 12px; }
     .reminder-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-    .reminder-card.today-card { border-color: var(--accent); }
+    .reminder-card.today-card { border-color: var(--gold); }
     .reminder-info h3 { font-size: 1rem; margin-bottom: 4px; }
     .reminder-info p  { font-size: .85rem; color: var(--muted); }
-    .reminder-tag { font-size: .75rem; background: rgba(233,69,96,.2); color: var(--accent); padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+    .reminder-tag { font-size: .75rem; background: rgba(240,192,64,.2); color: var(--gold); padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
 
     /* PAYMENT SUMMARY */
     .pay-summary { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
@@ -242,7 +242,7 @@
     #modal-box { background: var(--card); border: 2px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; position: relative; }
     #modal-title { color: var(--accent2); font-size: 1.2rem; margin-bottom: 20px; }
     #modal-close { position: absolute; top: 16px; left: 16px; background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; line-height: 1; }
-    #modal-close:hover { color: var(--accent); }
+    #modal-close:hover { color: var(--gold); }
 
     /* FORM */
     .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
@@ -253,7 +253,7 @@
     .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
     .form-check { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-    .form-check input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+    .form-check input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--gold); }
     .form-check label { font-size: .9rem; color: var(--text); cursor: pointer; }
 
     /* TYPE TOGGLE */
@@ -278,7 +278,7 @@
     .ex-item input:focus, .ex-item select:focus { outline: none; border-color: var(--accent2); }
     .ex-item-bank { margin-bottom: 6px; }
     .ex-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 2px 6px; border-radius: 4px; }
-    .ex-remove:hover { color: var(--accent); background: rgba(233,69,96,.1); }
+    .ex-remove:hover { color: var(--gold); background: rgba(240,192,64,.1); }
     .ex-label { font-size: .75rem; color: var(--muted); margin-bottom: 2px; }
     .ex-set-row { display: grid; grid-template-columns: 40px 1fr 1fr 1fr auto; gap: 6px; align-items: center; margin-bottom: 4px; }
     .ex-set-row span { font-size: .78rem; color: var(--muted); text-align: center; }
@@ -295,8 +295,8 @@
     .pb-search { width: 100%; padding: 10px 14px; background: var(--bg); border: none; border-bottom: 2px solid var(--border); color: var(--text); font-size: .85rem; font-family: inherit; }
     .pb-search:focus { outline: none; border-bottom-color: var(--accent2); }
     .pb-group-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: right; padding: 10px 16px; background: none; border: none; border-bottom: 1px solid rgba(15,52,96,.4); color: var(--text); font-size: .88rem; cursor: pointer; transition: background .2s; }
-    .pb-group-btn:hover { background: rgba(233,69,96,.08); }
-    .pb-group-btn.active { background: rgba(233,69,96,.12); color: var(--accent); font-weight: 600; }
+    .pb-group-btn:hover { background: rgba(240,192,64,.08); }
+    .pb-group-btn.active { background: rgba(240,192,64,.12); color: var(--gold); font-weight: 600; }
     .pb-group-btn .pb-count { color: var(--muted); font-size: .75rem; }
     .pb-ex-list { padding: 0; }
     .pb-ex-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px 8px 12px; padding-right: 28px; border-bottom: 1px solid rgba(15,52,96,.3); cursor: pointer; transition: background .2s; font-size: .84rem; }
@@ -305,13 +305,13 @@
     .pb-ex-name { color: var(--accent2); }
     .pb-ex-name-en { color: var(--muted); font-size: .75rem; }
     .pb-ex-actions { display: flex; align-items: center; gap: 6px; }
-    .pb-ex-add { color: var(--accent); font-size: 1.2rem; opacity: 0; transition: opacity .2s; background: none; border: none; cursor: pointer; padding: 2px 6px; }
+    .pb-ex-add { color: var(--gold); font-size: 1.2rem; opacity: 0; transition: opacity .2s; background: none; border: none; cursor: pointer; padding: 2px 6px; }
     .pb-ex-item:hover .pb-ex-add { opacity: 1; }
     .pb-video-icon { color: var(--accent2); font-size: .8rem; text-decoration: none; }
     .pb-workout-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
     .pb-workout-tab { padding: 10px 20px; cursor: pointer; border: 2px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; color: var(--muted); font-size: .9rem; background: none; transition: all .2s; }
     .pb-workout-tab:hover { color: var(--text); }
-    .pb-workout-tab.active { color: var(--accent); border-color: var(--border); background: var(--card); margin-bottom: -2px; font-weight: 600; }
+    .pb-workout-tab.active { color: var(--gold); border-color: var(--border); background: var(--card); margin-bottom: -2px; font-weight: 600; }
     .pb-workout-tab-add { color: var(--accent2); font-size: .85rem; }
     .pb-meta { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
     .pb-meta .form-group { margin-bottom: 0; min-width: 160px; }
@@ -322,7 +322,7 @@
     .pb-ex-card-name a:hover { text-decoration: underline; }
     .pb-ex-card-actions { display: flex; gap: 4px; }
     .pb-ex-card-actions button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .85rem; padding: 2px 6px; border-radius: 4px; }
-    .pb-ex-card-actions button:hover { color: var(--accent); background: rgba(233,69,96,.1); }
+    .pb-ex-card-actions button:hover { color: var(--gold); background: rgba(240,192,64,.1); }
     .pb-empty { text-align: center; color: var(--muted); padding: 40px 20px; font-size: .9rem; }
     .pb-save-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 2px solid var(--border); }
     @media (max-width: 768px) {
@@ -342,7 +342,7 @@
     .log-set-row input { background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 8px; font-size: .85rem; font-family: inherit; width: 100%; }
     .log-set-row input:focus { outline: none; border-color: var(--accent2); }
     .log-set-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .9rem; padding: 2px 4px; }
-    .log-set-remove:hover { color: var(--accent); }
+    .log-set-remove:hover { color: var(--gold); }
     .log-add-set { background: none; border: 1px dashed var(--border); color: var(--muted); padding: 6px; border-radius: 6px; cursor: pointer; font-size: .8rem; width: 100%; margin-top: 4px; transition: all .2s; }
     .log-add-set:hover { border-color: var(--accent2); color: var(--accent2); }
     .log-add-exercise { background: none; border: 2px dashed var(--border); color: var(--muted); padding: 12px; border-radius: 10px; cursor: pointer; font-size: .85rem; width: 100%; margin-bottom: 16px; transition: all .2s; text-align: center; }
@@ -2408,7 +2408,7 @@ function planCardHTML(p) {
       const weightsDisplay = e.setsData.some(s => s.weight) ? e.setsData.map(s => s.weight || '—').join(', ') : '—';
       return `<tr><td>${esc(e.category||'—')}</td><td>${e.videoUrl?`<a href="${esc(e.videoUrl)}" target="_blank" style="color:var(--accent2)">${esc(e.name)}</a>`:esc(e.name)}</td><td>${e.setsData.length}</td><td dir="ltr">${repsDisplay}</td><td dir="ltr">${weightsDisplay}</td></tr>`;
     }).join('');
-    return `${workouts.length>1?`<div style="color:var(--accent);font-size:.82rem;font-weight:600;margin:8px 0 4px">${esc(w.name)}</div>`:''}
+    return `${workouts.length>1?`<div style="color:var(--gold);font-size:.82rem;font-weight:600;margin:8px 0 4px">${esc(w.name)}</div>`:''}
       <table class="ex-table"><thead><tr><th>קטגוריה</th><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>משקל</th></tr></thead><tbody>${exRows}</tbody></table>`;
   }).join('');
   const totalEx = workouts.reduce((s,w)=>s+w.exercises.length,0);
@@ -2884,7 +2884,7 @@ function renderTrackingContent() {
   const current = sessions[_trackingSessionIdx];
   const pName = current.planId ? planName(current.planId) : '';
   const wName = current.planId ? getTrackingWorkoutName(current.planId, current.workoutIdx) : '';
-  const source = current.source === 'client' ? '<span class="badge" style="background:rgba(168,218,220,.15);color:var(--accent2)">עצמאי</span>' : '<span class="badge" style="background:rgba(233,69,96,.15);color:var(--accent)">עם מאמן</span>';
+  const source = current.source === 'client' ? '<span class="badge" style="background:rgba(168,218,220,.15);color:var(--accent2)">עצמאי</span>' : '<span class="badge" style="background:rgba(240,192,64,.15);color:var(--gold)">עם מאמן</span>';
 
   const prevSession = _trackingSessionIdx > 0 ? sessions[_trackingSessionIdx - 1] : null;
 
@@ -2981,8 +2981,8 @@ function renderTrackingChartsTab(sessions) {
 
   // Mode toggle
   const modeToggle = `<div style="display:flex;gap:0;border:2px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;width:fit-content">
-    <button style="background:${_trackingChartMode==='weight'?'var(--accent)':'none'};border:none;color:${_trackingChartMode==='weight'?'#fff':'var(--muted)'};padding:6px 16px;cursor:pointer;font-size:.82rem;font-family:inherit" onclick="_trackingChartMode='weight';renderTrackingContent()">לפי משקל</button>
-    <button style="background:${_trackingChartMode==='reps'?'var(--accent)':'none'};border:none;color:${_trackingChartMode==='reps'?'#fff':'var(--muted)'};padding:6px 16px;cursor:pointer;font-size:.82rem;font-family:inherit" onclick="_trackingChartMode='reps';renderTrackingContent()">לפי חזרות</button>
+    <button style="background:${_trackingChartMode==='weight'?'var(--gold)':'none'};border:none;color:${_trackingChartMode==='weight'?'#fff':'var(--muted)'};padding:6px 16px;cursor:pointer;font-size:.82rem;font-family:inherit" onclick="_trackingChartMode='weight';renderTrackingContent()">לפי משקל</button>
+    <button style="background:${_trackingChartMode==='reps'?'var(--gold)':'none'};border:none;color:${_trackingChartMode==='reps'?'#fff':'var(--muted)'};padding:6px 16px;cursor:pointer;font-size:.82rem;font-family:inherit" onclick="_trackingChartMode='reps';renderTrackingContent()">לפי חזרות</button>
   </div>`;
 
   const chartHtml = renderExerciseChart(_trackingChartSelectedEx, sessions);
@@ -3029,7 +3029,7 @@ function renderExerciseChart(exName, sessions) {
 
   const mode = _trackingChartMode; // 'weight' | 'reps'
   const yLabel = mode === 'weight' ? 'משקל (kg)' : 'חזרות';
-  const barColor = mode === 'weight' ? 'var(--accent)' : 'var(--accent2)';
+  const barColor = mode === 'weight' ? 'var(--gold)' : 'var(--accent2)';
 
   // Calculate dimensions
   const maxSets = Math.max(...data.map(d => d.sets.length));
