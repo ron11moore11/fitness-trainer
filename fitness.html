@@ -3317,8 +3317,9 @@ function renderPayTabSummary() {
             <option value=""${!_paySummaryMonth?' selected':''}>מכל הזמנים</option>
           </select>
         </div>
-        <div style="display:flex;align-items:flex-end">
-          <button class="btn" onclick="openAddPayment()">+ תשלום</button>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end">
+          <label style="${lblStyle}">&nbsp;</label>
+          <button class="btn" onclick="openAddPayment()" style="height:38px;white-space:nowrap">+ תשלום</button>
         </div>
       </div>
       <div style="font-size:1rem;font-weight:600;color:var(--accent2);margin-bottom:10px" id="pay-table-title">${esc(tableTitle)}</div>
