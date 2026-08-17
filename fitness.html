@@ -1495,7 +1495,15 @@ function sessionForm(s={}, forceType='') {
             <input name="price" type="number" min="0" step="1" value="${s.price||''}" placeholder="הזן מחיר" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.95rem;font-family:inherit">
           </div>
           <div id="session-punch-field" style="flex:1;${initBillingMode==='punch'?'':'display:none'}">
-            <select name="punchCardId" id="session-punchcard-sel" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.95rem;font-family:inherit"><option value="">— ללא כרטיסייה —</option></select>
+            <div style="position:relative">
+              <input type="text" id="session-punchcard-search" autocomplete="off" placeholder="חפש כרטיסייה..."
+                oninput="filterSessionPunchCards(this.value)"
+                onfocus="document.getElementById('session-punchcard-dd').style.display=''"
+                onblur="setTimeout(()=>document.getElementById('session-punchcard-dd').style.display='none',200)"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-size:.95rem;font-family:inherit;box-sizing:border-box">
+              <div id="session-punchcard-dd" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:200;max-height:220px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 12px rgba(0,0,0,.4)"></div>
+            </div>
+            <input type="hidden" name="punchCardId" id="session-punchcard-sel" value="${esc(s.punchCardId||'')}">
           </div>
         </div>
       </div>
@@ -1606,19 +1614,53 @@ function selectClientPicker(suffix, id, name) {
   if (dd) dd.style.display = 'none';
 }
 function updateSessionPunchCard(clientId, selectedId='') {
-  const sel = document.getElementById('session-punchcard-sel');
-  if (!sel) return;
-  // Show all punch cards with remaining sessions (not just linked to this client)
-  const cards = load('punchCards').filter(pc => {
+  const dd = document.getElementById('session-punchcard-dd');
+  const search = document.getElementById('session-punchcard-search');
+  const hidden = document.getElementById('session-punchcard-sel');
+  if (!dd) return;
+  // Only cards with remaining sessions
+  const allCards = load('punchCards').filter(pc => {
     const used = punchCardSessionsUsed(pc.id).length, booked = punchCardSessionsBooked(pc.id).length;
     return pc.totalSessions - used - booked > 0;
   });
-  sel.innerHTML = '<option value="">— ללא כרטיסייה —</option>' + cards.map(pc => {
+  // Determine which sessions the client has used (to find cards they've punched before)
+  const clientSessions = load('sessions').filter(s => s.clientId === clientId && s.punchCardId);
+  const usedCardIds = new Set(clientSessions.map(s => s.punchCardId));
+  // Priority: own card or previously used → top; others → below
+  const priority = allCards.filter(pc => pc.ownerClientId === clientId || usedCardIds.has(pc.id));
+  const others   = allCards.filter(pc => pc.ownerClientId !== clientId && !usedCardIds.has(pc.id));
+  function cardItem(pc) {
     const used = punchCardSessionsUsed(pc.id).length, booked = punchCardSessionsBooked(pc.id).length;
     const rem = pc.totalSessions - used - booked;
-    return `<option value="${pc.id}"${pc.id===selectedId?' selected':''}>${esc(pc.name||clientName(pc.ownerClientId))} — ${esc(clientName(pc.ownerClientId))} — ${rem}/${pc.totalSessions} נשאר</option>`;
-  }).join('');
-  if (selectedId) sel.value = selectedId;
+    const label = `${esc(pc.name||clientName(pc.ownerClientId))} — ${esc(clientName(pc.ownerClientId))} (${rem}/${pc.totalSessions} נשאר)`;
+    return `<div class="pc-opt" data-id="${pc.id}" data-name="${esc(pc.name||clientName(pc.ownerClientId))}" onclick="selectSessionPunchCard('${pc.id}','${esc(pc.name||clientName(pc.ownerClientId))}')" style="padding:10px 14px;cursor:pointer;font-size:.88rem" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">${label}</div>`;
+  }
+  let html = `<div class="pc-opt" data-id="" data-name="" onclick="selectSessionPunchCard('','')" style="padding:10px 14px;cursor:pointer;font-size:.88rem;color:var(--muted)" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">— ללא כרטיסייה —</div>`;
+  if (priority.length) html += `<div style="padding:4px 14px;font-size:.75rem;color:var(--gold);border-top:1px solid var(--border)">של הלקוח / בשימוש קודם</div>` + priority.map(cardItem).join('');
+  if (others.length)   html += `<div style="padding:4px 14px;font-size:.75rem;color:var(--muted);border-top:1px solid var(--border)">אחרות</div>` + others.map(cardItem).join('');
+  dd.innerHTML = html;
+  // Restore selection if editing
+  if (selectedId) {
+    const pc = allCards.find(x => x.id === selectedId);
+    if (pc && search) search.value = pc.name || clientName(pc.ownerClientId);
+    if (hidden) hidden.value = selectedId;
+  }
+}
+function filterSessionPunchCards(q) {
+  const dd = document.getElementById('session-punchcard-dd');
+  if (!dd) return;
+  dd.style.display = '';
+  dd.querySelectorAll('.pc-opt').forEach(el => {
+    el.style.display = (el.dataset.name||'').toLowerCase().includes(q.toLowerCase()) || !q ? '' : 'none';
+  });
+}
+function selectSessionPunchCard(id, name) {
+  const hidden = document.getElementById('session-punchcard-sel');
+  const search = document.getElementById('session-punchcard-search');
+  const dd = document.getElementById('session-punchcard-dd');
+  if (hidden) hidden.value = id;
+  if (search) search.value = name;
+  if (dd) dd.style.display = 'none';
 }
 function switchBillingMode(mode) {
   const isPunch = mode === 'punch';
