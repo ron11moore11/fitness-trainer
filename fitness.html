@@ -910,6 +910,7 @@ function renderClientProfile() {
   const tab = _clientProfile.tab;
 
   const sidebar = `<div class="cp-sidebar">
+    <button class="cp-back" style="margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:10px;width:100%;text-align:right" onclick="closeClientProfile()">→ חזרה לרשימה</button>
     <button class="cp-sidebar-btn${tab==='details'?' active':''}" onclick="cpSwitchTab('details')">פרטי לקוח</button>
     <button class="cp-sidebar-btn${tab==='plans'?' active':''}" onclick="cpSwitchTab('plans')">תוכניות אימון</button>
     <button class="cp-sidebar-btn${tab==='tracking'?' active':''}" onclick="cpSwitchTab('tracking')">מעקב אימונים</button>
@@ -924,7 +925,6 @@ function renderClientProfile() {
   const ctrl = document.getElementById('clients-controls');
   if (ctrl) ctrl.style.display = 'none';
   document.getElementById('clients-table').innerHTML = `
-    <button class="cp-back" onclick="closeClientProfile()">→ חזרה לרשימה</button>
     <div class="cp-layout">
       ${sidebar}
       <div class="cp-content">${content}</div>
