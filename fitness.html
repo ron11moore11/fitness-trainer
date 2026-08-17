@@ -925,7 +925,6 @@ function renderClientProfile() {
   if (ctrl) ctrl.style.display = 'none';
   document.getElementById('clients-table').innerHTML = `
     <button class="cp-back" onclick="closeClientProfile()">→ חזרה לרשימה</button>
-    <div style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:16px">${esc(c.name)} <span class="badge ${statusBadgeClass(c.status||'פעיל')}" style="font-size:.75rem">${esc(c.status||'פעיל')}</span></div>
     <div class="cp-layout">
       ${sidebar}
       <div class="cp-content">${content}</div>
@@ -951,20 +950,23 @@ function renderCpDetails(c) {
   const pcDebt = ownedCards.reduce((s,pc)=>s+(+pc.price||0),0);
   const totalDebt = sessDebt + planDebt + pcDebt;
   const balance = totalPaid - totalDebt;
-  const balColor = balance >= 0 ? '#4caf50' : 'var(--accent)';
-  const balText = balance > 0 ? `₪${balance.toLocaleString()} זיכוי` : balance < 0 ? `₪${Math.abs(balance).toLocaleString()} חוב` : '₪0';
-  const balLabel = balance >= 0 ? 'יתרה' : 'חוב';
+  const balColor = balance > 0 ? '#4caf50' : balance < 0 ? 'var(--accent)' : 'var(--muted)';
+  const balBorder = balance > 0 ? '#4caf50' : balance < 0 ? 'var(--accent)' : 'var(--border)';
+  const balText = balance > 0 ? `₪${balance.toLocaleString()} יתרה` : balance < 0 ? `₪${Math.abs(balance).toLocaleString()} חוב` : 'ללא חוב או יתרה';
 
   // --- Info ---
+  const phoneHtml = c.phone ? `<div style="margin-bottom:4px"><span style="color:var(--muted);font-size:.85rem">מספר נייד: </span><a href="https://wa.me/${c.phone.replace(/\\D/g,'').replace(/^0/,'972')}" target="_blank" style="color:var(--accent2);text-decoration:none">${esc(c.phone)}</a></div>` : '';
+  const notesHtml = c.notes ? `<div style="margin-bottom:4px"><span style="color:var(--muted);font-size:.85rem">הערות: </span><span style="color:var(--text);font-size:.9rem">${esc(c.notes)}</span></div>` : '';
+  const goalsHtml = c.goals ? `<div style="margin-bottom:4px"><span style="color:var(--muted);font-size:.85rem">מטרות: </span><span style="color:var(--text);font-size:.9rem">${esc(c.goals)}</span></div>` : '';
+  const emailHtml = c.email ? `<div style="margin-bottom:4px"><span style="color:var(--muted);font-size:.85rem">אימייל: </span><span style="color:var(--text);font-size:.9rem">${esc(c.email)}</span></div>` : '';
+  const ageHtml = c.age ? `<div style="margin-bottom:4px"><span style="color:var(--muted);font-size:.85rem">גיל: </span><span style="color:var(--text);font-size:.9rem">${esc(c.age)}</span></div>` : '';
   const info = `<div style="margin-bottom:16px">
-    <div class="cp-info" style="margin-bottom:6px">
-      ${c.phone?`<span>📱 <a href="https://wa.me/${c.phone.replace(/\\D/g,'').replace(/^0/,'972')}" target="_blank" style="color:var(--accent2);text-decoration:none">${esc(c.phone)}</a></span>`:''}
-      ${c.email?`<span>📧 ${esc(c.email)}</span>`:''}
-      ${c.age?`<span>גיל: ${esc(c.age)}</span>`:''}
-      ${c.goals?`<span>🎯 ${esc(c.goals)}</span>`:''}
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span style="font-size:1.35rem;font-weight:700;color:var(--text)">${esc(c.name)}</span>
+      <span class="badge ${statusBadgeClass(c.status||'פעיל')}" style="font-size:.75rem">${esc(c.status||'פעיל')}</span>
     </div>
-    ${c.notes?`<div style="color:var(--muted);font-size:.85rem;margin-bottom:6px">📝 ${esc(c.notes)}</div>`:''}
-    <button class="btn btn-sm" onclick="closeClientProfile();openEditClient('${c.id}')">✏ עריכה</button>
+    ${phoneHtml}${emailHtml}${ageHtml}${goalsHtml}${notesHtml}
+    <button class="btn btn-sm" style="margin-top:8px" onclick="closeClientProfile();openEditClient('${c.id}')">✏ עריכה</button>
   </div>`;
 
   // --- 3 summary boxes ---
@@ -979,8 +981,8 @@ function renderCpDetails(c) {
     <div class="card-title">תשלום מצטבר</div>
     <div style="color:#4caf50;font-size:1.1rem;font-weight:700">₪${totalPaid.toLocaleString()}</div>
   </div>`;
-  const balBox = `<div class="card" style="flex:1;min-width:120px;text-align:center;border-color:${balColor}">
-    <div class="card-title">${balLabel}</div>
+  const balBox = `<div class="card" style="flex:1;min-width:120px;text-align:center;border-color:${balBorder}">
+    <div class="card-title">חשבון</div>
     <div style="color:${balColor};font-size:1.1rem;font-weight:700">${balText}</div>
   </div>`;
   const summary = `<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">${pcBox}${paidBox}${balBox}</div>`;
