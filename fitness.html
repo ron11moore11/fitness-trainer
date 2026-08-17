@@ -1092,8 +1092,8 @@ function renderCpDetails(c) {
       <td style="${mutedStyle}">${pc.price?`₪${(+pc.price).toLocaleString()}`:'—'}</td>
       <td class="actions">
         <button class="btn btn-ghost btn-sm" onclick="switchTab('products');_productsTab='punch_card';openPayDetail('punch_card','${pc.id}','products')">פרטים</button>
-        <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
         <button class="btn btn-sm" onclick="openAddPunchCardPayment('${pc.id}')">+ תשלום</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
         <button class="btn btn-danger btn-sm" onclick="deletePunchCardFromProfile('${pc.id}','${c.id}')">מחק</button>
       </td>
     </tr>`;
@@ -3524,8 +3524,8 @@ function punchCardRows(q) {
         <td style="${mutedStyle}">₪${(+pc.price||0).toLocaleString()}</td>
         <td class="actions">
           <button class="btn btn-ghost btn-sm" onclick="openPayDetail('punch_card','${pc.id}','products')">פרטים</button>
-          <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
           <button class="btn btn-sm" onclick="openAddPunchCardPayment('${pc.id}')">+ תשלום</button>
+          <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
           <button class="btn btn-danger btn-sm" onclick="deletePunchCard('${pc.id}')">מחק</button>
         </td>
       </tr>`;
