@@ -533,9 +533,9 @@
   <div class="app-title"><span id="nav-trainer-name">מאמן כושר</span> 💪</div>
   <button class="logout-btn" onclick="handleLogout()">התנתק</button>
   <div class="nav-tabs">
-    <button class="nav-tab" data-tab="clients">לקוחות</button>
     <button class="nav-tab" data-tab="schedule">יומן</button>
     <button class="nav-tab" data-tab="payments">תשלומים</button>
+    <button class="nav-tab" data-tab="clients">לקוחות</button>
     <div class="nav-more" id="nav-more-wrap">
       <button class="nav-tab" id="nav-more-btn" onclick="toggleNavMore(event)">אחר ▾</button>
       <div class="nav-more-dropdown" id="nav-more-dropdown">
@@ -550,14 +550,14 @@
 
 <!-- MOBILE BOTTOM TAB BAR -->
 <div class="mobile-tab-bar" id="mobile-tab-bar">
-  <button class="mobile-tab-btn" data-tab="clients" onclick="switchTab('clients')">
-    <span class="tab-icon">👥</span><span>לקוחות</span>
-  </button>
   <button class="mobile-tab-btn" data-tab="schedule" onclick="switchTab('schedule')">
     <span class="tab-icon">🗓</span><span>יומן</span>
   </button>
   <button class="mobile-tab-btn" data-tab="payments" onclick="switchTab('payments')">
     <span class="tab-icon">💳</span><span>תשלומים</span>
+  </button>
+  <button class="mobile-tab-btn" data-tab="clients" onclick="switchTab('clients')">
+    <span class="tab-icon">👥</span><span>לקוחות</span>
   </button>
   <div class="mobile-more-wrap">
     <button class="mobile-tab-btn" id="mobile-more-btn" onclick="toggleMobileMore(event)" style="width:100%">
@@ -4381,7 +4381,7 @@ async function init() {
       const mobileAdminTab = document.getElementById('mobile-admin-tab');
       if (mobileAdminTab) mobileAdminTab.style.display = '';
     }
-    switchTab('clients');
+    switchTab('schedule');
   } catch(err) {
     console.error(err);
     document.getElementById('loading-overlay').innerHTML = `
