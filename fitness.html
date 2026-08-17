@@ -376,7 +376,7 @@
     .live-swap-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 2px solid var(--border); }
 
     /* CLIENT PROFILE */
-    .cp-back { background: none; border: none; color: var(--accent2); cursor: pointer; font-size: .9rem; padding: 8px 0; margin-bottom: 12px; }
+    .cp-back { background: none; border: none; color: var(--accent2); cursor: pointer; font-size: .9rem; padding: 8px 0; margin-bottom: 8px; width: 100%; text-align: right; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
     .cp-back:hover { text-decoration: underline; }
     .cp-layout { display: flex; gap: 24px; }
     .cp-sidebar { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 10px; align-self: flex-start; position: sticky; top: 80px; }
@@ -390,7 +390,7 @@
     .cp-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
     .cp-section { margin-bottom: 20px; }
     .cp-section-title { color: var(--gold); font-size: .95rem; font-weight: 600; margin-bottom: 10px; border-bottom: 1px solid var(--gold); padding-bottom: 6px; }
-    @media (max-width: 640px) { .cp-layout { flex-direction: column; } .cp-sidebar { width: 100%; flex-direction: row; overflow-x: auto; position: static; } }
+    @media (max-width: 640px) { .cp-layout { flex-direction: column; } .cp-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; overflow-x: auto; position: static; } .cp-back { flex-basis: 100%; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px; } }
     .cp-plan-row { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; font-size: .88rem; }
     .cp-month { color: var(--accent2); font-size: .85rem; font-weight: 600; margin: 16px 0 8px; }
     .cp-session-row { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 6px; cursor: pointer; transition: background .2s; font-size: .86rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
@@ -925,7 +925,7 @@ function renderClientProfile() {
   const tab = _clientProfile.tab;
 
   const sidebar = `<div class="cp-sidebar">
-    <button class="cp-back" style="margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:10px;width:100%;text-align:right" onclick="closeClientProfile()">→ חזרה לרשימה</button>
+    <button class="cp-back" onclick="closeClientProfile()">→ חזרה לרשימה</button>
     <button class="cp-sidebar-btn${tab==='details'?' active':''}" onclick="cpSwitchTab('details')">פרטים והיסטוריה</button>
     <button class="cp-sidebar-btn${tab==='plans'?' active':''}" onclick="cpSwitchTab('plans')">תוכניות אימון</button>
     <button class="cp-sidebar-btn${tab==='tracking'?' active':''}" onclick="cpSwitchTab('tracking')">מעקב אימונים</button>
