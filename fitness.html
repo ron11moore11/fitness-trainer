@@ -47,6 +47,12 @@
     }
     .nav-tab:hover { color: var(--text); border-color: var(--border); }
     .nav-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(233,69,96,.1); }
+    .nav-more { position: relative; }
+    .nav-more-dropdown { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px; z-index: 200; min-width: 140px; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+    .nav-more-dropdown.open { display: block; }
+    .nav-more-dropdown button { display: block; width: 100%; text-align: right; padding: 8px 14px; background: none; border: none; color: var(--text); cursor: pointer; border-radius: 6px; font-family: inherit; font-size: .9rem; }
+    .nav-more-dropdown button:hover { background: rgba(255,255,255,.06); }
+    .nav-more-dropdown button.active { color: var(--accent); font-weight: 600; }
 
     /* PAY SUB-TABS */
     .sub-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -495,12 +501,17 @@
   <button class="logout-btn" onclick="handleLogout()">התנתק</button>
   <div class="nav-tabs">
     <button class="nav-tab" data-tab="clients">לקוחות</button>
-    <button class="nav-tab" data-tab="schedule">לוח זמנים</button>
+    <button class="nav-tab" data-tab="schedule">יומן</button>
     <button class="nav-tab" data-tab="payments">תשלומים</button>
-    <button class="nav-tab" data-tab="exercises">בנק תרגילים</button>
-    <button class="nav-tab" data-tab="workouts">תוכניות אימון</button>
-    <button class="nav-tab" data-tab="reminders">תזכורות</button>
-    <button class="nav-tab" data-tab="admin" id="nav-admin-tab" style="display:none">ניהול</button>
+    <div class="nav-more" id="nav-more-wrap">
+      <button class="nav-tab" id="nav-more-btn" onclick="toggleNavMore(event)">אחר ▾</button>
+      <div class="nav-more-dropdown" id="nav-more-dropdown">
+        <button data-tab="exercises" onclick="switchTabMore('exercises')">בנק תרגילים</button>
+        <button data-tab="workouts" onclick="switchTabMore('workouts')">תוכניות אימון</button>
+        <button data-tab="reminders" onclick="switchTabMore('reminders')">תזכורות</button>
+        <button data-tab="admin" id="nav-admin-tab" style="display:none" onclick="switchTabMore('admin')">ניהול</button>
+      </div>
+    </div>
   </div>
 </nav>
 
@@ -791,6 +802,10 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
 
 // ===== TAB NAVIGATION =====
 const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:renderExercises, workouts:renderWorkouts, payments:renderPayments, reminders:renderReminders, admin:renderAdmin };
+const MORE_TABS = ['exercises','workouts','reminders','admin'];
+function toggleNavMore(e) { e.stopPropagation(); document.getElementById('nav-more-dropdown').classList.toggle('open'); }
+function switchTabMore(tab) { document.getElementById('nav-more-dropdown').classList.remove('open'); switchTab(tab); }
+document.addEventListener('click', () => { document.getElementById('nav-more-dropdown')?.classList.remove('open'); });
 async function switchTab(name) {
   if (_planBuilder.active && !confirm('יש תוכנית בעריכה — לצאת בלי לשמור?')) return;
   if (_planBuilder.active) _planBuilder.active = false;
@@ -798,10 +813,12 @@ async function switchTab(name) {
   if (_clientProfile.active) _clientProfile.active = false;
   document.querySelectorAll('section[id^="tab-"]').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  document.querySelectorAll('.nav-tab[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  document.getElementById('nav-more-btn').classList.toggle('active', MORE_TABS.includes(name));
+  document.querySelectorAll('#nav-more-dropdown button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   RENDERERS[name]();
 }
-document.querySelectorAll('.nav-tab').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
+document.querySelectorAll('.nav-tab[data-tab]').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
 
 // ========================
 // ===== CLIENTS ==========
