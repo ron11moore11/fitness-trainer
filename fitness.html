@@ -1123,7 +1123,7 @@ function renderCpDetails(c) {
 
 function renderCpPlans(c) {
   return `<div style="margin-bottom:10px"><button class="btn btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ תוכנית חדשה</button></div>
-  <div class="table-wrap">${planRows('', c.id)}</div>`;
+  ${planRows('', c.id)}`;
 }
 
 
@@ -2537,10 +2537,10 @@ function openPlanBuilder(isTemplate=false, existingId='') {
   if (existingId) {
     const p = load('plans').find(x=>x.id===existingId);
     if (!p) return;
-    _planBuilder = { active:true, editingId:existingId, isTemplate:p.isTemplate, clientId:p.clientId||'', planName:p.name,
+    _planBuilder = { active:true, editingId:existingId, isTemplate:p.isTemplate, clientId:p.clientId||'', planName:p.name, price:p.price||'',
       workouts:JSON.parse(JSON.stringify(getPlanWorkouts(p))), activeWorkoutIdx:0, expandedCategory:'', searchTerm:'' };
   } else {
-    _planBuilder = { active:true, editingId:'', isTemplate, clientId:'', planName:'',
+    _planBuilder = { active:true, editingId:'', isTemplate, clientId:'', planName:'', price:'',
       workouts:[], activeWorkoutIdx:0, expandedCategory:'', searchTerm:'' };
   }
   renderWorkouts();
@@ -2560,6 +2560,7 @@ function renderPlanBuilder() {
     <div class="plan-builder-right">
       <div class="pb-meta">
         <div class="form-group"><label>שם התוכנית *</label><input id="pb-plan-name" value="${esc(_planBuilder.planName)}" oninput="_planBuilder.planName=this.value" required></div>
+        <div class="form-group" style="${_planBuilder.isTemplate?'display:none':''}"><label>מחיר (₪)</label><input id="pb-plan-price" type="number" min="0" step="1" value="${esc(_planBuilder.price||'')}" placeholder="0" oninput="_planBuilder.price=this.value"></div>
         <div class="form-group" id="pb-client-group" style="position:relative${_planBuilder.isTemplate?';display:none':''}">
           <label>לקוח</label>
           <input id="pb-client-search" placeholder="חפש לקוח..." value="${_planBuilder.clientId?esc(clientName(_planBuilder.clientId)):''}" oninput="pbFilterClients(this.value)" onfocus="pbShowClientDropdown()" onblur="setTimeout(()=>{const d=document.getElementById('pb-client-dropdown');if(d)d.style.display='none'},200)" autocomplete="off">
@@ -2755,6 +2756,7 @@ async function savePlanFromBuilder() {
   const data = {
     clientId: _planBuilder.isTemplate ? '' : _planBuilder.clientId,
     name: _planBuilder.planName.trim(),
+    price: _planBuilder.isTemplate ? '' : (_planBuilder.price ? +_planBuilder.price : ''),
     isTemplate: _planBuilder.isTemplate,
     workouts: _planBuilder.workouts.map(w => ({
       name: w.name,
@@ -3570,7 +3572,7 @@ function planRows(q, filterClientId=null) {
         ${showClient?`<td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${p.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(p.clientId))}</a></strong></td>`:''}
         <td>${esc(p.name||'—')}</td>
         <td style="font-size:.85rem;color:var(--muted)">${dateStr}</td>
-        <td><input type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0" style="width:75px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit" onchange="setPlanPrice('${p.id}',this.value)"></td>
+        <td>${p.price?`₪${(+p.price).toLocaleString()}`:'<span style="color:var(--muted)">—</span>'}</td>
         <td class="actions">
           <button class="btn btn-sm" onclick="openAddClientPayment('${p.clientId}')">+ תשלום</button>
           <button class="btn btn-ghost btn-sm" onclick="openPlanBuilder(false,'${p.id}')">עריכה</button>
