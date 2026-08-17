@@ -1107,7 +1107,7 @@ function renderCpDetails(c) {
   // --- Plans history ---
   const planTable = `<div class="cp-section" style="margin-top:16px">
     <div class="cp-section-title">היסטוריית תוכניות</div>
-    <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ הוסף תוכנית</button></div>
+    <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="openAddPlanForClient('${c.id}')">+ הוסף תוכנית</button></div>
     ${planRows('', c.id)}
   </div>`;
 
@@ -1115,7 +1115,7 @@ function renderCpDetails(c) {
 }
 
 function renderCpPlans(c) {
-  return `<div style="margin-bottom:10px"><button class="btn btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ תוכנית חדשה</button></div>
+  return `<div style="margin-bottom:10px"><button class="btn btn-sm" onclick="openAddPlanForClient('${c.id}')">+ תוכנית חדשה</button></div>
   ${planRows('', c.id)}`;
 }
 
@@ -3567,7 +3567,7 @@ function planRows(q, filterClientId=null) {
         <td style="font-size:.85rem;color:var(--muted)">${dateStr}</td>
         <td>${p.price?`₪${(+p.price).toLocaleString()}`:'<span style="color:var(--muted)">—</span>'}</td>
         <td class="actions">
-          <button class="btn btn-sm" onclick="openAddClientPayment('${p.clientId}')">+ תשלום</button>
+          <button class="btn btn-sm" onclick="openAddPlanPayment('${p.id}')">+ תשלום</button>
           <button class="btn btn-ghost btn-sm" onclick="openEditPlanModal('${p.id}')">עריכה</button>
           <button class="btn btn-danger btn-sm" onclick="${deleteFn}('${p.id}')">מחק</button>
         </td>
@@ -3582,20 +3582,48 @@ function filterPlans() {
   const container = document.getElementById('plans-results');
   if (container) container.innerHTML = planRows(q);
 }
+function planFormHTML(p={}, lockedClientId=null) {
+  const clientSel = lockedClientId
+    ? `<input type="hidden" name="clientId" value="${esc(lockedClientId)}">`
+    : `<div class="form-group"><label>לקוח *</label>${clientPickerHTML('clientId', p.clientId||'', 'addplan')}</div>`;
+  const dateVal = p.createdAt ? new Date(+p.createdAt||p.createdAt).toISOString().split('T')[0] : localDateStr();
+  return `<form id="modal-form">
+    ${clientSel}
+    <div class="form-group"><label>שם תוכנית *</label><input name="name" required placeholder="למשל: תוכנית חיטוב 3 חודשים" value="${esc(p.name||'')}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>מחיר (₪)</label><input name="price" type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0"></div>
+      <div class="form-group"><label>תאריך</label><input name="date" type="date" value="${esc(dateVal)}"></div>
+    </div>
+    <div class="form-group"><label>הערות</label><input name="notes" placeholder="הערות אופציונלי" value="${esc(p.notes||'')}"></div>
+    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
+  </form>`;
+}
 function openEditPlanModal(planId) {
   const p = load('plans').find(x=>x.id===planId);
   if (!p) return;
-  openModal('עריכת תוכנית', `<form id="modal-form">
-    <div class="form-group"><label>שם התוכנית *</label><input name="planName" value="${esc(p.name||'')}" required></div>
-    <div class="form-group"><label>מחיר (₪)</label><input name="price" type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0"></div>
-    <div class="form-actions">
-      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
-      <button type="submit" class="btn">שמור</button>
-    </div>
-  </form>`, async fd => {
-    p.name = fd.get('planName') || p.name;
+  openModal('עריכת תוכנית', planFormHTML(p, p.clientId), async fd => {
+    p.name = fd.get('name') || p.name;
     p.price = fd.get('price') ? +fd.get('price') : '';
+    p.createdAt = new Date(fd.get('date')||localDateStr()).getTime();
+    p.notes = fd.get('notes')||'';
     await saveItem('plans', p);
+    if (_clientProfile.active) renderClientProfile(); else renderProducts();
+  });
+}
+function openAddPlanProduct() {
+  openModal('הוסף תוכנית', planFormHTML(), async fd => {
+    const clientId = fd.get('clientId');
+    if (!clientId) { alert('יש לבחור לקוח'); return; }
+    await saveItem('plans', {id:uid(), clientId, name:fd.get('name')||'תוכנית אימונים', price:fd.get('price')?+fd.get('price'):'', createdAt:new Date(fd.get('date')||localDateStr()).getTime(), isTemplate:false, exercises:[], notes:fd.get('notes')||''});
+    renderProducts();
+  });
+}
+function openAddPlanPayment(planId) {
+  const p = load('plans').find(x=>x.id===planId);
+  if (!p) return;
+  openModal('הוסף תשלום לתוכנית', paymentFormHTML({clientId:p.clientId, amount:p.price||''}, p.clientId), async fd => {
+    const method=fd.get('paymentMethod')||'', transfer=fd.get('transferMethod')||'';
+    await saveItem('payments', {id:uid(), clientId:p.clientId, planId, amount:fd.get('amount'), date:fd.get('date'), status:'paid', paymentMethod:method, transferMethod:transfer, notes:fd.get('notes')||''});
     if (_clientProfile.active) renderClientProfile(); else renderProducts();
   });
 }
@@ -3612,7 +3640,7 @@ function renderPayTabPlans() {
   return `
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
       <input id="plan-search" type="text" value="${esc(_payPlanFilter.searchQ||'')}" placeholder="חיפוש שם לקוח או תוכנית..." oninput="filterPlans()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit;width:220px;height:38px;box-sizing:border-box">
-      <button class="btn" onclick="switchTab('workouts');openPlanBuilder(false)" style="height:38px;white-space:nowrap">+ תוכנית</button>
+      <button class="btn" onclick="openAddPlanProduct()" style="height:38px;white-space:nowrap">+ תוכנית</button>
     </div>
     <div class="card" id="plans-results">${planRows(q)}</div>`;
 }
@@ -4384,27 +4412,9 @@ function openAddPunchCardForClient(clientId) {
 }
 
 function openAddPlanForClient(clientId) {
-  openModal('הוסף תוכנית אימונים', `<form id="modal-form">
-    <div class="form-group"><label>שם תוכנית *</label><input name="name" required placeholder="למשל: תוכנית ירידה במשקל"></div>
-    <div class="form-row">
-      <div class="form-group"><label>מחיר (₪)</label><input name="price" type="number" min="0" step="1" placeholder="0"></div>
-      <div class="form-group"><label>תאריך</label><input name="date" type="date" value="${localDateStr()}"></div>
-    </div>
-    <div class="form-group"><label>הערות</label><input name="notes" placeholder="הערות אופציונלי"></div>
-    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
-  </form>`, async fd => {
-    await saveItem('plans', {
-      id: uid(),
-      name: fd.get('name'),
-      clientId: clientId,
-      isTemplate: false,
-      exercises: [],
-      price: fd.get('price') ? +fd.get('price') : '',
-      notes: fd.get('notes')||'',
-      createdAt: new Date(fd.get('date')||localDateStr()).getTime(),
-      trainerId: currentTrainerId
-    });
-    renderClientProfile();
+  openModal('הוסף תוכנית', planFormHTML({}, clientId), async fd => {
+    await saveItem('plans', {id:uid(), clientId, name:fd.get('name')||'תוכנית אימונים', price:fd.get('price')?+fd.get('price'):'', createdAt:new Date(fd.get('date')||localDateStr()).getTime(), isTemplate:false, exercises:[], notes:fd.get('notes')||''});
+    if (_clientProfile.active) renderClientProfile(); else renderProducts();
   });
 }
 
