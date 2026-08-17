@@ -1324,7 +1324,8 @@ function renderCalendarWeek() {
       const isCancelled = s.status==='cancelled';
       const isPersonal = s.type === 'personal';
       const label = isShift ? 'משמרת' : isPersonal ? (s.notes||'אירוע אישי') : clientName(s.clientId);
-      return `<div class="week-session${isShift?' shift':''}${isPersonal?' personal':''}${isCancelled?' cancelled':''}">${esc(label)}</div>`;
+      const labelHtml = (!isShift&&!isPersonal) ? `<a href="#" onclick="event.preventDefault();event.stopPropagation();switchTab('clients');openClientProfile('${s.clientId}')" style="color:inherit;text-decoration:none">${esc(label)}</a>` : esc(label);
+      return `<div class="week-session${isShift?' shift':''}${isPersonal?' personal':''}${isCancelled?' cancelled':''}">${labelHtml}</div>`;
     }).join('');
     html += `<div class="week-col${ds===today?' today':''}${ds===_calSelectedDate?' selected':''}" onclick="handleCalDayClick('${ds}')">
       <div class="week-col-header"><div class="week-col-day">${dayNames[i]}</div><div class="week-col-num">${d.getDate()}</div></div>
@@ -2412,7 +2413,7 @@ function planCardHTML(p) {
     <div class="plan-card-header">
       <div>
         <div class="plan-name">${esc(p.name)}</div>
-        <div class="plan-client">${p.isTemplate?'<span class="badge badge-tmpl">תבנית גנרית</span>':'לקוח: '+esc(clientName(p.clientId))}</div>
+        <div class="plan-client">${p.isTemplate?'<span class="badge badge-tmpl">תבנית גנרית</span>':`לקוח: <a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${p.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(p.clientId))}</a>`}</div>
       </div>
     </div>
     ${totalEx?workoutSections:'<div style="color:var(--muted);font-size:.82rem">אין תרגילים</div>'}
@@ -3231,7 +3232,7 @@ function renderPayTabSummary() {
     const total = filtered.reduce((s,p)=>s+(+p.amount||0),0);
     const rows = filtered.length ? filtered.map(p=>`<tr>
       <td>${fmtDate(p.date)}</td>
-      <td>${p.clientId?esc(clientName(p.clientId)):'—'}</td>
+      <td>${p.clientId?`<a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${p.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(p.clientId))}</a>`:'—'}</td>
       <td style="color:#4caf50;font-weight:600">₪${(+p.amount||0).toLocaleString()}</td>
       <td style="color:var(--muted);font-size:.85rem">${esc(p.notes||p.package||'—')}</td>
     </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">אין תשלומים בתקופה זו</td></tr>';
@@ -3267,7 +3268,7 @@ function renderPayTabSummary() {
     ${debtRows.length ? `<div class="card"><div class="table-wrap"><table>
       <thead><tr><th>לקוח</th><th>חוב</th><th></th></tr></thead>
       <tbody>${debtRows.map(x=>`<tr>
-        <td><strong>${esc(x.name)}</strong></td>
+        <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${x.id}')" style="color:var(--accent2);text-decoration:none">${esc(x.name)}</a></strong></td>
         <td style="color:var(--accent);font-weight:700">₪${x.debt.toLocaleString()}</td>
         <td class="actions"><button class="btn btn-ghost btn-sm" onclick="switchTab('clients');openClientProfile('${x.id}')">פרופיל</button></td>
       </tr>`).join('')}</tbody>
@@ -3311,7 +3312,7 @@ function renderPayTabTraining() {
     return `<tr${!isPast?' style="opacity:.65"':''}>
       <td>${fmtDate(s.date)}</td>
       <td style="font-size:.82rem;color:var(--muted)">${esc(s.time||'')}</td>
-      <td>${esc(clientName(s.clientId))}</td>
+      <td><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${s.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(s.clientId))}</a></td>
       <td>${costCol}</td>
     </tr>`;
   });
@@ -3375,7 +3376,7 @@ function renderPayTabPunchCards() {
         <tbody>${cards.map(pc=>{
           const remColor=pc.rem===0&&pc.booked===0?'var(--muted)':pc.rem<=2?'var(--shift)':'#4caf50';
           return `<tr>
-            <td><strong>${esc(clientName(pc.ownerClientId))}</strong></td>
+            <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${pc.ownerClientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(pc.ownerClientId))}</a></strong></td>
             <td>${pc.used}</td><td style="color:var(--accent2)">${pc.booked}</td>
             <td style="color:${remColor};font-weight:700">${pc.rem}</td>
             <td>₪${(+pc.price||0).toLocaleString()}</td>
@@ -3402,7 +3403,7 @@ function renderPayTabPlans() {
     const debt = price ? Math.max(0, price - paid) : 0;
     const debtCol = price ? (debt>0?`<span style="color:var(--accent);font-weight:600">₪${debt.toLocaleString()} חוב</span>`:`<span style="color:#4caf50">✓</span>`) : `<span style="color:var(--muted)">—</span>`;
     return `<tr>
-      <td><strong>${esc(clientName(p.clientId))}</strong></td>
+      <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${p.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(p.clientId))}</a></strong></td>
       <td>${esc(p.name||'—')}</td>
       <td>${p.createdAt?new Date(p.createdAt).toLocaleDateString('he-IL'):'—'}</td>
       <td><input type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0" style="width:75px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit" onchange="setPlanPrice('${p.id}',this.value)"></td>
@@ -3485,7 +3486,7 @@ function renderPayDetailPunchCard(cardId) {
     <h3 style="color:var(--accent2);margin:16px 0 8px">שימושים</h3>
     ${allSess.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>לקוח</th><th>כניסה</th><th>הערות</th></tr></thead><tbody>${allSess.map(s=>{
       const isPast=s.date<=today; if(isPast)entryNum++;
-      return `<tr${!isPast?' style="font-style:italic;opacity:.7"':''}><td>${fmtDate(s.date)}</td><td>${esc(clientName(s.clientId))}</td><td>${isPast?`${entryNum}/${pc.totalSessions}`:'<span style="color:var(--accent2)">מוזמן</span>'}</td><td style="font-size:.85rem;color:var(--muted)">${esc(s.notes||'')}</td></tr>`;
+      return `<tr${!isPast?' style="font-style:italic;opacity:.7"':''}><td>${fmtDate(s.date)}</td><td><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${s.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(s.clientId))}</a></td><td>${isPast?`${entryNum}/${pc.totalSessions}`:'<span style="color:var(--accent2)">מוזמן</span>'}</td><td style="font-size:.85rem;color:var(--muted)">${esc(s.notes||'')}</td></tr>`;
     }).join('')}</tbody></table></div>`:'<div class="empty">אין שימושים עדיין.</div>'}
     <h3 style="color:var(--accent2);margin:16px 0 8px">תשלומים</h3>
     ${pays.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>סכום</th><th>הערה</th><th></th></tr></thead><tbody>${pays.sort((a,b)=>a.date<b.date?-1:1).map(p=>`<tr><td>${fmtDate(p.date)}</td><td style="color:#4caf50;font-weight:600">₪${(+p.amount||0).toLocaleString()}</td><td style="font-size:.85rem">${esc(p.notes||'')}</td><td class="actions"><button class="btn btn-danger btn-sm" onclick="deletePunchCardPayment('${p.id}','${cardId}')">מחק</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">אין תשלומים עדיין.</div>'}
@@ -3608,7 +3609,7 @@ function renderReminders() {
     const waURL = `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
     return `<div class="reminder-card${isToday?' today-card':''}">
       <div class="reminder-info">
-        <h3>${isToday?'<span class="reminder-tag">היום</span>':''}${esc(client.name||'לקוח לא ידוע')}</h3>
+        <h3>${isToday?'<span class="reminder-tag">היום</span>':''}<a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${client.id}')" style="color:inherit;text-decoration:none">${esc(client.name||'לקוח לא ידוע')}</a></h3>
         <p>${fmtDateLong(s.date)} · ${esc(s.time)} · ${esc(s.duration)} דקות</p>
         ${s.notes?`<p style="margin-top:4px">${esc(s.notes)}</p>`:''}
       </div>
