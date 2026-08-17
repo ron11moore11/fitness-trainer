@@ -183,7 +183,7 @@
     .cal-dot.cancelled-dot { background: var(--muted); opacity: .5; }
     .cal-view-toggle { display: flex; gap: 0; border: 2px solid var(--border); border-radius: 8px; overflow: hidden; }
     .cal-view-btn { background: none; border: none; color: var(--muted); padding: 5px 14px; cursor: pointer; font-size: .8rem; font-family: inherit; transition: all .2s; }
-    .cal-view-btn.active { background: var(--accent); color: #fff; }
+    .cal-view-btn.active { background: var(--gold); color: #1a1a2e; }
     .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
     .week-col { background: var(--card); border: 2px solid var(--border); border-radius: 10px; padding: 8px 6px; min-height: 120px; cursor: pointer; transition: border-color .2s; }
     .week-col:hover { border-color: var(--accent); }
@@ -575,7 +575,7 @@
   <section id="tab-clients">
     <div class="dashboard" id="dashboard"></div>
     <div class="card">
-      <div class="section-header"><h2>לקוחות</h2><div id="clients-controls" style="display:flex;gap:8px;align-items:center"><input id="client-search" placeholder="חפש לקוח..." oninput="renderClients()" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;font-size:.85rem;font-family:inherit;width:160px"><select class="status-filter" id="client-status-filter" onchange="renderClients()"><option value="all">הכל</option><option value="פעיל">פעיל</option><option value="בהשהיה">בהשהיה</option><option value="הפסיק">הפסיק</option></select><button class="btn" onclick="openAddClient()">+ הוסף לקוח</button></div></div>
+      <div class="section-header"><h2>לקוחות</h2><div id="clients-controls" style="display:flex;gap:8px;align-items:center"><input id="client-search" placeholder="חפש לקוח..." oninput="renderClients()" style="background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);padding:6px 12px;font-size:.85rem;font-family:inherit;width:160px"><select class="status-filter" id="client-status-filter" onchange="renderClients()"><option value="all">הכל</option><option value="פעיל">פעיל</option><option value="בהשהיה">בהשהיה</option><option value="הפסיק">הפסיק</option></select><button class="btn" style="background:var(--gold);border-color:var(--gold);color:#1a1a2e;white-space:nowrap" onclick="openAddClient()">+ הוסף לקוח</button></div></div>
       <div class="table-wrap" id="clients-table"></div>
     </div>
   </section>
@@ -593,16 +593,19 @@
         <h3 id="cal-title"></h3>
         <button class="btn btn-ghost btn-sm" onclick="calNext()">&#8249;</button>
       </div>
-      <div id="week-training-count" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;color:var(--accent2);font-weight:600"></div>
+      <div id="cal-stats-bar" style="display:flex;gap:8px;margin-bottom:10px">
+        <div id="cal-stat-month" style="flex:1;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;color:var(--accent2);font-weight:600;text-align:center"></div>
+        <div id="cal-stat-week" style="flex:1;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;color:var(--accent2);font-weight:600;text-align:center"></div>
+      </div>
       <div id="cal-container"></div>
     </div>
     <div class="card">
       <div class="section-header">
         <h2>אימונים</h2>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-ghost" onclick="openAddSession(_calSelectedDate,'shift')">+ משמרת</button>
+          <button class="btn" style="background:var(--shift);border-color:var(--shift);color:#1a1a2e" onclick="openAddSession(_calSelectedDate,'shift')">+ משמרת</button>
           <button class="btn" onclick="openAddSession(_calSelectedDate,'training')">+ אימון</button>
-          <button class="btn" style="background:#1565c0;border-color:#1565c0" onclick="openAddPersonalEvent(_calSelectedDate)">+ אירוע</button>
+          <button class="btn" style="background:#1565c0;border-color:#1565c0" onclick="openAddPersonalEvent(_calSelectedDate)">+ אישי</button>
         </div>
       </div>
       <div id="today-training-count" style="margin-bottom:10px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;color:var(--accent2);font-weight:600;display:none"></div>
@@ -1279,8 +1282,15 @@ function renderCalendarMonth() {
   }
   html += '</div>';
   document.getElementById('cal-container').innerHTML=html;
-  const weekCountEl = document.getElementById('week-training-count');
-  if (weekCountEl) weekCountEl.style.display = 'none';
+  const trainingSessions = trainerSessions().filter(s=>s.type==='training'&&s.status!=='cancelled');
+  const monthStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const monthCount = trainingSessions.filter(s=>s.date.startsWith(monthStr)).length;
+  const weekEnd2 = addDays(_calWeekStart,6);
+  const weekCount = trainingSessions.filter(s=>s.date>=_calWeekStart&&s.date<=weekEnd2).length;
+  const smEl = document.getElementById('cal-stat-month');
+  const swEl = document.getElementById('cal-stat-week');
+  if (smEl) smEl.textContent = `אימונים החודש: ${monthCount}`;
+  if (swEl) swEl.textContent = `אימונים השבוע: ${weekCount}`;
 }
 
 function renderCalendarWeek() {
@@ -1319,10 +1329,15 @@ function renderCalendarWeek() {
   }
   html += '</div>';
   document.getElementById('cal-container').innerHTML=html;
-  // Weekly training count
-  const weekSessions = sessions.filter(s=>s.date>=_calWeekStart&&s.date<=weekEnd&&s.type==='training'&&s.status!=='cancelled');
-  const weekCountEl = document.getElementById('week-training-count');
-  if (weekCountEl) { weekCountEl.style.display = ''; weekCountEl.textContent = `אימונים השבוע: ${weekSessions.length}`; }
+  // Stats bar
+  const trainingSessions2 = sessions.filter(s=>s.type==='training'&&s.status!=='cancelled');
+  const weekCount2 = trainingSessions2.filter(s=>s.date>=_calWeekStart&&s.date<=weekEnd).length;
+  const monthStr2 = _calWeekStart.substring(0,7);
+  const monthCount2 = trainingSessions2.filter(s=>s.date.startsWith(monthStr2)).length;
+  const smEl2 = document.getElementById('cal-stat-month');
+  const swEl2 = document.getElementById('cal-stat-week');
+  if (smEl2) smEl2.textContent = `אימונים החודש: ${monthCount2}`;
+  if (swEl2) swEl2.textContent = `אימונים השבוע: ${weekCount2}`;
 }
 
 function handleCalDayClick(dateStr) {
@@ -1345,12 +1360,12 @@ function renderSessionsTable() {
   }
   if (!filtered.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים ביום הזה.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
-    <thead><tr><th>סוג</th><th>לקוח</th><th>תאריך</th><th>שעה</th><th>פרטים</th><th>עלות / כרטיסייה</th><th>הערות</th><th>פעולות</th></tr></thead>
+    <thead><tr><th>סוג</th><th>לקוח</th><th>מתי</th><th>פרטים</th><th>עלות / כרטיסייה</th><th>הערות</th><th>פעולות</th></tr></thead>
     <tbody>${filtered.map(s=>{
       const isShift = s.type === 'shift';
       const isPersonal = s.type === 'personal';
       const isCancelled = s.status==='cancelled';
-      const typeBadge = isShift ? '<span class="badge badge-shift">משמרת</span>' : isPersonal ? '<span class="badge" style="background:#1565c0;color:#fff">אירוע</span>' : '🏋️';
+      const typeBadge = isShift ? '<span class="badge badge-shift">משמרת</span>' : isPersonal ? '<span class="badge" style="background:#1565c0;color:#fff">אישי</span>' : '🏋️';
       const cancelledBadge = isCancelled ? ' <span class="badge badge-cancelled">בוטל</span>' : '';
       const recurring = s.recurringGroupId ? ' <span class="badge badge-recurring">🔁</span>' : '';
       const logBadge = (s.log && s.log.length) ? ' <span class="badge badge-logged">תועד</span>' : '';
@@ -1379,7 +1394,7 @@ function renderSessionsTable() {
         : `<button class="btn btn-ghost btn-sm" style="color:var(--muted)" onclick="toggleCancelSession('${s.id}')">בטל</button>`;
       if (isPersonal) return `<tr style="background:rgba(21,101,192,.08);border-right:3px solid #1565c0">
         <td>${typeBadge}</td>
-        <td colspan="3" style="color:var(--text)">${esc(s.startTime||'')}${s.startTime&&s.endTime?' – ':''}${esc(s.endTime||'')} ${esc(s.notes||'אירוע אישי')}</td>
+        <td colspan="2" style="color:var(--text)">${esc(s.startTime||'')}${s.startTime&&s.endTime?' – ':''}${esc(s.endTime||'')} ${esc(s.notes||'אירוע אישי')}</td>
         <td colspan="3"></td>
         <td class="actions">
           <button class="btn btn-ghost btn-sm" onclick="openEditPersonalEvent('${s.id}')">עריכה</button>
@@ -1388,8 +1403,8 @@ function renderSessionsTable() {
       </tr>`;
       return `<tr class="${isCancelled?'cancelled-row':''}">
       <td>${typeBadge}${cancelledBadge}${recurring}</td>
-      <td>${clientCol}</td><td>${fmtDate(s.date)}</td>
-      <td>${timeCol}</td><td>${detailsCol}</td>
+      <td>${clientCol}</td><td>${fmtDate(s.date)}<br><small style="color:var(--muted)">${timeCol}</small></td>
+      <td>${detailsCol}</td>
       <td>${costCol}</td>
       <td>${esc(s.notes)}${logBadge}</td>
       <td class="actions">
