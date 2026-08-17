@@ -753,9 +753,12 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function localDateStr(d) { d = d || new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function clientName(id) { const c = load('clients').find(x=>x.id===id); return c ? c.name : '—'; }
 function clientBalance(clientId) {
-  const totalPaid = load('payments').filter(p=>p.clientId===clientId && p.status==='paid' && !p.punchCardId).reduce((sum,p)=>sum+(+p.amount||0),0);
+  const totalPaid = load('payments').filter(p=>p.clientId===clientId && p.status==='paid').reduce((sum,p)=>sum+(+p.amount||0),0);
   const sessions = load('sessions').filter(s=>s.clientId===clientId && s.type==='training' && s.status!=='cancelled' && !s.punchCardId && s.source!=='client');
-  const totalDebt = sessions.reduce((sum,s)=>sum+(+s.price||0),0);
+  const sessDebt = sessions.reduce((sum,s)=>sum+(+s.price||0),0);
+  const planDebt = load('plans').filter(p=>p.clientId===clientId && !p.isTemplate).reduce((sum,p)=>sum+(+p.price||0),0);
+  const pcDebt = load('punchCards').filter(pc=>pc.ownerClientId===clientId).reduce((sum,pc)=>sum+(+pc.price||0),0);
+  const totalDebt = sessDebt + planDebt + pcDebt;
   return { totalPaid, totalDebt, balance: totalPaid - totalDebt, sessions: sessions.length };
 }
 function punchCardSessions(cardId) {
@@ -1133,7 +1136,7 @@ function openAddClientPayment(clientId) {
         await saveItem('payments', {id:uid(), clientId:pc?.ownerClientId||clientId, amount, date, status:'paid', punchCardId:existingPcId, paymentMethod:method, transferMethod:transfer, notes});
       } else {
         const pcId = uid();
-        await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', createdAt:new Date().toISOString()});
+        await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', date: date||localDateStr(), createdAt:new Date(date||localDateStr()).getTime()});
         await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', punchCardId:pcId, paymentMethod:method, transferMethod:transfer, notes});
       }
     } else if (product === 'plan') {
@@ -3694,7 +3697,7 @@ function renderDebtClientDetail(clientId) {
     prodRows.push(`<tr><td>—</td><td>תוכנית: ${esc(p.name)}</td><td style="color:var(--accent);font-weight:600">₪${(+p.price||0).toLocaleString()}</td></tr>`);
   });
   punchCards.forEach(pc=>{
-    prodRows.push(`<tr><td>${pc.date?fmtDate(pc.date):'—'}</td><td>כרטיסייה: ${esc(pc.name||'כרטיסייה')}</td><td style="color:var(--accent);font-weight:600">₪${(+pc.price||0).toLocaleString()}</td></tr>`);
+    prodRows.push(`<tr><td>${pc.date||pc.createdAt?fmtDate(pc.date||new Date(pc.createdAt).toISOString().split('T')[0]):'—'}</td><td>כרטיסייה: ${esc(pc.name||'כרטיסייה')}</td><td style="color:var(--accent);font-weight:600">₪${(+pc.price||0).toLocaleString()}</td></tr>`);
   });
   const productsTable = `<div class="card" style="margin-bottom:16px">
     <div style="font-size:.9rem;font-weight:600;color:var(--gold);margin-bottom:10px">מוצרים / חובות</div>
@@ -4105,7 +4108,7 @@ function openAddPayment() {
         await saveItem('payments', {id:uid(), clientId:pc?.ownerClientId||clientId, amount, date, status:'paid', punchCardId:existingPcId, paymentMethod:method, transferMethod:transfer, notes});
       } else {
         const pcId = uid();
-        await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', createdAt:new Date().toISOString()});
+        await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', date: date||localDateStr(), createdAt:new Date(date||localDateStr()).getTime()});
         await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', punchCardId:pcId, paymentMethod:method, transferMethod:transfer, notes});
       }
     } else if (product === 'plan') {
