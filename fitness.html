@@ -3434,49 +3434,58 @@ function renderPayTabTraining() {
     </div>`;
 }
 
-function renderPayTabPunchCards() {
+function punchCardRows(q) {
   const punchCards = load('punchCards');
-  const q = (_payPunchFilter.searchQ||'').trim().toLowerCase();
   let cards = punchCards.map(pc=>{
     const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
     const rem=pc.totalSessions-used-booked;
     return {...pc,used,booked,rem};
   });
   if (q) cards=cards.filter(pc=>(clientName(pc.ownerClientId)||'').toLowerCase().includes(q)||(pc.name||'').toLowerCase().includes(q));
+  if (!cards.length) return '<div class="empty">אין כרטיסיות.</div>';
+  return `<div class="table-wrap"><table>
+    <thead><tr><th>בעלים</th><th>שם כרטיסייה</th><th>מספר אימונים</th><th>תאריך רכישה</th><th>נוצל</th><th>מוזמן</th><th>נשאר</th><th>מחיר</th><th></th></tr></thead>
+    <tbody>${cards.map(pc=>{
+      const isEmpty=pc.rem===0&&pc.booked===0;
+      const remColor=isEmpty?'var(--accent)':pc.rem<=2?'var(--shift)':'#4caf50';
+      const mutedStyle=isEmpty?'color:var(--muted)':'';
+      const dateStr=pc.date||pc.createdAt?new Date(pc.date||pc.createdAt).toLocaleDateString('he-IL'):'—';
+      return `<tr${isEmpty?' style="opacity:.6"':''}>
+        <td style="${mutedStyle}"><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${pc.ownerClientId}')" style="color:${isEmpty?'var(--muted)':'var(--accent2)'};text-decoration:none">${esc(clientName(pc.ownerClientId))}</a></strong></td>
+        <td style="font-size:.85rem;${mutedStyle}">${esc(pc.name||'—')}</td>
+        <td style="text-align:center;${mutedStyle}">${pc.totalSessions}</td>
+        <td style="font-size:.85rem;color:var(--muted)">${dateStr}</td>
+        <td style="${mutedStyle}">${pc.used}</td><td style="color:${isEmpty?'var(--muted)':'var(--accent2)'}">${pc.booked}</td>
+        <td style="color:${remColor};font-weight:700">${pc.rem}</td>
+        <td style="${mutedStyle}">₪${(+pc.price||0).toLocaleString()}</td>
+        <td class="actions">
+          <button class="btn btn-ghost btn-sm" onclick="openPayDetail('punch_card','${pc.id}','products')">פרטים</button>
+          <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
+          <button class="btn btn-sm" onclick="openAddPunchCardPayment('${pc.id}')">+ תשלום</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePunchCard('${pc.id}')">מחק</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+function filterPunchCards() {
+  const inp = document.getElementById('punch-search');
+  if (!inp) return;
+  _payPunchFilter.searchQ = inp.value;
+  const container = document.getElementById('punch-cards-results');
+  if (container) container.innerHTML = punchCardRows(inp.value.trim().toLowerCase());
+}
+function renderPayTabPunchCards() {
+  const q = (_payPunchFilter.searchQ||'').trim().toLowerCase();
   return `
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
       <div class="form-group" style="margin:0;min-width:220px">
-        <label style="font-size:.8rem;color:var(--muted)">חיפוש לקוח</label>
-        <input type="text" value="${esc(_payPunchFilter.searchQ||'')}" placeholder="הקלד שם לקוח או שם כרטיסייה..." oninput="_payPunchFilter.searchQ=this.value;renderProducts()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit;width:100%;box-sizing:border-box">
+        <label style="font-size:.8rem;color:var(--muted)">חיפוש</label>
+        <input id="punch-search" type="text" value="${esc(_payPunchFilter.searchQ||'')}" placeholder="שם לקוח או שם כרטיסייה..." oninput="filterPunchCards()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit;width:100%;box-sizing:border-box">
       </div>
       <button class="btn" onclick="openAddPunchCard()" style="margin-right:auto">+ כרטיסייה</button>
     </div>
-    <div class="card">
-      ${cards.length?`<div class="table-wrap"><table>
-        <thead><tr><th>בעלים</th><th>שם כרטיסייה</th><th>מספר אימונים</th><th>תאריך רכישה</th><th>נוצל</th><th>מוזמן</th><th>נשאר</th><th>מחיר</th><th></th></tr></thead>
-        <tbody>${cards.map(pc=>{
-          const isEmpty=pc.rem===0&&pc.booked===0;
-          const remColor=isEmpty?'var(--accent)':pc.rem<=2?'var(--shift)':'#4caf50';
-          const mutedStyle=isEmpty?'color:var(--muted)':'';
-          const dateStr=pc.date||pc.createdAt?new Date(pc.date||pc.createdAt).toLocaleDateString('he-IL'):'—';
-          return `<tr${isEmpty?' style="opacity:.6"':''}>
-            <td style="${mutedStyle}"><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${pc.ownerClientId}')" style="color:${isEmpty?'var(--muted)':'var(--accent2)'};text-decoration:none">${esc(clientName(pc.ownerClientId))}</a></strong></td>
-            <td style="font-size:.85rem;${mutedStyle}">${esc(pc.name||'—')}</td>
-            <td style="text-align:center;${mutedStyle}">${pc.totalSessions}</td>
-            <td style="font-size:.85rem;color:var(--muted)">${dateStr}</td>
-            <td style="${mutedStyle}">${pc.used}</td><td style="color:${isEmpty?'var(--muted)':'var(--accent2)'}">${pc.booked}</td>
-            <td style="color:${remColor};font-weight:700">${pc.rem}</td>
-            <td style="${mutedStyle}">₪${(+pc.price||0).toLocaleString()}</td>
-            <td class="actions">
-              <button class="btn btn-ghost btn-sm" onclick="openPayDetail('punch_card','${pc.id}','products')">פרטים</button>
-              <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
-              <button class="btn btn-sm" onclick="openAddPunchCardPayment('${pc.id}')">+ תשלום</button>
-              <button class="btn btn-danger btn-sm" onclick="deletePunchCard('${pc.id}')">מחק</button>
-            </td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>`:'<div class="empty">אין כרטיסיות.</div>'}
-    </div>`;
+    <div class="card" id="punch-cards-results">${punchCardRows(q)}</div>`;
 }
 
 function renderPayTabPlans() {
