@@ -3558,7 +3558,7 @@ function planRows(q, filterClientId=null) {
   const showClient = !filterClientId;
   const deleteFn = filterClientId ? 'deletePlanFromProfile' : 'deletePlanFromProducts';
   return `<div class="table-wrap"><table>
-    <thead><tr>${showClient?'<th>לקוח</th>':''}<th>שם תוכנית</th><th>תאריך</th><th>מחיר (₪)</th><th></th></tr></thead>
+    <thead><tr>${showClient?'<th>לקוח</th>':''}<th>שם תוכנית</th><th>תאריך</th><th>מחיר (₪)</th><th>הערות</th><th></th></tr></thead>
     <tbody>${sorted.map(p=>{
       const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('he-IL') : '—';
       return `<tr>
@@ -3566,6 +3566,7 @@ function planRows(q, filterClientId=null) {
         <td>${esc(p.name||'—')}</td>
         <td style="font-size:.85rem;color:var(--muted)">${dateStr}</td>
         <td>${p.price?`₪${(+p.price).toLocaleString()}`:'<span style="color:var(--muted)">—</span>'}</td>
+        <td style="font-size:.85rem;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.notes||'—')}</td>
         <td class="actions">
           <button class="btn btn-sm" onclick="openAddPlanPayment('${p.id}')">+ תשלום</button>
           <button class="btn btn-ghost btn-sm" onclick="openEditPlanModal('${p.id}')">עריכה</button>
