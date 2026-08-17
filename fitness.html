@@ -1077,7 +1077,6 @@ function renderClients() {
   });
   document.getElementById('dashboard').innerHTML = `
     <div class="card"><div class="card-title">סה"כ לקוחות</div><div class="card-value">${clients.length}</div></div>
-    <div class="card"><div class="card-title">תשלומים ממתינים</div><div class="card-value" style="color:var(--accent)">${payments.filter(p=>p.status==='pending').length}</div></div>
     <div class="card"><div class="card-title">חובות פתוחים</div><div class="card-value" style="color:var(--accent)">₪${clients.reduce((sum,c)=>{const b=clientBalance(c.id);return sum+(b.balance<0?Math.abs(b.balance):0);},0).toLocaleString()}</div></div>
   `;
   if (!filtered.length) { document.getElementById('clients-table').innerHTML=`<div class="empty">${clients.length?'אין לקוחות בסטטוס הנבחר.':'אין לקוחות עדיין. הוסף את הראשון!'}</div>`; return; }
