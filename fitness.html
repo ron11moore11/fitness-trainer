@@ -53,6 +53,17 @@
     .nav-more-dropdown button { display: block; width: 100%; text-align: right; padding: 8px 14px; background: none; border: none; color: var(--text); cursor: pointer; border-radius: 6px; font-family: inherit; font-size: .9rem; }
     .nav-more-dropdown button:hover { background: rgba(255,255,255,.06); }
     .nav-more-dropdown button.active { color: var(--accent); font-weight: 600; }
+    /* MOBILE BOTTOM TAB BAR */
+    .mobile-tab-bar { display: none; }
+    .mobile-tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 2px 8px; gap: 2px; background: none; border: none; color: var(--muted); font-size: .68rem; cursor: pointer; font-family: inherit; transition: color .2s; -webkit-tap-highlight-color: transparent; }
+    .mobile-tab-btn .tab-icon { font-size: 1.5rem; line-height: 1; }
+    .mobile-tab-btn.active { color: var(--accent); }
+    .mobile-more-wrap { position: relative; flex: 1; display: flex; }
+    .mobile-more-dropdown { display: none; position: absolute; bottom: calc(100% + 4px); left: 0; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; z-index: 300; min-width: 150px; box-shadow: 0 -4px 20px rgba(0,0,0,.5); }
+    .mobile-more-dropdown.open { display: block; }
+    .mobile-more-dropdown button { display: block; width: 100%; text-align: right; padding: 10px 16px; background: none; border: none; color: var(--text); cursor: pointer; border-radius: 6px; font-family: inherit; font-size: 1rem; }
+    .mobile-more-dropdown button:hover { background: rgba(255,255,255,.06); }
+    .mobile-more-dropdown button.active { color: var(--accent); font-weight: 600; }
 
     /* PAY SUB-TABS */
     .sub-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -441,8 +452,10 @@
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     @media (max-width: 640px) {
-      nav { flex-direction: column; height: auto; padding: 12px; gap: 8px; }
-      .nav-tabs { justify-content: center; }
+      nav { flex-direction: row; height: 48px; padding: 0 16px; gap: 0; }
+      .nav-tabs { display: none; }
+      .mobile-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 2px solid var(--border); z-index: 150; padding-bottom: env(safe-area-inset-bottom,0px); }
+      main { padding: 14px; padding-bottom: 80px; }
       .dashboard { grid-template-columns: repeat(3,1fr); gap: 4px; margin-bottom: 14px; }
       .dashboard .card { padding: 8px 4px; }
       .dashboard .card-title { font-size: .78rem; margin-bottom: 2px; }
@@ -453,7 +466,6 @@
       .ex-set-row input.ex-set-notes { display: none; }
       .log-set-row { grid-template-columns: 30px 1fr 1fr auto; }
       .log-set-row input.log-notes-input { display: none; }
-      main { padding: 14px; }
     }
   </style>
 </head>
@@ -518,6 +530,30 @@
     </div>
   </div>
 </nav>
+
+<!-- MOBILE BOTTOM TAB BAR -->
+<div class="mobile-tab-bar" id="mobile-tab-bar">
+  <button class="mobile-tab-btn" data-tab="clients" onclick="switchTab('clients')">
+    <span class="tab-icon">👥</span><span>לקוחות</span>
+  </button>
+  <button class="mobile-tab-btn" data-tab="schedule" onclick="switchTab('schedule')">
+    <span class="tab-icon">🗓</span><span>יומן</span>
+  </button>
+  <button class="mobile-tab-btn" data-tab="payments" onclick="switchTab('payments')">
+    <span class="tab-icon">💳</span><span>תשלומים</span>
+  </button>
+  <div class="mobile-more-wrap">
+    <button class="mobile-tab-btn" id="mobile-more-btn" onclick="toggleMobileMore(event)" style="width:100%">
+      <span class="tab-icon">☰</span><span>אחר</span>
+    </button>
+    <div class="mobile-more-dropdown" id="mobile-more-dropdown">
+      <button data-tab="exercises" onclick="switchTabMobile('exercises')">🏋️ בנק תרגילים</button>
+      <button data-tab="workouts" onclick="switchTabMobile('workouts')">📋 תוכניות אימון</button>
+      <button data-tab="reminders" onclick="switchTabMobile('reminders')">🔔 תזכורות</button>
+      <button data-tab="admin" id="mobile-admin-tab" style="display:none" onclick="switchTabMobile('admin')">⚙️ ניהול</button>
+    </div>
+  </div>
+</div>
 
 <main>
   <section id="tab-clients">
@@ -809,7 +845,12 @@ const RENDERERS = { clients:renderClients, schedule:renderSchedule, exercises:re
 const MORE_TABS = ['exercises','workouts','reminders','admin'];
 function toggleNavMore(e) { e.stopPropagation(); document.getElementById('nav-more-dropdown').classList.toggle('open'); }
 function switchTabMore(tab) { document.getElementById('nav-more-dropdown').classList.remove('open'); switchTab(tab); }
-document.addEventListener('click', () => { document.getElementById('nav-more-dropdown')?.classList.remove('open'); });
+function toggleMobileMore(e) { e.stopPropagation(); document.getElementById('mobile-more-dropdown').classList.toggle('open'); }
+function switchTabMobile(tab) { document.getElementById('mobile-more-dropdown').classList.remove('open'); switchTab(tab); }
+document.addEventListener('click', () => {
+  document.getElementById('nav-more-dropdown')?.classList.remove('open');
+  document.getElementById('mobile-more-dropdown')?.classList.remove('open');
+});
 async function switchTab(name) {
   if (_planBuilder.active && !confirm('יש תוכנית בעריכה — לצאת בלי לשמור?')) return;
   if (_planBuilder.active) _planBuilder.active = false;
@@ -820,6 +861,9 @@ async function switchTab(name) {
   document.querySelectorAll('.nav-tab[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   document.getElementById('nav-more-btn').classList.toggle('active', MORE_TABS.includes(name));
   document.querySelectorAll('#nav-more-dropdown button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  document.querySelectorAll('.mobile-tab-btn[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  document.getElementById('mobile-more-btn')?.classList.toggle('active', MORE_TABS.includes(name));
+  document.querySelectorAll('#mobile-more-dropdown button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
   RENDERERS[name]();
 }
 document.querySelectorAll('.nav-tab[data-tab]').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
@@ -4071,6 +4115,8 @@ async function init() {
     if (currentTrainerIsAdmin) {
       const adminTab = document.getElementById('nav-admin-tab');
       if (adminTab) adminTab.style.display = '';
+      const mobileAdminTab = document.getElementById('mobile-admin-tab');
+      if (mobileAdminTab) mobileAdminTab.style.display = '';
     }
     switchTab('clients');
   } catch(err) {
