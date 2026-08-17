@@ -996,16 +996,17 @@ function renderCpDetails(c) {
   const payRows = sortedPays.length ? sortedPays.map(p=>`<tr>
     <td>₪${(+p.amount||0).toLocaleString()}</td>
     <td>${fmtDate(p.date)}</td>
-    <td>${esc(p.notes||p.package||'—')}</td>
-    <td class="actions">
+    <td style="font-size:.85rem;color:var(--accent2)">${fmtPayMethod(p)}</td>
+    <td style="color:var(--muted);font-size:.85rem">${esc(p.notes||'—')}</td>
+    <td class="actions" style="text-align:left">
       <button class="btn btn-ghost btn-sm" onclick="openEditPayment('${p.id}');setTimeout(()=>cpSwitchTab('details'),100)">עריכה</button>
       <button class="btn btn-danger btn-sm" onclick="deleteCpPayment('${p.id}','${c.id}')">מחק</button>
     </td>
-  </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">אין תשלומים</td></tr>';
+  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">אין תשלומים</td></tr>';
   const payTable = `<div class="cp-section">
     <div class="cp-section-title">היסטוריית תשלומים</div>
     <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="openAddClientPayment('${c.id}')">+ הוסף תשלום</button></div>
-    <div class="table-wrap"><table><thead><tr><th>סכום</th><th>תאריך</th><th>הערה</th><th>פעולות</th></tr></thead><tbody>${payRows}</tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>סכום</th><th>תאריך</th><th>אמצעי תשלום</th><th>הערות</th><th style="text-align:left">פעולות</th></tr></thead><tbody>${payRows}</tbody></table></div>
   </div>`;
 
   // --- Sessions history ---
