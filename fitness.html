@@ -656,14 +656,6 @@
 
   <section id="tab-admin">
     <div class="section-header"><h2>ניהול מאמנים</h2><button class="btn" onclick="openAddTrainer()">+ הוסף מאמן</button></div>
-    <div class="card" style="margin-bottom:16px;padding:16px;border-color:rgba(168,218,220,.3)">
-      <p style="margin-bottom:8px;font-size:.9rem;color:var(--muted)">סגור חובות פתוחים — יצירת תשלום לכל לקוח שיש לו חוב, כך שהיתרה תעמוד על 0</p>
-      <button class="btn" onclick="settleAllDebts()">סגור חובות פתוחים</button>
-    </div>
-    <div class="card" id="admin-reset-card" style="margin-bottom:16px;padding:16px;border-color:rgba(233,69,96,.4)">
-      <p style="margin-bottom:8px;font-size:.9rem;color:var(--muted)">איפוס מערכת תשלומים — מחיקת כל התשלומים, כרטיסיות וניקוי תעריפים מכל הלקוחות</p>
-      <button class="btn btn-danger" onclick="resetAllPayments()">אפס תשלומים</button>
-    </div>
     <div class="card" id="admin-migrate-card" style="display:none;margin-bottom:16px;padding:16px">
       <p style="margin-bottom:8px;font-size:.9rem">נמצאו נתונים ללא שיוך למאמן. לחץ כדי לשייך אותם אליך:</p>
       <button class="btn" style="background:var(--accent2)" onclick="migrateOrphanData()">שייך נתונים אליי</button>
