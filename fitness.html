@@ -616,10 +616,8 @@
           <button class="btn" style="background:#1565c0;border-color:#1565c0;min-width:90px" onclick="openAddPersonalEvent(_calSelectedDate)">+ אישי</button>
         </div>
       </div>
-      <div id="today-summary" style="margin-bottom:12px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);display:flex;gap:20px;align-items:center;flex-wrap:wrap;font-size:.9rem;font-weight:600">
-        <span id="today-stat-training" style="color:var(--accent2)"></span>
-        <span id="today-stat-shift"></span>
-        <span id="today-stat-personal"></span>
+      <div id="today-summary" style="margin-bottom:12px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;font-weight:600">
+        <span id="today-stat-training"></span>
       </div>
       <div class="table-wrap" id="sessions-table"></div>
     </div>
@@ -1370,11 +1368,12 @@ function renderSessionsTable() {
   const hasShift = filtered.some(s=>s.type==='shift'&&s.status!=='cancelled');
   const hasPersonal = filtered.some(s=>s.type==='personal');
   const stEl = document.getElementById('today-stat-training');
-  const ssEl = document.getElementById('today-stat-shift');
-  const spEl = document.getElementById('today-stat-personal');
-  if (stEl) stEl.textContent = `🏋️ אימונים היום: ${trainingCount}`;
-  if (ssEl) { ssEl.textContent = hasShift ? '✅ משמרת' : '❌ משמרת'; ssEl.style.color = hasShift ? '#4caf50' : 'var(--muted)'; }
-  if (spEl) { spEl.textContent = hasPersonal ? '✅ לו״ז אישי' : '❌ לו״ז אישי'; spEl.style.color = hasPersonal ? '#4caf50' : 'var(--muted)'; }
+  if (stEl) {
+    const parts = [`<span style="color:var(--accent2)">סיכום יומי: ${trainingCount} אימונים אישיים</span>`];
+    if (hasShift) parts.push(`<span style="color:#4caf50">✅ משמרת</span>`);
+    if (hasPersonal) parts.push(`<span style="color:#4caf50">✅ לו״ז אישי</span>`);
+    stEl.innerHTML = parts.join(`<span style="color:var(--muted)"> · </span>`);
+  }
   if (!filtered.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים ביום הזה.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
     <thead><tr><th>סוג</th><th>לקוח</th><th>שעה</th><th>פרטים</th><th>עלות / כרטיסייה</th><th>הערות</th><th>פעולות</th></tr></thead>
