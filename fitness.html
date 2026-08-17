@@ -443,7 +443,11 @@
     @media (max-width: 640px) {
       nav { flex-direction: column; height: auto; padding: 12px; gap: 8px; }
       .nav-tabs { justify-content: center; }
-      .dashboard, .pay-summary { grid-template-columns: 1fr; }
+      .dashboard { grid-template-columns: repeat(3,1fr); gap: 8px; }
+      .dashboard .card { padding: 10px 8px; }
+      .dashboard .card-title { font-size: .7rem; }
+      .dashboard .card-value { font-size: 1.2rem; }
+      .pay-summary { grid-template-columns: 1fr; }
       .form-row, .form-row-3 { grid-template-columns: 1fr; }
       .ex-set-row, .ex-sets-header { grid-template-columns: 30px 1fr 1fr auto; }
       .ex-set-row input.ex-set-notes { display: none; }
@@ -1075,16 +1079,20 @@ function renderClients() {
     if (searchTerm && !(c.name||'').toLowerCase().includes(searchTerm) && !(c.phone||'').includes(searchTerm)) return false;
     return true;
   });
+  const monthStart = (()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; })();
+  const monthIncome = payments.filter(p=>p.status==='paid'&&p.date>=monthStart).reduce((s,p)=>s+(+p.amount||0),0);
+  const totalDebt = clients.reduce((sum,c)=>{
+    const sessDebt=load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&!s.punchCardId&&s.source!=='client').reduce((s,x)=>s+(+x.price||0),0);
+    const planDebt=load('plans').filter(p=>p.clientId===c.id&&!p.isTemplate&&p.price).reduce((s,p)=>s+(+p.price||0),0);
+    const pcDebt=load('punchCards').filter(pc=>pc.ownerClientId===c.id).reduce((s,pc)=>s+(+pc.price||0),0);
+    const totalPaid=payments.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+    const debt=sessDebt+planDebt+pcDebt-totalPaid;
+    return sum+(debt>0?debt:0);
+  },0);
   document.getElementById('dashboard').innerHTML = `
-    <div class="card"><div class="card-title">סה"כ לקוחות</div><div class="card-value">${clients.length}</div></div>
-    <div class="card"><div class="card-title">חובות פתוחים</div><div class="card-value" style="color:var(--accent)">₪${clients.reduce((sum,c)=>{
-      const sessDebt=load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&!s.punchCardId&&s.source!=='client').reduce((s,x)=>s+(+x.price||0),0);
-      const planDebt=load('plans').filter(p=>p.clientId===c.id&&!p.isTemplate&&p.price).reduce((s,p)=>s+(+p.price||0),0);
-      const pcDebt=load('punchCards').filter(pc=>pc.ownerClientId===c.id).reduce((s,pc)=>s+(+pc.price||0),0);
-      const totalPaid=payments.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
-      const debt=sessDebt+planDebt+pcDebt-totalPaid;
-      return sum+(debt>0?debt:0);
-    },0).toLocaleString()}</div></div>
+    <div class="card"><div class="card-title">לקוחות פעילים</div><div class="card-value">${clients.filter(c=>(c.status||'פעיל')==='פעיל').length}</div></div>
+    <div class="card"><div class="card-title">חובות פתוחים</div><div class="card-value" style="color:var(--accent)">₪${totalDebt.toLocaleString()}</div></div>
+    <div class="card"><div class="card-title">הכנסות החודש</div><div class="card-value" style="color:#4caf50">₪${monthIncome.toLocaleString()}</div></div>
   `;
   if (!filtered.length) { document.getElementById('clients-table').innerHTML=`<div class="empty">${clients.length?'אין לקוחות בסטטוס הנבחר.':'אין לקוחות עדיין. הוסף את הראשון!'}</div>`; return; }
   document.getElementById('clients-table').innerHTML = `<table>
