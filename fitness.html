@@ -1094,6 +1094,12 @@ function renderClients() {
     <div class="card"><div class="card-title">חובות פתוחים</div><div class="card-value" style="color:var(--accent)">₪${totalDebt.toLocaleString()}</div></div>
     <div class="card"><div class="card-title">הכנסות החודש</div><div class="card-value" style="color:#4caf50">₪${monthIncome.toLocaleString()}</div></div>
   `;
+  const statusOrder = {'פעיל':0,'בהשהיה':1,'הפסיק':2};
+  filtered.sort((a,b)=>{
+    const so=(statusOrder[a.status||'פעיל']||0)-(statusOrder[b.status||'פעיל']||0);
+    if (so!==0) return so;
+    return (a.name||'').localeCompare(b.name||'','he');
+  });
   if (!filtered.length) { document.getElementById('clients-table').innerHTML=`<div class="empty">${clients.length?'אין לקוחות בסטטוס הנבחר.':'אין לקוחות עדיין. הוסף את הראשון!'}</div>`; return; }
   document.getElementById('clients-table').innerHTML = `<table>
     <thead><tr><th>שם</th><th>סטטוס</th><th>טלפון</th><th>אימייל</th><th>גיל</th><th>מטרות</th><th>פעולות</th></tr></thead>
