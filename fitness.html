@@ -3764,10 +3764,10 @@ function purchaseFormHTML(lockedClientId=null) {
     ${clientSel}
     <div class="form-group">
       <label>מוצר</label>
-      <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content;flex-wrap:wrap">
-        <button type="button" onclick="selectPurchaseProduct('session')" id="prod-btn-session" style="padding:8px 18px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;background:var(--gold);color:#fff;font-weight:600">אימונים אישיים</button>
-        <button type="button" onclick="selectPurchaseProduct('card')" id="prod-btn-card" style="padding:8px 18px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;background:var(--card);color:var(--muted)">כרטיסייה</button>
-        <button type="button" onclick="selectPurchaseProduct('plan')" id="prod-btn-plan" style="padding:8px 18px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;background:var(--card);color:var(--muted)">תוכנית אימונים</button>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);border-radius:8px;overflow:hidden;border:1px solid var(--border);width:100%">
+        <button type="button" onclick="selectPurchaseProduct('session')" id="prod-btn-session" style="padding:10px 8px;border:none;cursor:pointer;font-family:inherit;font-size:.88rem;background:var(--gold);color:#fff;font-weight:600;text-align:center">אימונים אישיים</button>
+        <button type="button" onclick="selectPurchaseProduct('card')" id="prod-btn-card" style="padding:10px 8px;border:none;cursor:pointer;font-family:inherit;font-size:.88rem;background:var(--card);color:var(--muted);text-align:center;border-right:1px solid var(--border);border-left:1px solid var(--border)">כרטיסייה</button>
+        <button type="button" onclick="selectPurchaseProduct('plan')" id="prod-btn-plan" style="padding:10px 8px;border:none;cursor:pointer;font-family:inherit;font-size:.88rem;background:var(--card);color:var(--muted);text-align:center">תוכנית אימונים</button>
       </div>
       <input type="hidden" name="product" id="prod-value" value="session">
     </div>
