@@ -1078,20 +1078,30 @@ function renderCpDetails(c) {
   const pcRows = ownedCards.length ? ownedCards.sort((a,b)=>a.createdAt<b.createdAt?1:-1).map(pc=>{
     const u=punchCardSessionsUsed(pc.id).length, b2=punchCardSessionsBooked(pc.id).length;
     const rem=pc.totalSessions-u-b2;
-    const remColor=rem===0?'var(--accent)':rem<=2?'#ff9800':'#4caf50';
-    return `<tr>
-      <td>${esc(pc.name||'כרטיסייה')}</td>
-      <td>${pc.createdAt?new Date(pc.createdAt).toLocaleDateString('he-IL'):'—'}</td>
-      <td>${pc.totalSessions} אימונים</td>
-      <td>${pc.price?`₪${(+pc.price).toLocaleString()}`:'—'}</td>
-      <td style="color:${remColor};font-weight:600">${rem} נשאר</td>
-      <td class="actions"><button class="btn btn-danger btn-sm" onclick="deletePunchCardFromProfile('${pc.id}','${c.id}')">מחק</button></td>
+    const isEmpty=rem===0&&b2===0;
+    const remColor=isEmpty?'var(--accent)':rem<=2?'var(--shift)':'#4caf50';
+    const mutedStyle=isEmpty?'color:var(--muted)':'';
+    const dateStr=pc.date||pc.createdAt?new Date(pc.date||pc.createdAt).toLocaleDateString('he-IL'):'—';
+    return `<tr${isEmpty?' style="opacity:.6"':''}>
+      <td style="${mutedStyle}">${esc(pc.name||'כרטיסייה')}</td>
+      <td style="text-align:center;${mutedStyle}">${pc.totalSessions}</td>
+      <td style="font-size:.85rem;color:var(--muted)">${dateStr}</td>
+      <td style="${mutedStyle}">${u}</td>
+      <td style="color:${isEmpty?'var(--muted)':'var(--accent2)'}">${b2}</td>
+      <td style="color:${remColor};font-weight:700">${rem}</td>
+      <td style="${mutedStyle}">${pc.price?`₪${(+pc.price).toLocaleString()}`:'—'}</td>
+      <td class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="switchTab('products');_productsTab='punch_card';openPayDetail('punch_card','${pc.id}','products')">פרטים</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
+        <button class="btn btn-sm" onclick="openAddPunchCardPayment('${pc.id}')">+ תשלום</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePunchCardFromProfile('${pc.id}','${c.id}')">מחק</button>
+      </td>
     </tr>`;
-  }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">אין כרטיסיות</td></tr>';
+  }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--muted)">אין כרטיסיות</td></tr>';
   const pcTable = `<div class="cp-section" style="margin-top:16px">
     <div class="cp-section-title">היסטוריית כרטיסיות</div>
     <div style="margin-bottom:8px"><button class="btn btn-sm" onclick="openAddPunchCardForClient('${c.id}')">+ הוסף כרטיסייה</button></div>
-    <div class="table-wrap"><table><thead><tr><th>שם</th><th>תאריך</th><th>אימונים</th><th>מחיר</th><th>נשאר</th><th></th></tr></thead><tbody>${pcRows}</tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>שם</th><th>מספר אימונים</th><th>תאריך</th><th>נוצל</th><th>מוזמן</th><th>נשאר</th><th>מחיר</th><th></th></tr></thead><tbody>${pcRows}</tbody></table></div>
   </div>`;
 
   // --- Plans history ---
@@ -3162,7 +3172,7 @@ function openEditPunchCard(id) {
       price: fd.get('price') ? +fd.get('price') : '', date: fd.get('date'), notes: fd.get('notes')||''
     });
     await saveItem('punchCards', pc);
-    renderProducts();
+    if (_clientProfile.active) renderClientProfile(); else renderProducts();
   });
 }
 async function deletePunchCard(id) {
@@ -3450,7 +3460,7 @@ function renderPayTabPunchCards() {
     </div>
     <div class="card">
       ${cards.length?`<div class="table-wrap"><table>
-        <thead><tr><th>בעלים</th><th>מספר אימונים</th><th>תאריך רכישה</th><th>נוצל</th><th>מוזמן</th><th>נשאר</th><th>מחיר</th><th></th></tr></thead>
+        <thead><tr><th>בעלים</th><th>שם כרטיסייה</th><th>מספר אימונים</th><th>תאריך רכישה</th><th>נוצל</th><th>מוזמן</th><th>נשאר</th><th>מחיר</th><th></th></tr></thead>
         <tbody>${cards.map(pc=>{
           const isEmpty=pc.rem===0&&pc.booked===0;
           const remColor=isEmpty?'var(--accent)':pc.rem<=2?'var(--shift)':'#4caf50';
@@ -3458,6 +3468,7 @@ function renderPayTabPunchCards() {
           const dateStr=pc.date||pc.createdAt?new Date(pc.date||pc.createdAt).toLocaleDateString('he-IL'):'—';
           return `<tr${isEmpty?' style="opacity:.6"':''}>
             <td style="${mutedStyle}"><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${pc.ownerClientId}')" style="color:${isEmpty?'var(--muted)':'var(--accent2)'};text-decoration:none">${esc(clientName(pc.ownerClientId))}</a></strong></td>
+            <td style="font-size:.85rem;${mutedStyle}">${esc(pc.name||'—')}</td>
             <td style="text-align:center;${mutedStyle}">${pc.totalSessions}</td>
             <td style="font-size:.85rem;color:var(--muted)">${dateStr}</td>
             <td style="${mutedStyle}">${pc.used}</td><td style="color:${isEmpty?'var(--muted)':'var(--accent2)'}">${pc.booked}</td>
