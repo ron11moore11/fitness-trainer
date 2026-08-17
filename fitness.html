@@ -1119,8 +1119,19 @@ function renderCpPlans(c) {
 
 
 function openAddClientPayment(clientId) {
-  openModal('הוסף תשלום', paymentFormHTML({}, clientId), async fd => {
-    await saveItem('payments', {id:uid(), clientId, amount:fd.get('amount'), date:fd.get('date'), status:'paid', paymentMethod:fd.get('paymentMethod')||'', transferMethod:fd.get('transferMethod')||'', notes:fd.get('notes')||''});
+  openModal('הוסף תשלום / רכישה', purchaseFormHTML(clientId), async fd => {
+    const product = fd.get('product')||'session';
+    const date = fd.get('date'), method = fd.get('paymentMethod')||'', transfer = fd.get('transferMethod')||'', notes = fd.get('notes')||'', amount = fd.get('amount');
+    if (product === 'card') {
+      const pcId = uid();
+      await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', createdAt:new Date().toISOString()});
+      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', punchCardId:pcId, paymentMethod:method, transferMethod:transfer, notes});
+    } else if (product === 'plan') {
+      await saveItem('plans', {id:uid(), clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
+      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+    } else {
+      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+    }
     if (_payDetail.active) renderPayments(); else renderClientProfile();
   });
 }
@@ -3339,7 +3350,7 @@ function renderPayTabSummary() {
       <tbody>${debtRows.map(x=>`<tr>
         <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${x.id}')" style="color:var(--accent2);text-decoration:none">${esc(x.name)}</a></strong></td>
         <td style="color:var(--accent);font-weight:700">₪${x.debt.toLocaleString()}</td>
-        <td class="actions"><button class="btn btn-ghost btn-sm" onclick="switchTab('clients');openClientProfile('${x.id}')">פרופיל</button></td>
+        <td></td>
       </tr>`).join('')}</tbody>
     </table></div></div>` : '<div class="empty">אין חובות פתוחים 🎉</div>'}`;
 }
@@ -3616,6 +3627,71 @@ function paymentForm(p={}) {
     <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
   </form>`;
 }
+function purchaseFormHTML(lockedClientId=null) {
+  const clientSel = lockedClientId ? '' : `<div class="form-group"><label>לקוח *</label><select name="clientId" required><option value="">— בחר לקוח —</option>${clientOptions('')}</select></div>`;
+  const methBtns = ['cash','transfer','check','other'].map(m=>{
+    const lbl={cash:'מזומן',transfer:'העברה',check:"צ'ק",other:'אחר'}[m];
+    return `<button type="button" onclick="selectPayMethod('${m}')" id="pm-btn-${m}" style="padding:8px 18px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;transition:all .15s;background:var(--card);color:var(--muted)">${lbl}</button>`;
+  }).join('');
+  const transBtns = ['bit','paybox','bank','other_transfer'].map(m=>{
+    const lbl={bit:'ביט',paybox:'פייבוקס',bank:'העברה בנקאית',other_transfer:'אחר'}[m];
+    return `<button type="button" onclick="selectTransferMethod('${m}')" id="tm-btn-${m}" style="padding:7px 14px;border:none;cursor:pointer;font-family:inherit;font-size:.85rem;transition:all .15s;background:var(--card);color:var(--muted)">${lbl}</button>`;
+  }).join('');
+  return `<form id="modal-form">
+    ${clientSel}
+    <div class="form-group">
+      <label>מוצר</label>
+      <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content;flex-wrap:wrap">
+        <button type="button" onclick="selectPurchaseProduct('session')" id="prod-btn-session" style="padding:8px 18px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;background:var(--gold);color:#fff;font-weight:600">אימונים אישיים</button>
+        <button type="button" onclick="selectPurchaseProduct('card')" id="prod-btn-card" style="padding:8px 18px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;background:var(--card);color:var(--muted)">כרטיסייה</button>
+        <button type="button" onclick="selectPurchaseProduct('plan')" id="prod-btn-plan" style="padding:8px 18px;border:none;cursor:pointer;font-family:inherit;font-size:.9rem;background:var(--card);color:var(--muted)">תוכנית אימונים</button>
+      </div>
+      <input type="hidden" name="product" id="prod-value" value="session">
+    </div>
+    <div id="prod-card-fields" style="display:none;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:4px;background:rgba(255,255,255,.02)">
+      <div style="font-size:.8rem;color:var(--gold);font-weight:600;margin-bottom:10px">פרטי כרטיסייה</div>
+      <div class="form-group"><label>שם כרטיסייה *</label><input name="pcName" placeholder='למשל: כרטיסייה 10 אימונים'></div>
+      <div class="form-row">
+        <div class="form-group"><label>מספר אימונים *</label><input name="pcSessions" type="number" min="1" step="1" placeholder="10"></div>
+        <div class="form-group"><label>מחיר כרטיסייה (₪) *</label><input name="pcPrice" type="number" min="0" step="1" placeholder="0"></div>
+      </div>
+    </div>
+    <div id="prod-plan-fields" style="display:none;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:4px;background:rgba(255,255,255,.02)">
+      <div style="font-size:.8rem;color:var(--gold);font-weight:600;margin-bottom:10px">פרטי תוכנית אימונים</div>
+      <div class="form-group"><label>שם תוכנית *</label><input name="planName" placeholder='למשל: תוכנית חיטוב'></div>
+      <div class="form-group"><label>מחיר תוכנית (₪) *</label><input name="planPrice" type="number" min="0" step="1" placeholder="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label id="amount-label">סכום תשלום (₪) *</label><input name="amount" type="number" min="0" step="1" required></div>
+      <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${localDateStr()}" required></div>
+    </div>
+    <div class="form-group">
+      <label>אמצעי תשלום</label>
+      <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content">${methBtns}</div>
+      <input type="hidden" name="paymentMethod" id="pm-value" value="">
+    </div>
+    <div id="pm-transfer-opts" style="display:none">
+      <div class="form-group">
+        <label>סוג העברה</label>
+        <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content">${transBtns}</div>
+        <input type="hidden" name="transferMethod" id="tm-value" value="">
+      </div>
+    </div>
+    <div class="form-group"><label>הערות</label><input name="notes" placeholder="הערה נוספת..."></div>
+    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
+  </form>`;
+}
+function selectPurchaseProduct(product) {
+  ['session','card','plan'].forEach(p=>{
+    const b=document.getElementById(`prod-btn-${p}`);
+    if(b){b.style.background=p===product?'var(--gold)':'var(--card)';b.style.color=p===product?'#fff':'var(--muted)';b.style.fontWeight=p===product?'600':'400';}
+  });
+  const v=document.getElementById('prod-value'); if(v) v.value=product;
+  const cf=document.getElementById('prod-card-fields'); if(cf) cf.style.display=product==='card'?'block':'none';
+  const pf=document.getElementById('prod-plan-fields'); if(pf) pf.style.display=product==='plan'?'block':'none';
+  const lbl=document.getElementById('amount-label');
+  if(lbl) lbl.textContent=product==='session'?'סכום תשלום (₪) *':'סכום ששולם (₪) *';
+}
 function paymentFormHTML(p={}, lockedClientId=null) {
   const method = p.paymentMethod||'';
   const transfer = p.transferMethod||'';
@@ -3681,8 +3757,20 @@ function setPaySummaryMonth(val) {
 }
 function openAddPayment() {
   if (!load('clients').length) { alert('יש להוסיף לקוח.'); return; }
-  openModal('הוסף תשלום', paymentFormHTML(), async fd => {
-    await saveItem('payments', {id:uid(), clientId:fd.get('clientId'), amount:fd.get('amount'), date:fd.get('date'), status:'paid', paymentMethod:fd.get('paymentMethod')||'', transferMethod:fd.get('transferMethod')||'', notes:fd.get('notes')||''});
+  openModal('הוסף תשלום / רכישה', purchaseFormHTML(null), async fd => {
+    const product = fd.get('product')||'session';
+    const clientId = fd.get('clientId');
+    const date = fd.get('date'), method = fd.get('paymentMethod')||'', transfer = fd.get('transferMethod')||'', notes = fd.get('notes')||'', amount = fd.get('amount');
+    if (product === 'card') {
+      const pcId = uid();
+      await saveItem('punchCards', {id:pcId, ownerClientId:clientId, name:fd.get('pcName')||'כרטיסייה', totalSessions:+(fd.get('pcSessions')||0), price:fd.get('pcPrice')||'0', linkedClientIds:[], notes:'', createdAt:new Date().toISOString()});
+      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', punchCardId:pcId, paymentMethod:method, transferMethod:transfer, notes});
+    } else if (product === 'plan') {
+      await saveItem('plans', {id:uid(), clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
+      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+    } else {
+      await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+    }
     renderPayments();
   });
 }
