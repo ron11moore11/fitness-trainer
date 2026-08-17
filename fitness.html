@@ -131,7 +131,8 @@
     th { color: var(--muted); font-size: .85rem; font-weight: 600; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(255,255,255,.03); }
-    .actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .actions { display: flex; gap: 4px; justify-content: flex-end; flex-wrap: nowrap; white-space: nowrap; }
+    @media (max-width: 640px) { .actions .btn { padding: 4px 8px; font-size: .78rem; } }
 
     /* BADGES */
     .badge { padding: 3px 10px; border-radius: 10px; font-size: .75rem; font-weight: 600; display: inline-block; }
