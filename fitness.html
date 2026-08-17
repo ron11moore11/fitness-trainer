@@ -797,6 +797,7 @@ let _payDetail = { active: false, type: '', id: '' };
 let _payDetailRenderer = 'payments';
 let _payTrainingFilter = (()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), lastDay=String(new Date(d.getFullYear(),d.getMonth()+1,0).getDate()).padStart(2,'0'); return { clientId:'', fromDate:`${y}-${m}-01`, toDate:`${y}-${m}-${lastDay}` }; })();
 let _payPunchFilter = { searchQ: '' };
+let _payPlanFilter  = { searchQ: '' };
 let _paySummaryMonthOffset = 0;
 let _paySummaryMode = 'income'; // 'income' | 'debts'
 let _paySummaryMonth = (()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; })(); // 'YYYY-MM' or '' for all time
@@ -1121,18 +1122,8 @@ function renderCpDetails(c) {
 }
 
 function renderCpPlans(c) {
-  const plans = load('plans').filter(p=>p.clientId===c.id);
-  let plansHtml = plans.length ? plans.map(p => {
-    const workouts = getPlanWorkouts(p);
-    const totalEx = workouts.reduce((s,w)=>s+w.exercises.length,0);
-    return `<div class="cp-plan-row" style="cursor:pointer" onclick="_workoutsView.mode='detail';_workoutsView.selectedPlanId='${p.id}';switchTab('workouts');renderWorkouts()">
-      <strong>${esc(p.name)}</strong> — ${workouts.length} אימונים, ${totalEx} תרגילים
-    </div>`;
-  }).join('') : '<div style="color:var(--muted);font-size:.85rem">אין תוכניות</div>';
-  return `<div class="cp-actions">
-    <button class="btn btn-teal btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ תוכנית חדשה</button>
-  </div>
-  ${plansHtml}`;
+  return `<div style="margin-bottom:10px"><button class="btn btn-sm" onclick="closeClientProfile();openPlanBuilder(false)">+ תוכנית חדשה</button></div>
+  <div class="table-wrap">${planRows('', c.id)}</div>`;
 }
 
 
@@ -3563,34 +3554,55 @@ function renderPayTabPunchCards() {
     <div class="card" id="punch-cards-results">${punchCardRows(q)}</div>`;
 }
 
+function planRows(q, filterClientId=null) {
+  let plans = load('plans').filter(p=>!p.isTemplate&&p.clientId);
+  if (filterClientId) plans = plans.filter(p=>p.clientId===filterClientId);
+  if (q) plans = plans.filter(p=>(p.name||'').toLowerCase().includes(q)||(clientName(p.clientId)||'').toLowerCase().includes(q));
+  if (!plans.length) return '<div class="empty" style="padding:16px">אין תוכניות.</div>';
+  const sorted = [...plans].sort((a,b)=>(a.createdAt||0)<(b.createdAt||0)?1:-1);
+  const showClient = !filterClientId;
+  const deleteFn = filterClientId ? 'deletePlanFromProfile' : 'deletePlanFromProducts';
+  return `<div class="table-wrap"><table>
+    <thead><tr>${showClient?'<th>לקוח</th>':''}<th>שם תוכנית</th><th>תאריך</th><th>מחיר (₪)</th><th></th></tr></thead>
+    <tbody>${sorted.map(p=>{
+      const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleDateString('he-IL') : '—';
+      return `<tr>
+        ${showClient?`<td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${p.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(p.clientId))}</a></strong></td>`:''}
+        <td>${esc(p.name||'—')}</td>
+        <td style="font-size:.85rem;color:var(--muted)">${dateStr}</td>
+        <td><input type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0" style="width:75px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit" onchange="setPlanPrice('${p.id}',this.value)"></td>
+        <td class="actions">
+          <button class="btn btn-sm" onclick="openAddClientPayment('${p.clientId}')">+ תשלום</button>
+          <button class="btn btn-ghost btn-sm" onclick="openPlanBuilder(false,'${p.id}')">עריכה</button>
+          <button class="btn btn-danger btn-sm" onclick="${deleteFn}('${p.id}')">מחק</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+function filterPlans() {
+  const inp = document.getElementById('plan-search'); if (!inp) return;
+  _payPlanFilter.searchQ = inp.value;
+  const q = inp.value.trim().toLowerCase();
+  const container = document.getElementById('plans-results');
+  if (container) container.innerHTML = planRows(q);
+}
+async function deletePlanFromProducts(id) {
+  if (!confirm('למחוק תוכנית זו?')) return;
+  await deleteItem('plans', id); renderProducts();
+}
+async function deletePlanFromProfile(id) {
+  if (!confirm('למחוק תוכנית זו?')) return;
+  await deleteItem('plans', id); if (_clientProfile.active) renderClientProfile(); else renderProducts();
+}
 function renderPayTabPlans() {
-  const plans = load('plans').filter(p=>!p.isTemplate&&p.clientId), payments = load('payments');
-  if (!plans.length) return '<div class="empty">אין תוכניות. הוסף תוכנית מפרופיל הלקוח.</div>';
-  const sorted = [...plans].sort((a,b)=>a.createdAt<b.createdAt?1:-1);
-  const rows = sorted.map(p=>{
-    const paid = payments.filter(x=>x.clientId===p.clientId&&x.status==='paid'&&!x.punchCardId).reduce((s,x)=>s+(+x.amount||0),0);
-    const price = +(p.price)||0;
-    const debt = price ? Math.max(0, price - paid) : 0;
-    const debtCol = price ? (debt>0?`<span style="color:var(--accent);font-weight:600">₪${debt.toLocaleString()} חוב</span>`:`<span style="color:#4caf50">✓</span>`) : `<span style="color:var(--muted)">—</span>`;
-    return `<tr>
-      <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${p.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(p.clientId))}</a></strong></td>
-      <td>${esc(p.name||'—')}</td>
-      <td>${p.createdAt?new Date(p.createdAt).toLocaleDateString('he-IL'):'—'}</td>
-      <td><input type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0" style="width:75px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:3px 6px;font-size:.82rem;font-family:inherit" onchange="setPlanPrice('${p.id}',this.value)"></td>
-      <td>${debtCol}</td>
-      <td class="actions">
-        <button class="btn btn-sm" onclick="openAddClientPayment('${p.clientId}')">+ תשלום</button>
-        <button class="btn btn-ghost btn-sm" onclick="openPayDetail('plan','${p.clientId}','products')">פרטים</button>
-      </td>
-    </tr>`;
-  });
-  return `<div class="card">
-    <div class="section-header" style="margin-bottom:12px"><h2>תוכניות אימון</h2></div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>לקוח</th><th>שם תוכנית</th><th>תאריך</th><th>מחיר (₪)</th><th>חוב</th><th></th></tr></thead>
-      <tbody>${rows.join('')}</tbody>
-    </table></div>
-  </div>`;
+  const q = (_payPlanFilter.searchQ||'').trim().toLowerCase();
+  return `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+      <input id="plan-search" type="text" value="${esc(_payPlanFilter.searchQ||'')}" placeholder="חיפוש שם לקוח או תוכנית..." oninput="filterPlans()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit;width:220px;height:38px;box-sizing:border-box">
+      <button class="btn" onclick="switchTab('workouts');openPlanBuilder(false)" style="height:38px;white-space:nowrap">+ תוכנית</button>
+    </div>
+    <div class="card" id="plans-results">${planRows(q)}</div>`;
 }
 
 function renderPayDetailView() {
