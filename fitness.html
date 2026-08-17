@@ -1077,7 +1077,14 @@ function renderClients() {
   });
   document.getElementById('dashboard').innerHTML = `
     <div class="card"><div class="card-title">סה"כ לקוחות</div><div class="card-value">${clients.length}</div></div>
-    <div class="card"><div class="card-title">חובות פתוחים</div><div class="card-value" style="color:var(--accent)">₪${clients.reduce((sum,c)=>{const b=clientBalance(c.id);return sum+(b.balance<0?Math.abs(b.balance):0);},0).toLocaleString()}</div></div>
+    <div class="card"><div class="card-title">חובות פתוחים</div><div class="card-value" style="color:var(--accent)">₪${clients.reduce((sum,c)=>{
+      const sessDebt=load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&s.status!=='cancelled'&&!s.punchCardId&&s.source!=='client').reduce((s,x)=>s+(+x.price||0),0);
+      const planDebt=load('plans').filter(p=>p.clientId===c.id&&!p.isTemplate&&p.price).reduce((s,p)=>s+(+p.price||0),0);
+      const pcDebt=load('punchCards').filter(pc=>pc.ownerClientId===c.id).reduce((s,pc)=>s+(+pc.price||0),0);
+      const totalPaid=payments.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
+      const debt=sessDebt+planDebt+pcDebt-totalPaid;
+      return sum+(debt>0?debt:0);
+    },0).toLocaleString()}</div></div>
   `;
   if (!filtered.length) { document.getElementById('clients-table').innerHTML=`<div class="empty">${clients.length?'אין לקוחות בסטטוס הנבחר.':'אין לקוחות עדיין. הוסף את הראשון!'}</div>`; return; }
   document.getElementById('clients-table').innerHTML = `<table>
