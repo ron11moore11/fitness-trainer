@@ -3575,7 +3575,7 @@ function planRows(q, filterClientId=null) {
         <td>${p.price?`₪${(+p.price).toLocaleString()}`:'<span style="color:var(--muted)">—</span>'}</td>
         <td class="actions">
           <button class="btn btn-sm" onclick="openAddClientPayment('${p.clientId}')">+ תשלום</button>
-          <button class="btn btn-ghost btn-sm" onclick="openPlanBuilder(false,'${p.id}')">עריכה</button>
+          <button class="btn btn-ghost btn-sm" onclick="openEditPlanModal('${p.id}')">עריכה</button>
           <button class="btn btn-danger btn-sm" onclick="${deleteFn}('${p.id}')">מחק</button>
         </td>
       </tr>`;
@@ -3588,6 +3588,23 @@ function filterPlans() {
   const q = inp.value.trim().toLowerCase();
   const container = document.getElementById('plans-results');
   if (container) container.innerHTML = planRows(q);
+}
+function openEditPlanModal(planId) {
+  const p = load('plans').find(x=>x.id===planId);
+  if (!p) return;
+  openModal('עריכת תוכנית', `<form id="modal-form">
+    <div class="form-group"><label>שם התוכנית *</label><input name="planName" value="${esc(p.name||'')}" required></div>
+    <div class="form-group"><label>מחיר (₪)</label><input name="price" type="number" min="0" step="1" value="${esc(p.price||'')}" placeholder="0"></div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button>
+      <button type="submit" class="btn">שמור</button>
+    </div>
+  </form>`, async fd => {
+    p.name = fd.get('planName') || p.name;
+    p.price = fd.get('price') ? +fd.get('price') : '';
+    await saveItem('plans', p);
+    if (_clientProfile.active) renderClientProfile(); else renderProducts();
+  });
 }
 async function deletePlanFromProducts(id) {
   if (!confirm('למחוק תוכנית זו?')) return;
