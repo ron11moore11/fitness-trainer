@@ -600,12 +600,12 @@
       <div id="cal-container"></div>
     </div>
     <div class="card">
-      <div class="section-header">
-        <h2>אימונים</h2>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn" style="background:var(--shift);border-color:var(--shift);color:#1a1a2e" onclick="openAddSession(_calSelectedDate,'shift')">+ משמרת</button>
-          <button class="btn" onclick="openAddSession(_calSelectedDate,'training')">+ אימון</button>
-          <button class="btn" style="background:#1565c0;border-color:#1565c0" onclick="openAddPersonalEvent(_calSelectedDate)">+ אישי</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;margin-bottom:16px;gap:8px">
+        <h2 style="font-size:1.2rem;color:var(--accent2)">אימונים</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn" style="background:var(--shift);border-color:var(--shift);color:#fff;min-width:90px" onclick="openAddSession(_calSelectedDate,'shift')">+ משמרת</button>
+          <button class="btn" style="min-width:90px" onclick="openAddSession(_calSelectedDate,'training')">+ אימון</button>
+          <button class="btn" style="background:#1565c0;border-color:#1565c0;min-width:90px" onclick="openAddPersonalEvent(_calSelectedDate)">+ אישי</button>
         </div>
       </div>
       <div id="today-training-count" style="margin-bottom:10px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border);font-size:.9rem;color:var(--accent2);font-weight:600;display:none"></div>
@@ -1360,7 +1360,7 @@ function renderSessionsTable() {
   }
   if (!filtered.length) { document.getElementById('sessions-table').innerHTML='<div class="empty">אין אימונים ביום הזה.</div>'; return; }
   document.getElementById('sessions-table').innerHTML=`<table>
-    <thead><tr><th>סוג</th><th>לקוח</th><th>מתי</th><th>פרטים</th><th>עלות / כרטיסייה</th><th>הערות</th><th>פעולות</th></tr></thead>
+    <thead><tr><th>סוג</th><th>לקוח</th><th>שעה</th><th>פרטים</th><th>עלות / כרטיסייה</th><th>הערות</th><th>פעולות</th></tr></thead>
     <tbody>${filtered.map(s=>{
       const isShift = s.type === 'shift';
       const isPersonal = s.type === 'personal';
@@ -1403,10 +1403,10 @@ function renderSessionsTable() {
       </tr>`;
       return `<tr class="${isCancelled?'cancelled-row':''}">
       <td>${typeBadge}${cancelledBadge}${recurring}</td>
-      <td>${clientCol}</td><td>${fmtDate(s.date)}<br><small style="color:var(--muted)">${timeCol}</small></td>
+      <td>${clientCol}</td><td>${timeCol}</td>
       <td>${detailsCol}</td>
       <td>${costCol}</td>
-      <td>${esc(s.notes)}${logBadge}</td>
+      <td style="color:var(--text)">${esc(s.notes)}${logBadge}</td>
       <td class="actions">
         ${!isShift && !isCancelled ? `<button class="btn btn-log btn-sm" onclick="openLiveWorkout('${s.id}')">📋</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="openEditSession('${s.id}')">עריכה</button>
