@@ -3444,13 +3444,12 @@ function renderPayTabTraining() {
 }
 
 function renderPayTabPunchCards() {
-  const punchCards = load('punchCards'), payments = load('payments');
+  const punchCards = load('punchCards');
   const { clientId, activeOnly } = _payPunchFilter;
   let cards = punchCards.map(pc=>{
     const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
     const rem=pc.totalSessions-used-booked;
-    const paid=payments.filter(p=>p.punchCardId===pc.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
-    return {...pc,used,booked,rem,paid,debt:(+pc.price||0)-paid};
+    return {...pc,used,booked,rem};
   });
   if (clientId) cards=cards.filter(pc=>pc.ownerClientId===clientId||(pc.linkedClientIds||[]).includes(clientId));
   if (activeOnly) cards=cards.filter(pc=>pc.rem>0||pc.booked>0);
@@ -3470,19 +3469,21 @@ function renderPayTabPunchCards() {
     </div>
     <div class="card">
       ${cards.length?`<div class="table-wrap"><table>
-        <thead><tr><th>בעלים</th><th>נוצל</th><th>מוזמן</th><th>נשאר</th><th>מחיר</th><th>שולם</th><th>יתרה כספית</th><th></th></tr></thead>
+        <thead><tr><th>בעלים</th><th>מספר אימונים</th><th>תאריך רכישה</th><th>נוצל</th><th>מוזמן</th><th>נשאר</th><th>מחיר</th><th></th></tr></thead>
         <tbody>${cards.map(pc=>{
           const remColor=pc.rem===0&&pc.booked===0?'var(--muted)':pc.rem<=2?'var(--shift)':'#4caf50';
+          const dateStr=pc.date||pc.createdAt?new Date(pc.date||pc.createdAt).toLocaleDateString('he-IL'):'—';
           return `<tr>
             <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${pc.ownerClientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(pc.ownerClientId))}</a></strong></td>
+            <td style="text-align:center">${pc.totalSessions}</td>
+            <td style="font-size:.85rem;color:var(--muted)">${dateStr}</td>
             <td>${pc.used}</td><td style="color:var(--accent2)">${pc.booked}</td>
             <td style="color:${remColor};font-weight:700">${pc.rem}</td>
             <td>₪${(+pc.price||0).toLocaleString()}</td>
-            <td style="color:#4caf50">₪${pc.paid.toLocaleString()}</td>
-            <td style="color:${pc.debt>0?'var(--accent)':'#4caf50'};font-weight:600">${pc.debt>0?`₪${pc.debt.toLocaleString()} חוב`:'✓'}</td>
             <td class="actions">
               <button class="btn btn-ghost btn-sm" onclick="openPayDetail('punch_card','${pc.id}','products')">פרטים</button>
               <button class="btn btn-ghost btn-sm" onclick="openEditPunchCard('${pc.id}')">עריכה</button>
+              <button class="btn btn-sm" onclick="openAddPunchCardPayment('${pc.id}')">+ תשלום</button>
               <button class="btn btn-danger btn-sm" onclick="deletePunchCard('${pc.id}')">מחק</button>
             </td>
           </tr>`;
@@ -3568,26 +3569,20 @@ function renderPayDetailPunchCard(cardId) {
   const today = localDateStr();
   const used=punchCardSessionsUsed(cardId), booked=punchCardSessionsBooked(cardId);
   const rem=pc.totalSessions-used.length-booked.length;
-  const pays=load('payments').filter(p=>p.punchCardId===cardId&&p.status==='paid');
-  const totalPaid=pays.reduce((s,p)=>s+(+p.amount||0),0);
-  const debt=(+pc.price||0)-totalPaid;
   const allSess=[...used,...booked].sort((a,b)=>a.date<b.date?-1:1);
   let entryNum=0;
   return `<div class="card">
-    <div class="section-header"><h2>כרטיסייה — ${esc(clientName(pc.ownerClientId))}</h2><button class="btn btn-sm" onclick="openAddPunchCardPayment('${cardId}')">+ הוסף תשלום</button></div>
+    <div class="section-header"><h2>כרטיסייה — ${esc(clientName(pc.ownerClientId))}</h2></div>
     <div class="pay-summary" style="margin:12px 0">
       <div class="card"><div class="card-title">נוצל</div><div style="font-size:1.3rem;font-weight:700">${used.length}</div></div>
       <div class="card"><div class="card-title">מוזמן</div><div style="font-size:1.3rem;font-weight:700;color:var(--accent2)">${booked.length}</div></div>
       <div class="card"><div class="card-title">נשאר</div><div style="font-size:1.3rem;font-weight:700;color:${rem<=2&&rem>0?'var(--shift)':rem===0?'var(--muted)':'#4caf50'}">${rem}</div></div>
-      <div class="card"><div class="card-title">יתרה כספית</div><div style="font-size:1.3rem;font-weight:700;color:${debt>0?'var(--accent)':'#4caf50'}">${debt>0?`₪${debt.toLocaleString()} חוב`:'✓'}</div></div>
     </div>
     <h3 style="color:var(--accent2);margin:16px 0 8px">שימושים</h3>
     ${allSess.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>לקוח</th><th>כניסה</th><th>הערות</th></tr></thead><tbody>${allSess.map(s=>{
       const isPast=s.date<=today; if(isPast)entryNum++;
       return `<tr${!isPast?' style="font-style:italic;opacity:.7"':''}><td>${fmtDate(s.date)}</td><td><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${s.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(s.clientId))}</a></td><td>${isPast?`${entryNum}/${pc.totalSessions}`:'<span style="color:var(--accent2)">מוזמן</span>'}</td><td style="font-size:.85rem;color:var(--muted)">${esc(s.notes||'')}</td></tr>`;
     }).join('')}</tbody></table></div>`:'<div class="empty">אין שימושים עדיין.</div>'}
-    <h3 style="color:var(--accent2);margin:16px 0 8px">תשלומים</h3>
-    ${pays.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>סכום</th><th>הערה</th><th></th></tr></thead><tbody>${pays.sort((a,b)=>a.date<b.date?-1:1).map(p=>`<tr><td>${fmtDate(p.date)}</td><td style="color:#4caf50;font-weight:600">₪${(+p.amount||0).toLocaleString()}</td><td style="font-size:.85rem">${esc(p.notes||'')}</td><td class="actions"><button class="btn btn-danger btn-sm" onclick="deletePunchCardPayment('${p.id}','${cardId}')">מחק</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">אין תשלומים עדיין.</div>'}
   </div>`;
 }
 
@@ -3613,16 +3608,10 @@ function renderPayDetailPlan(clientId) {
 function openAddPunchCardPayment(cardId) {
   const pc = load('punchCards').find(x=>x.id===cardId);
   if (!pc) return;
-  openModal('הוסף תשלום לכרטיסייה', `<form id="modal-form">
-    <div class="form-row">
-      <div class="form-group"><label>סכום (₪) *</label><input name="amount" type="number" min="0" step="1" value="${esc(pc.price||'')}" required></div>
-      <div class="form-group"><label>תאריך *</label><input name="date" type="date" value="${localDateStr()}" required></div>
-    </div>
-    <div class="form-group"><label>הערה</label><input name="notes" placeholder="מזומן, ביט, העברה..."></div>
-    <div class="form-actions"><button type="button" class="btn btn-ghost" onclick="closeModal()">ביטול</button><button type="submit" class="btn">שמור</button></div>
-  </form>`, async fd => {
-    await saveItem('payments', {id:uid(), clientId:pc.ownerClientId, punchCardId:cardId, amount:fd.get('amount'), date:fd.get('date'), status:'paid', package:'כרטיסייה', notes:fd.get('notes')||''});
-    renderProducts();
+  openModal('הוסף תשלום לכרטיסייה', paymentFormHTML({clientId:pc.ownerClientId, amount:pc.price||'', punchCardId:cardId}, pc.ownerClientId), async fd => {
+    const method=fd.get('paymentMethod')||'', transfer=fd.get('transferMethod')||'';
+    await saveItem('payments', {id:uid(), clientId:pc.ownerClientId, punchCardId:cardId, amount:fd.get('amount'), date:fd.get('date'), status:'paid', paymentMethod:method, transferMethod:transfer, notes:fd.get('notes')||''});
+    if (_payDetail.active && _payDetailRenderer==='products') renderProducts(); else if (_clientProfile.active) renderClientProfile(); else renderProducts();
   });
 }
 async function deletePunchCardPayment(payId, cardId) {
