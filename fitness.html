@@ -754,21 +754,31 @@ function localDateStr(d) { d = d || new Date(); return `${d.getFullYear()}-${Str
 function clientName(id) { const c = load('clients').find(x=>x.id===id); return c ? c.name : '—'; }
 function clientBalance(clientId) {
   const totalPaid = load('payments').filter(p=>p.clientId===clientId && p.status==='paid').reduce((sum,p)=>sum+(+p.amount||0),0);
-  const sessions = load('sessions').filter(s=>s.clientId===clientId && s.type==='training' && !s.punchCardId && s.source!=='client');
+  const sessions = load('sessions').filter(s=>s.clientId===clientId && s.type==='training' && !s.punchCardId && s.source!=='client' && sessionHasPassed(s));
   const sessDebt = sessions.reduce((sum,s)=>sum+(+s.price||0),0);
   const planDebt = load('plans').filter(p=>p.clientId===clientId && !p.isTemplate).reduce((sum,p)=>sum+(+p.price||0),0);
   const pcDebt = load('punchCards').filter(pc=>pc.ownerClientId===clientId).reduce((sum,pc)=>sum+(+pc.price||0),0);
   const totalDebt = sessDebt + planDebt + pcDebt;
   return { totalPaid, totalDebt, balance: totalPaid - totalDebt, sessions: sessions.length };
 }
+function sessionHasPassed(s) {
+  const today = localDateStr();
+  if (s.date < today) return true;
+  if (s.date > today) return false;
+  // Same day — check time
+  if (!s.time) return true;
+  const now = new Date();
+  const parts = s.time.split(':').map(Number);
+  return now.getHours() * 60 + now.getMinutes() >= parts[0] * 60 + (parts[1]||0);
+}
 function punchCardSessions(cardId) {
   return load('sessions').filter(s => s.punchCardId === cardId && s.type === 'training');
 }
 function punchCardSessionsUsed(cardId) {
-  return load('sessions').filter(s => s.punchCardId === cardId && s.type === 'training' && s.date <= localDateStr());
+  return load('sessions').filter(s => s.punchCardId === cardId && s.type === 'training' && sessionHasPassed(s));
 }
 function punchCardSessionsBooked(cardId) {
-  return load('sessions').filter(s => s.punchCardId === cardId && s.type === 'training' && s.status !== 'cancelled' && s.date > localDateStr()); // cancelled future sessions count as used, not booked
+  return load('sessions').filter(s => s.punchCardId === cardId && s.type === 'training' && s.status !== 'cancelled' && !sessionHasPassed(s));
 }
 function planName(id) { const p = load('plans').find(x=>x.id===id); return p ? p.name : ''; }
 function clientOptions(sel='') {
@@ -957,7 +967,7 @@ function renderCpDetails(c) {
   // --- Full balance calc ---
   const allPayments = load('payments').filter(p=>p.clientId===c.id&&p.status==='paid');
   const totalPaid = allPayments.reduce((s,p)=>s+(+p.amount||0),0);
-  const sessions = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&!s.punchCardId&&s.source!=='client');
+  const sessions = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&!s.punchCardId&&s.source!=='client'&&sessionHasPassed(s));
   const sessDebt = sessions.reduce((s,sess)=>s+(+sess.price||0),0);
   const plans = load('plans').filter(p=>p.clientId===c.id&&!p.isTemplate);
   const planDebt = plans.reduce((s,p)=>s+(+p.price||0),0);
@@ -1033,7 +1043,7 @@ function renderCpDetails(c) {
     if (editSessId === s.id && !isCancelled) {
       // Edit mode row
       const pcOpts = `<option value="">— בודד —</option>`+availCards.map(pc=>{
-        const rem=pc.totalSessions-punchCardSessions(pc.id).length;
+        const rem=pc.totalSessions-punchCardSessionsUsed(pc.id).length-punchCardSessionsBooked(pc.id).length;
         return `<option value="${pc.id}"${s.punchCardId===pc.id?' selected':''}>${esc(pc.name||clientName(pc.ownerClientId))} (${rem})</option>`;
       }).join('');
       const initMode = s.punchCardId ? 'punch' : 'price';
@@ -1082,7 +1092,7 @@ function renderCpDetails(c) {
   // --- Punch cards history ---
   const pcRows = ownedCards.length ? ownedCards.sort((a,b)=>a.createdAt<b.createdAt?1:-1).map(pc=>{
     const u=punchCardSessionsUsed(pc.id).length, b2=punchCardSessionsBooked(pc.id).length;
-    const rem=pc.totalSessions-punchCardSessions(pc.id).length;
+    const rem=pc.totalSessions-punchCardSessionsUsed(pc.id).length-punchCardSessionsBooked(pc.id).length;
     const isEmpty=rem<=0&&b2===0;
     const remColor=isEmpty?'var(--accent)':rem<=2?'var(--shift)':'#4caf50';
     const mutedStyle=isEmpty?'color:var(--muted)':'';
@@ -1182,7 +1192,7 @@ function renderClients() {
   const monthStart = (()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; })();
   const monthIncome = payments.filter(p=>p.status==='paid'&&p.date>=monthStart).reduce((s,p)=>s+(+p.amount||0),0);
   const totalDebt = clients.reduce((sum,c)=>{
-    const sessDebt=load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&!s.punchCardId&&s.source!=='client').reduce((s,x)=>s+(+x.price||0),0);
+    const sessDebt=load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&!s.punchCardId&&s.source!=='client'&&sessionHasPassed(s)).reduce((s,x)=>s+(+x.price||0),0);
     const planDebt=load('plans').filter(p=>p.clientId===c.id&&!p.isTemplate&&p.price).reduce((s,p)=>s+(+p.price||0),0);
     const pcDebt=load('punchCards').filter(pc=>pc.ownerClientId===c.id).reduce((s,pc)=>s+(+pc.price||0),0);
     const totalPaid=payments.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
@@ -3311,7 +3321,7 @@ function renderPayments() {
     const _mi = _allPay.filter(p=>p.date.startsWith(_ms)).reduce((s,p)=>s+(+p.amount||0),0);
     const _sess=load('sessions'),_plans=load('plans'),_pcs=load('punchCards'),_pays=load('payments');
     const _td = load('clients').reduce((sum,c)=>{
-      const sd=_sess.filter(s=>s.clientId===c.id&&s.type==='training'&&!s.punchCardId&&s.source!=='client').reduce((s,x)=>s+(+x.price||0),0);
+      const sd=_sess.filter(s=>s.clientId===c.id&&s.type==='training'&&!s.punchCardId&&s.source!=='client'&&sessionHasPassed(s)).reduce((s,x)=>s+(+x.price||0),0);
       const pd=_plans.filter(p=>p.clientId===c.id&&!p.isTemplate&&p.price).reduce((s,p)=>s+(+p.price||0),0);
       const pcd=_pcs.filter(pc=>pc.ownerClientId===c.id).reduce((s,pc)=>s+(+pc.price||0),0);
       const paid=_pays.filter(p=>p.clientId===c.id&&p.status==='paid').reduce((s,p)=>s+(+p.amount||0),0);
@@ -3410,7 +3420,7 @@ function renderPayTabSummary() {
 
   // Debts mode — per client total debt
   const debtRows = clients.map(c=>{
-    const sessDebt = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&!s.punchCardId&&s.source!=='client').reduce((s,sess)=>s+(+sess.price||0),0);
+    const sessDebt = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&!s.punchCardId&&s.source!=='client'&&sessionHasPassed(s)).reduce((s,sess)=>s+(+sess.price||0),0);
     const planDebt = plans.filter(p=>p.clientId===c.id&&!p.isTemplate&&p.price).reduce((s,p)=>s+(+p.price||0),0);
     const ownedCards = punchCards.filter(pc=>pc.ownerClientId===c.id);
     const pcDebt = ownedCards.reduce((s,pc)=>s+(+pc.price||0),0);
@@ -3435,7 +3445,7 @@ function punchCardRows(q) {
   const punchCards = load('punchCards');
   let cards = punchCards.map(pc=>{
     const used=punchCardSessionsUsed(pc.id).length, booked=punchCardSessionsBooked(pc.id).length;
-    const rem=pc.totalSessions-punchCardSessions(pc.id).length;
+    const rem=pc.totalSessions-punchCardSessionsUsed(pc.id).length-punchCardSessionsBooked(pc.id).length;
     return {...pc,used,booked,rem};
   });
   if (q) cards=cards.filter(pc=>(clientName(pc.ownerClientId)||'').toLowerCase().includes(q)||(pc.name||'').toLowerCase().includes(q));
@@ -3592,7 +3602,7 @@ function renderPayDetailView() {
 function renderDebtClientDetail(clientId) {
   const client = load('clients').find(c=>c.id===clientId);
   if (!client) return '<div class="empty">לקוח לא נמצא</div>';
-  const sessions = load('sessions').filter(s=>s.clientId===clientId&&s.type==='training'&&!s.punchCardId&&s.source!=='client');
+  const sessions = load('sessions').filter(s=>s.clientId===clientId&&s.type==='training'&&!s.punchCardId&&s.source!=='client'&&sessionHasPassed(s));
   const plans = load('plans').filter(p=>p.clientId===clientId&&!p.isTemplate&&p.price);
   const punchCards = load('punchCards').filter(pc=>pc.ownerClientId===clientId&&pc.price);
   const allPayments = load('payments').filter(p=>p.clientId===clientId&&p.status==='paid');
@@ -3692,7 +3702,7 @@ function renderPayDetailPunchCard(cardId) {
   if (!pc) return '<div class="empty">כרטיסייה לא נמצאה</div>';
   const today = localDateStr();
   const used=punchCardSessionsUsed(cardId), booked=punchCardSessionsBooked(cardId);
-  const rem=pc.totalSessions-punchCardSessions(cardId).length;
+  const rem=pc.totalSessions-used.length-booked.length;
   const allSess=punchCardSessions(cardId).sort((a,b)=>a.date<b.date?-1:1);
   let entryNum=0;
   const remColor=rem===0?'var(--accent)':rem<=2?'var(--shift)':'#4caf50';
@@ -3788,12 +3798,12 @@ function purchaseFormHTML(lockedClientId=null) {
     </div>`;
   // Build existing punch card dropdown items
   const allCards = load('punchCards').filter(pc => {
-    return pc.totalSessions-punchCardSessions(pc.id).length > 0;
+    return pc.totalSessions-punchCardSessionsUsed(pc.id).length-punchCardSessionsBooked(pc.id).length > 0;
   });
   const pcPriority = lockedClientId ? allCards.filter(pc=>pc.ownerClientId===lockedClientId) : [];
   const pcOthers   = lockedClientId ? allCards.filter(pc=>pc.ownerClientId!==lockedClientId) : allCards;
   function pcItem(pc) {
-    const rem=pc.totalSessions-punchCardSessions(pc.id).length;
+    const rem=pc.totalSessions-punchCardSessionsUsed(pc.id).length-punchCardSessionsBooked(pc.id).length;
     const label=`${esc(pc.name||clientName(pc.ownerClientId))} — ${esc(clientName(pc.ownerClientId))} (${rem} נשאר)`;
     return `<div class="pc-opt" data-name="${esc(pc.name||clientName(pc.ownerClientId))}" onclick="selectPurchasePunchCard('${pc.id}','${esc(pc.name||clientName(pc.ownerClientId))}','${esc(String(pc.price||''))}')" style="padding:10px 14px;cursor:pointer;font-size:.88rem" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">${label}</div>`;
   }
