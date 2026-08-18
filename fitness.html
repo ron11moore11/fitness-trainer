@@ -1156,10 +1156,11 @@ function openAddClientPayment(clientId) {
       if (planMode === 'existing') {
         const existingPlanId = fd.get('existingPlanId');
         if (!existingPlanId) { alert('יש לבחור תוכנית קיימת'); return; }
-        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+        await saveItem('payments', {id:uid(), clientId, planId:existingPlanId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
       } else {
-        await saveItem('plans', {id:uid(), clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
-        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+        const newPlanId = uid();
+        await saveItem('plans', {id:newPlanId, clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
+        await saveItem('payments', {id:uid(), clientId, planId:newPlanId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
       }
     } else {
       await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
@@ -4057,10 +4058,11 @@ function openAddPayment() {
       if (planMode === 'existing') {
         const existingPlanId = fd.get('existingPlanId');
         if (!existingPlanId) { alert('יש לבחור תוכנית קיימת'); return; }
-        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+        await saveItem('payments', {id:uid(), clientId, planId:existingPlanId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
       } else {
-        await saveItem('plans', {id:uid(), clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
-        await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
+        const newPlanId = uid();
+        await saveItem('plans', {id:newPlanId, clientId, name:fd.get('planName')||'תוכנית אימונים', price:fd.get('planPrice')||'0', isTemplate:false, exercises:[], notes:'', createdAt:new Date().toISOString()});
+        await saveItem('payments', {id:uid(), clientId, planId:newPlanId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
       }
     } else {
       await saveItem('payments', {id:uid(), clientId, amount, date, status:'paid', paymentMethod:method, transferMethod:transfer, notes});
