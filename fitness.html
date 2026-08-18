@@ -3291,14 +3291,14 @@ function openAddPlanSale() {
 let _productsTab = 'punch_card';
 function switchProductsTab(tab) { _productsTab = tab; renderProducts(); }
 function renderProducts() {
-  const tabs = [{id:'punch_card',label:'כרטיסיות'},{id:'plan',label:'תוכניות'},{id:'training',label:'אימונים'}];
+  const tabs = [{id:'punch_card',label:'כרטיסיות'},{id:'plan',label:'תוכניות'}];
   document.getElementById('products-tabs-nav').innerHTML =
     `<div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border);width:fit-content;margin-bottom:20px">${tabs.map(t=>`<button type="button" onclick="switchProductsTab('${t.id}')" style="padding:9px 24px;border:none;cursor:pointer;font-family:inherit;font-size:.95rem;transition:all .15s;${_productsTab===t.id?'background:var(--gold);color:#fff;font-weight:600':'background:var(--card);color:var(--muted)'}">${t.label}</button>`).join('')}</div>`;
   let content = '';
   if (_payDetail.active && _payDetailRenderer==='products') content = `<div style="margin-bottom:12px"><button class="btn btn-ghost btn-sm" onclick="closePayDetail()">&#8592; חזרה</button></div>${_payDetail.type==='punch_card'?renderPayDetailPunchCard(_payDetail.id):renderPayDetailPlan(_payDetail.id)}`;
   else if (_productsTab==='punch_card') content = renderPayTabPunchCards();
   else if (_productsTab==='plan') content = renderPayTabPlans();
-  else if (_productsTab==='training') content = renderPayTabTraining();
+
   document.getElementById('products-tab-content').innerHTML = content;
 }
 
@@ -3429,92 +3429,6 @@ function renderPayTabSummary() {
         <td class="actions"><button class="btn btn-ghost btn-sm" onclick="openPayDetail('debt_client','${x.id}','payments')">פירוט</button></td>
       </tr>`).join('')}</tbody>
     </table></div></div>` : '<div class="empty">אין חובות פתוחים 🎉</div>'}`;
-}
-
-function trainingResultsHTML() {
-  const { fromDate, toDate, searchQ } = _payTrainingFilter;
-  const q = (searchQ||'').toLowerCase();
-  const sessions = load('sessions').filter(s =>
-    s.type==='training' && s.status!=='cancelled' && s.source!=='client'
-    && (!fromDate || s.date >= fromDate)
-    && (!toDate   || s.date <= toDate)
-  );
-  // Group by client
-  const clientMap = {};
-  sessions.forEach(s => {
-    if (!clientMap[s.clientId]) clientMap[s.clientId] = { sessions:[], lastDate:'' };
-    clientMap[s.clientId].sessions.push(s);
-    if (s.date > clientMap[s.clientId].lastDate) clientMap[s.clientId].lastDate = s.date;
-  });
-  let rows = Object.entries(clientMap)
-    .filter(([cid]) => !q || (clientName(cid)||'').toLowerCase().includes(q))
-    .map(([cid, data]) => ({
-      cid,
-      total: data.sessions.length,
-      fromPunch: data.sessions.filter(s=>s.punchCardId).length,
-      charged: data.sessions.filter(s=>!s.punchCardId).reduce((s,x)=>s+(+x.price||0),0),
-      lastDate: data.lastDate
-    }))
-    .sort((a,b) => a.lastDate < b.lastDate ? 1 : -1);
-
-  if (!rows.length) return '<div class="empty">אין אימונים בתקופה זו.</div>';
-  const totSess = rows.reduce((s,r)=>s+r.total,0);
-  const totCharged = rows.reduce((s,r)=>s+r.charged,0);
-  return `<div class="card"><div class="table-wrap"><table>
-    <thead><tr><th>לקוח</th><th>אימונים</th><th>מכרטיסייה</th><th>חויב (₪)</th><th>אימון אחרון</th></tr></thead>
-    <tbody>${rows.map(r=>`<tr>
-      <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${r.cid}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(r.cid))}</a></strong></td>
-      <td style="font-weight:600">${r.total}</td>
-      <td style="color:var(--accent2)">${r.fromPunch||'—'}</td>
-      <td style="color:#4caf50;font-weight:600">${r.charged?`₪${r.charged.toLocaleString()}`:'—'}</td>
-      <td style="font-size:.85rem;color:var(--muted)">${fmtDate(r.lastDate)}</td>
-    </tr>`).join('')}</tbody>
-    <tfoot><tr style="font-weight:700;border-top:2px solid var(--border)">
-      <td style="color:var(--muted);font-size:.85rem">סה"כ</td>
-      <td>${totSess}</td><td></td>
-      <td style="color:#4caf50">${totCharged?`₪${totCharged.toLocaleString()}`:'—'}</td>
-      <td></td>
-    </tr></tfoot>
-  </table></div></div>`;
-}
-function filterTrainingSessions() {
-  _payTrainingFilter.searchQ = document.getElementById('training-search-input')?.value||'';
-  const el = document.getElementById('training-results');
-  if (el) el.innerHTML = trainingResultsHTML();
-}
-function renderPayTabTraining() {
-  const { fromDate, toDate, searchQ } = _payTrainingFilter;
-  const sessions = load('sessions').filter(s =>
-    s.type==='training' && s.status!=='cancelled' && s.source!=='client'
-    && (!fromDate || s.date >= fromDate)
-    && (!toDate   || s.date <= toDate)
-  );
-  const totalSess = sessions.length;
-  const directRevenue = sessions.filter(s=>!s.punchCardId).reduce((s,x)=>s+(+x.price||0),0);
-  const pcPayments = load('payments').filter(p=>p.punchCardId && p.status==='paid' && (!fromDate||p.date>=fromDate) && (!toDate||p.date<=toDate));
-  const pcRevenue = pcPayments.reduce((s,p)=>s+(+p.amount||0),0);
-  const inputStyle = `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit`;
-  return `
-    <div class="pay-summary" style="margin-bottom:20px">
-      <div class="card"><div class="card-title">סה"כ אימונים</div><div style="font-size:1.4rem;font-weight:700">${totalSess}</div></div>
-      <div class="card"><div class="card-title">חיוב ישיר</div><div style="font-size:1.4rem;font-weight:700;color:#4caf50">${directRevenue?`₪${directRevenue.toLocaleString()}`:'—'}</div></div>
-      <div class="card"><div class="card-title">תשלומי כרטיסיות</div><div style="font-size:1.4rem;font-weight:700;color:var(--accent2)">${pcRevenue?`₪${pcRevenue.toLocaleString()}`:'—'}</div></div>
-    </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
-      <div class="form-group" style="margin:0;flex:1;min-width:140px">
-        <label style="font-size:.8rem;color:var(--muted)">חיפוש לקוח</label>
-        <input id="training-search-input" type="text" value="${esc(searchQ||'')}" oninput="filterTrainingSessions()" placeholder="חיפוש לפי שם..." style="${inputStyle}">
-      </div>
-      <div class="form-group" style="margin:0">
-        <label style="font-size:.8rem;color:var(--muted)">מתאריך</label>
-        <input type="date" value="${fromDate}" onchange="_payTrainingFilter.fromDate=this.value;renderProducts()" style="${inputStyle}">
-      </div>
-      <div class="form-group" style="margin:0">
-        <label style="font-size:.8rem;color:var(--muted)">עד תאריך</label>
-        <input type="date" value="${toDate}" onchange="_payTrainingFilter.toDate=this.value;renderProducts()" style="${inputStyle}">
-      </div>
-    </div>
-    <div id="training-results">${trainingResultsHTML()}</div>`;
 }
 
 function punchCardRows(q) {
