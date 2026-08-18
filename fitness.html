@@ -798,7 +798,7 @@ let payFilter = { active: false, month: null, fromDate: '', toDate: '', clientId
 let _payTab = 'summary';
 let _payDetail = { active: false, type: '', id: '' };
 let _payDetailRenderer = 'payments';
-let _payTrainingFilter = (()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), lastDay=String(new Date(d.getFullYear(),d.getMonth()+1,0).getDate()).padStart(2,'0'); return { clientId:'', fromDate:`${y}-${m}-01`, toDate:`${y}-${m}-${lastDay}` }; })();
+let _payTrainingFilter = (()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), lastDay=String(new Date(d.getFullYear(),d.getMonth()+1,0).getDate()).padStart(2,'0'); return { searchQ:'', fromDate:`${y}-${m}-01`, toDate:`${y}-${m}-${lastDay}` }; })();
 let _payPunchFilter = { searchQ: '' };
 let _payPlanFilter  = { searchQ: '' };
 let _paySummaryMonthOffset = 0;
@@ -3431,74 +3431,90 @@ function renderPayTabSummary() {
     </table></div></div>` : '<div class="empty">אין חובות פתוחים 🎉</div>'}`;
 }
 
-function renderPayTabTraining() {
-  const allSessions = load('sessions');
-  const { clientId, fromDate, toDate } = _payTrainingFilter;
-
-  // Client filter options (all clients who have any training sessions)
-  const clientsWithSess = [...new Set(allSessions.filter(s=>s.type==='training').map(s=>s.clientId))];
-  const allClients = load('clients').filter(c=>clientsWithSess.includes(c.id));
-  const clientOpts = `<option value="">כל הלקוחות</option>`+allClients.map(c=>`<option value="${c.id}"${c.id===clientId?' selected':''}>${esc(c.name)}</option>`).join('');
-
-  // Filter sessions by date range
-  let sessInRange = allSessions.filter(s=>s.type==='training'&&s.status!=='cancelled'&&s.source!=='client');
-  if (fromDate) sessInRange = sessInRange.filter(s=>s.date>=fromDate);
-  if (toDate) sessInRange = sessInRange.filter(s=>s.date<=toDate);
-  if (clientId) sessInRange = sessInRange.filter(s=>s.clientId===clientId);
-  sessInRange.sort((a,b)=>a.date<b.date?1:-1);
-
-  // Summary stats
-  const today = localDateStr();
-  const totalCount = sessInRange.length;
-  const totalCharged = sessInRange.filter(s=>!s.punchCardId&&s.date<=today).reduce((s,x)=>s+(+x.price||0),0);
-  const punchCount = sessInRange.filter(s=>s.punchCardId).length;
-
-  // Session rows
-  const sessRows = sessInRange.map(s=>{
-    const isPast = s.date <= today;
-    let costCol;
-    if (s.punchCardId) {
-      const pc = load('punchCards').find(x=>x.id===s.punchCardId);
-      costCol = `<span style="color:var(--accent2);font-size:.85rem">🎟 ${esc(pc?.name||clientName(pc?.ownerClientId)||'כרטיסייה')}</span>`;
-    } else if (s.price) {
-      costCol = `<span style="color:#4caf50;font-weight:600">₪${(+s.price).toLocaleString()}</span>`;
-    } else {
-      costCol = `<span style="color:var(--muted)">—</span>`;
-    }
-    return `<tr${!isPast?' style="opacity:.65"':''}>
-      <td>${fmtDate(s.date)}</td>
-      <td style="font-size:.82rem;color:var(--muted)">${esc(s.time||'')}</td>
-      <td><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${s.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(s.clientId))}</a></td>
-      <td>${costCol}</td>
-    </tr>`;
+function trainingResultsHTML() {
+  const { fromDate, toDate, searchQ } = _payTrainingFilter;
+  const q = (searchQ||'').toLowerCase();
+  const sessions = load('sessions').filter(s =>
+    s.type==='training' && s.status!=='cancelled' && s.source!=='client'
+    && (!fromDate || s.date >= fromDate)
+    && (!toDate   || s.date <= toDate)
+  );
+  // Group by client
+  const clientMap = {};
+  sessions.forEach(s => {
+    if (!clientMap[s.clientId]) clientMap[s.clientId] = { sessions:[], lastDate:'' };
+    clientMap[s.clientId].sessions.push(s);
+    if (s.date > clientMap[s.clientId].lastDate) clientMap[s.clientId].lastDate = s.date;
   });
+  let rows = Object.entries(clientMap)
+    .filter(([cid]) => !q || (clientName(cid)||'').toLowerCase().includes(q))
+    .map(([cid, data]) => ({
+      cid,
+      total: data.sessions.length,
+      fromPunch: data.sessions.filter(s=>s.punchCardId).length,
+      charged: data.sessions.filter(s=>!s.punchCardId).reduce((s,x)=>s+(+x.price||0),0),
+      lastDate: data.lastDate
+    }))
+    .sort((a,b) => a.lastDate < b.lastDate ? 1 : -1);
 
+  if (!rows.length) return '<div class="empty">אין אימונים בתקופה זו.</div>';
+  const totSess = rows.reduce((s,r)=>s+r.total,0);
+  const totCharged = rows.reduce((s,r)=>s+r.charged,0);
+  return `<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>לקוח</th><th>אימונים</th><th>מכרטיסייה</th><th>חויב (₪)</th><th>אימון אחרון</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><strong><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${r.cid}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(r.cid))}</a></strong></td>
+      <td style="font-weight:600">${r.total}</td>
+      <td style="color:var(--accent2)">${r.fromPunch||'—'}</td>
+      <td style="color:#4caf50;font-weight:600">${r.charged?`₪${r.charged.toLocaleString()}`:'—'}</td>
+      <td style="font-size:.85rem;color:var(--muted)">${fmtDate(r.lastDate)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr style="font-weight:700;border-top:2px solid var(--border)">
+      <td style="color:var(--muted);font-size:.85rem">סה"כ</td>
+      <td>${totSess}</td><td></td>
+      <td style="color:#4caf50">${totCharged?`₪${totCharged.toLocaleString()}`:'—'}</td>
+      <td></td>
+    </tr></tfoot>
+  </table></div></div>`;
+}
+function filterTrainingSessions() {
+  _payTrainingFilter.searchQ = document.getElementById('training-search-input')?.value||'';
+  const el = document.getElementById('training-results');
+  if (el) el.innerHTML = trainingResultsHTML();
+}
+function renderPayTabTraining() {
+  const { fromDate, toDate, searchQ } = _payTrainingFilter;
+  const sessions = load('sessions').filter(s =>
+    s.type==='training' && s.status!=='cancelled' && s.source!=='client'
+    && (!fromDate || s.date >= fromDate)
+    && (!toDate   || s.date <= toDate)
+  );
+  const clientIds = [...new Set(sessions.map(s=>s.clientId))];
+  const totalSess = sessions.length;
+  const totalCharged = sessions.filter(s=>!s.punchCardId).reduce((s,x)=>s+(+x.price||0),0);
+  const activeClients = clientIds.length;
+  const inputStyle = `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit`;
   return `
     <div class="pay-summary" style="margin-bottom:20px">
-      <div class="card"><div class="card-title">סה"כ אימונים</div><div style="font-size:1.4rem;font-weight:700">${totalCount}</div></div>
-      <div class="card"><div class="card-title">סה"כ חויב</div><div style="font-size:1.4rem;font-weight:700;color:#4caf50">${totalCharged?`₪${totalCharged.toLocaleString()}`:'—'}</div></div>
-      <div class="card"><div class="card-title">ניקבו מכרטיסייה</div><div style="font-size:1.4rem;font-weight:700;color:var(--accent2)">${punchCount}</div></div>
+      <div class="card"><div class="card-title">סה"כ אימונים</div><div style="font-size:1.4rem;font-weight:700">${totalSess}</div></div>
+      <div class="card"><div class="card-title">הכנסות</div><div style="font-size:1.4rem;font-weight:700;color:#4caf50">${totalCharged?`₪${totalCharged.toLocaleString()}`:'—'}</div></div>
+      <div class="card"><div class="card-title">לקוחות פעילים</div><div style="font-size:1.4rem;font-weight:700;color:var(--accent2)">${activeClients}</div></div>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
-      <div class="form-group" style="margin:0;min-width:160px">
-        <label style="font-size:.8rem;color:var(--muted)">לקוח</label>
-        <select onchange="_payTrainingFilter.clientId=this.value;renderProducts()">${clientOpts}</select>
+      <div class="form-group" style="margin:0;flex:1;min-width:140px">
+        <label style="font-size:.8rem;color:var(--muted)">חיפוש לקוח</label>
+        <input id="training-search-input" type="text" value="${esc(searchQ||'')}" oninput="filterTrainingSessions()" placeholder="חיפוש לפי שם..." style="${inputStyle}">
       </div>
       <div class="form-group" style="margin:0">
         <label style="font-size:.8rem;color:var(--muted)">מתאריך</label>
-        <input type="date" value="${fromDate}" onchange="_payTrainingFilter.fromDate=this.value;renderProducts()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit">
+        <input type="date" value="${fromDate}" onchange="_payTrainingFilter.fromDate=this.value;renderProducts()" style="${inputStyle}">
       </div>
       <div class="form-group" style="margin:0">
         <label style="font-size:.8rem;color:var(--muted)">עד תאריך</label>
-        <input type="date" value="${toDate}" onchange="_payTrainingFilter.toDate=this.value;renderProducts()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit">
+        <input type="date" value="${toDate}" onchange="_payTrainingFilter.toDate=this.value;renderProducts()" style="${inputStyle}">
       </div>
     </div>
-    <div class="card">
-      ${sessRows.length?`<div class="table-wrap"><table>
-        <thead><tr><th>תאריך</th><th>שעה</th><th>לקוח</th><th>עלות / כרטיסייה</th></tr></thead>
-        <tbody>${sessRows.join('')}</tbody>
-      </table></div>`:'<div class="empty">אין אימונים בתקופה זו.</div>'}
-    </div>`;
+    <div id="training-results">${trainingResultsHTML()}</div>`;
 }
 
 function punchCardRows(q) {
