@@ -3672,7 +3672,7 @@ function renderPayDetailTraining(clientId) {
   const allSess = load('sessions').filter(s=>s.clientId===clientId&&s.type==='training'&&s.source!=='client'&&!s.punchCardId);
   const pays = load('payments').filter(p=>p.clientId===clientId&&p.status==='paid'&&!p.punchCardId);
   const entries = [];
-  allSess.forEach(s=>entries.push({date:s.date,type:'session',desc:`אימון${s.notes?` — ${s.notes}`:''}`,amount:s.date<=today&&s.status!=='cancelled'?-(+s.price||0):0,cancelled:s.status==='cancelled',future:s.date>today}));
+  allSess.forEach(s=>entries.push({date:s.date,type:'session',desc:`אימון${s.notes?` — ${s.notes}`:''}`,amount:sessionHasPassed(s)?-(+s.price||0):0,cancelled:s.status==='cancelled',future:!sessionHasPassed(s)}));
   pays.forEach(p=>entries.push({date:p.date,type:'payment',desc:`תשלום${p.notes?` — ${p.notes}`:''}`,amount:+p.amount||0,cancelled:false,future:false}));
   entries.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
   let bal=0;
@@ -3725,8 +3725,10 @@ function renderPayDetailPunchCard(cardId) {
     </div>
     <h3 style="color:var(--accent2);margin:16px 0 8px">שימושים</h3>
     ${allSess.length?`<div class="table-wrap"><table><thead><tr><th>תאריך</th><th>לקוח</th><th>כניסה</th><th>הערות</th></tr></thead><tbody>${allSess.map(s=>{
-      const isPast=s.date<=today; if(isPast)entryNum++;
-      return `<tr${!isPast?' style="font-style:italic;opacity:.7"':''}><td>${fmtDate(s.date)}</td><td><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${s.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(s.clientId))}</a></td><td>${isPast?`${entryNum}/${pc.totalSessions}`:'<span style="color:var(--accent2)">מוזמן</span>'}</td><td style="font-size:.85rem;color:var(--muted)">${esc(s.notes||'')}</td></tr>`;
+      const isPast=sessionHasPassed(s); if(isPast)entryNum++;
+      const isCancelledSess=s.status==='cancelled';
+      const cancelBadge=isCancelledSess?` <span style="font-size:.72rem;background:var(--accent);color:#fff;border-radius:4px;padding:1px 5px">בוטל</span>`:'';
+      return `<tr${!isPast?' style="font-style:italic;opacity:.7"':''}><td>${fmtDate(s.date)}${cancelBadge}</td><td><a href="#" onclick="event.preventDefault();switchTab('clients');openClientProfile('${s.clientId}')" style="color:var(--accent2);text-decoration:none">${esc(clientName(s.clientId))}</a></td><td>${isPast?`${entryNum}/${pc.totalSessions}`:'<span style="color:var(--accent2)">מוזמן</span>'}</td><td style="font-size:.85rem;color:var(--muted)">${esc(s.notes||'')}</td></tr>`;
     }).join('')}</tbody></table></div>`:'<div class="empty">אין שימושים עדיין.</div>'}
   </div>`;
 }
