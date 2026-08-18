@@ -3489,16 +3489,16 @@ function renderPayTabTraining() {
     && (!fromDate || s.date >= fromDate)
     && (!toDate   || s.date <= toDate)
   );
-  const clientIds = [...new Set(sessions.map(s=>s.clientId))];
   const totalSess = sessions.length;
-  const totalCharged = sessions.filter(s=>!s.punchCardId).reduce((s,x)=>s+(+x.price||0),0);
-  const activeClients = clientIds.length;
+  const directRevenue = sessions.filter(s=>!s.punchCardId).reduce((s,x)=>s+(+x.price||0),0);
+  const pcPayments = load('payments').filter(p=>p.punchCardId && p.status==='paid' && (!fromDate||p.date>=fromDate) && (!toDate||p.date<=toDate));
+  const pcRevenue = pcPayments.reduce((s,p)=>s+(+p.amount||0),0);
   const inputStyle = `background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:.9rem;font-family:inherit`;
   return `
     <div class="pay-summary" style="margin-bottom:20px">
       <div class="card"><div class="card-title">סה"כ אימונים</div><div style="font-size:1.4rem;font-weight:700">${totalSess}</div></div>
-      <div class="card"><div class="card-title">הכנסות</div><div style="font-size:1.4rem;font-weight:700;color:#4caf50">${totalCharged?`₪${totalCharged.toLocaleString()}`:'—'}</div></div>
-      <div class="card"><div class="card-title">לקוחות פעילים</div><div style="font-size:1.4rem;font-weight:700;color:var(--accent2)">${activeClients}</div></div>
+      <div class="card"><div class="card-title">חיוב ישיר</div><div style="font-size:1.4rem;font-weight:700;color:#4caf50">${directRevenue?`₪${directRevenue.toLocaleString()}`:'—'}</div></div>
+      <div class="card"><div class="card-title">תשלומי כרטיסיות</div><div style="font-size:1.4rem;font-weight:700;color:var(--accent2)">${pcRevenue?`₪${pcRevenue.toLocaleString()}`:'—'}</div></div>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
       <div class="form-group" style="margin:0;flex:1;min-width:140px">
