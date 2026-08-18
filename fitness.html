@@ -1032,7 +1032,7 @@ function renderCpDetails(c) {
 
   // --- Sessions history ---
   const allSess = load('sessions').filter(s=>s.clientId===c.id&&s.type==='training'&&s.source!=='client').sort((a,b)=>a.date<b.date?1:-1);
-  const availCards = load('punchCards').filter(pc=>{ return pc.totalSessions-punchCardSessions(pc.id).length>0; });
+  const availCards = load('punchCards').filter(pc=>{ return pc.totalSessions-punchCardSessionsUsed(pc.id).length-punchCardSessionsBooked(pc.id).length>0; });
   const editSessId = _cpEditSessionId;
   const sessRows = allSess.length ? allSess.map(s=>{
     const isFuture = s.date > today;
@@ -1634,7 +1634,7 @@ function updateSessionPunchCard(clientId, selectedId='') {
   if (!dd) return;
   // Only cards with remaining sessions
   const allCards = load('punchCards').filter(pc => {
-    return pc.totalSessions - punchCardSessions(pc.id).length > 0;
+    return pc.totalSessions - punchCardSessionsUsed(pc.id).length - punchCardSessionsBooked(pc.id).length > 0;
   });
   // Determine which sessions the client has used (to find cards they've punched before)
   const clientSessions = load('sessions').filter(s => s.clientId === clientId && s.punchCardId);
@@ -1643,7 +1643,7 @@ function updateSessionPunchCard(clientId, selectedId='') {
   const priority = allCards.filter(pc => pc.ownerClientId === clientId || usedCardIds.has(pc.id));
   const others   = allCards.filter(pc => pc.ownerClientId !== clientId && !usedCardIds.has(pc.id));
   function cardItem(pc) {
-    const rem = pc.totalSessions - punchCardSessions(pc.id).length;
+    const rem = pc.totalSessions - punchCardSessionsUsed(pc.id).length - punchCardSessionsBooked(pc.id).length;
     const label = `${esc(pc.name||clientName(pc.ownerClientId))} — ${esc(clientName(pc.ownerClientId))} (${rem}/${pc.totalSessions} נשאר)`;
     return `<div class="pc-opt" data-id="${pc.id}" data-name="${esc(pc.name||clientName(pc.ownerClientId))}" onclick="selectSessionPunchCard('${pc.id}','${esc(pc.name||clientName(pc.ownerClientId))}')" style="padding:10px 14px;cursor:pointer;font-size:.88rem" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">${label}</div>`;
   }
