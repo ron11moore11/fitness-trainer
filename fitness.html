@@ -1512,12 +1512,7 @@ function sessionForm(s={}, forceType='') {
   const isShift = type === 'shift';
   const initBillingMode = s.punchCardId ? 'punch' : 'price';
   return `<form id="modal-form">
-    <div class="type-toggle">
-      <input type="radio" name="type" value="training" id="type-training" ${!isShift?'checked':''} onchange="toggleSessionType()">
-      <label for="type-training">🏋️ אימון</label>
-      <input type="radio" name="type" value="shift" id="type-shift" ${isShift?'checked':''} onchange="toggleSessionType()">
-      <label for="type-shift">🕐 משמרת</label>
-    </div>
+    <input type="hidden" name="type" value="${isShift?'shift':'training'}">
 
     <!-- Training fields -->
     <div id="session-training-fields" ${isShift?'style="display:none"':''}>
