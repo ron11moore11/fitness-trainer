@@ -31,7 +31,7 @@
 |---|---|
 | `trainers` | מאמנים — name, phone, pin, isAdmin, createdAt |
 | `clients` | לקוחות — name, phone, email, age, goals, notes, trainerId |
-| `sessions` | אימונים — clientId, date, time, duration, notes, trainerId |
+| `sessions` | אימונים — clientId, date, time, duration, type, price, punchCardId, status, cancelledAt, cancelReason, cancelCharge, cancelChargeAmount, cancelPunch, trainerId |
 | `plans` | תוכניות אימון — clientId, name, isTemplate, exercises[], trainerId |
 | `payments` | תשלומים — clientId, amount, date, status, package, trainerId |
 | `exercises` | בנק תרגילים — name, category, videoUrl (משותף לכל המאמנים) |
@@ -49,6 +49,7 @@
 - **ניהול מאמנים (admin)** — טאב admin למאמן עם isAdmin=true: הוספה/מחיקה של מאמנים, מיגרציה של נתונים יתומים
 - **פורטל לקוחות** — client.html: לוח שנה, אימון חי, גרפי התקדמות. מסנן לפי trainerId.
 - **תזכורות** — אימונים 7 ימים קדימה + תזכורת WhatsApp
+- **מערכת ביטולים** — פופאפ ביטול עם תאריך/שעה, סיבה, בחירת חיוב (מחיר) או ניקוב (כרטיסייה). ברירת מחדל: ללא חיוב/ניקוב. היסטוריית ביטולים בפרופיל לקוח. פונקציות: `openCancelSessionModal()`, `restoreSession()`, `sessionDebtAmount()`, `sessionCountsAsPunch()`
 
 ## עיצוב (CSS tokens)
 ```
