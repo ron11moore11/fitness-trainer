@@ -1147,6 +1147,7 @@ function renderCpDetails(c) {
   const cancelRows = cancelledSess.length ? cancelledSess.map(s=>{
     const trainDate = fmtDate(s.date);
     const cancelDateFmt = s.cancelledAt ? fmtDate(s.cancelledAt.split(' ')[0]) : '—';
+    const cancelTimeFmt = s.cancelledAt && s.cancelledAt.includes(' ') ? s.cancelledAt.split(' ')[1] : '—';
     const reason = s.cancelReason ? esc(s.cancelReason) : '—';
     let chargeInfo = '—';
     if (s.cancelledAt) {
@@ -1158,11 +1159,11 @@ function renderCpDetails(c) {
         chargeInfo = '<span style="color:#4caf50">ללא חיוב</span>';
       }
     }
-    return `<tr><td>${trainDate}</td><td>${cancelDateFmt}</td><td style="font-size:.85rem">${reason}</td><td>${chargeInfo}</td></tr>`;
-  }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">אין ביטולים</td></tr>';
+    return `<tr><td>${trainDate}</td><td>${cancelDateFmt}</td><td>${cancelTimeFmt}</td><td style="font-size:.85rem">${reason}</td><td>${chargeInfo}</td></tr>`;
+  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">אין ביטולים</td></tr>';
   const cancelTable = `<div class="cp-section" style="margin-top:16px">
     <div class="cp-section-title">היסטוריית ביטולים</div>
-    <div class="table-wrap"><table><thead><tr><th>תאריך אימון</th><th>תאריך ביטול</th><th>סיבה</th><th>חיוב</th></tr></thead><tbody>${cancelRows}</tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>תאריך אימון</th><th>תאריך ביטול</th><th>שעת ביטול</th><th>סיבה</th><th>חיוב</th></tr></thead><tbody>${cancelRows}</tbody></table></div>
   </div>`;
 
   return info + summary + payTable + sessTable + pcTable + planTable + cancelTable;
